@@ -4,18 +4,26 @@
 import { useThree, useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-
-const STAR_COUNT = 3000;
+import { useQuality } from '../providers/QualityProvider';
 
 // ============================================
 // 1. FONDO DE ESTRELLAS (Sutiles, con deriva lenta)
 // ============================================
+const STAR_COUNT_BY_QUALITY: Record<string, number> = {
+  Ultra: 6000,
+  High: 5000,
+  Medium: 4000,
+  Low: 2500,
+};
+
 function DeepSpaceStars() {
   const pointsRef = useRef<THREE.Points>(null);
+  const { level } = useQuality();
+  const starCount = STAR_COUNT_BY_QUALITY[level] ?? 4000;
 
   const geometry = useMemo(() => {
-    const positions = new Float32Array(STAR_COUNT * 3);
-    for (let i = 0; i < STAR_COUNT; i++) {
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
       const r = 30 + Math.random() * 40;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos((Math.random() * 2) - 1);
@@ -26,7 +34,7 @@ function DeepSpaceStars() {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geo;
-  }, []);
+  }, [starCount]);
 
   const material = useMemo(
     () =>
@@ -79,23 +87,22 @@ function CinematicOrbitalLight() {
 }
 
 // ============================================
-// 3. BRILLO SIEMPRE VISIBLE (nuevo)
+// 3. ESTRELLAS FUGACES
 // ============================================
-// Un pointLight solo ilumina lo que tiene cerca — por eso no basta para un
-// "siempre presente en pantalla". Este es un plano con shader que actúa
-// como el brillo en sí mismo, anclado a la cámara (billboard): recalculamos
-// su posición mundial cada frame vía camera.matrixWorld, así viaja de
-// izquierda a derecha de LO QUE VES, sin importar hacia dónde mire lookAt().
-function AmbientSweep() {
+// Reemplaza al antiguo "AmbientSweep" (un brillo que cruzaba la pantalla sin
+// parar). En vez de un barrido continuo, cada instancia es un cometa que
+// aparece de golpe, cruza rápido una porción del cielo y se apaga — con un
+// tiempo de espera aleatorio antes de volver a lanzarse. `seed` desfasa el
+// primer lanzamiento de cada una para que no disparen todas a la vez.
+function ShootingStar({ seed }: { seed: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const localOffset = useMemo(() => new THREE.Vector3(), []);
 
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
         uniforms: {
-          uColor: { value: new THREE.Color('#7c9cff') },
-          uOpacity: { value: 0.22 },
+          uOpacity: { value: 0 },
+          uColor: { value: new THREE.Color('#eef0f7') },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -109,10 +116,11 @@ function AmbientSweep() {
           uniform float uOpacity;
           varying vec2 vUv;
           void main() {
-            float d = length(vUv - vec2(0.5));
-            // Caída muy suave — sin borde duro, se funde con el fondo
-            float glow = smoothstep(0.5, 0.0, d);
-            gl_FragColor = vec4(uColor, glow * uOpacity);
+            // Cabeza brillante en x=1, cola que se desvanece hacia x=0.
+            float head = smoothstep(0.0, 1.0, vUv.x);
+            float thickness = 1.0 - smoothstep(0.0, 0.5, abs(vUv.y - 0.5));
+            float alpha = head * head * thickness * uOpacity;
+            gl_FragColor = vec4(uColor, alpha);
           }
         `,
         transparent: true,
@@ -124,29 +132,85 @@ function AmbientSweep() {
     []
   );
 
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    // Ciclo lento: ~90s para cruzar toda la pantalla de un lado a otro
-    const t = state.clock.getElapsedTime() * 0.035;
-    const { camera } = state;
+  const cycle = useRef({
+    flying: false,
+    progress: 0,
+    cooldown: 3 + seed * 4 + Math.random() * 4,
+    durationSec: 0.8,
+    start: new THREE.Vector3(),
+    end: new THREE.Vector3(),
+  });
 
-    // x: recorre de izquierda a derecha en espacio local de cámara
-    // y: deriva vertical leve, para que no sea un recorrido en línea recta
-    // z: bien alejado, para que el plano se vea pequeño y sutil, no invasivo
-    localOffset.set(Math.sin(t) * 3.5, Math.sin(t * 0.6) * 1.2, -14);
+  useFrame((_state, delta) => {
+    const c = cycle.current;
+    const mesh = meshRef.current;
+    if (!mesh) return;
 
-    meshRef.current.position.copy(localOffset).applyMatrix4(camera.matrixWorld);
-    meshRef.current.quaternion.copy(camera.quaternion);
+    if (!c.flying) {
+      c.cooldown -= delta;
+      if (c.cooldown <= 0) {
+        // Nueva trayectoria: entra desde arriba-izquierda, cruza en diagonal.
+        const originX = -20 + Math.random() * 14;
+        const originY = 10 + Math.random() * 6;
+        const z = -18 - Math.random() * 14;
+        const length = 12 + Math.random() * 8;
+        const angle = 0.55 + (Math.random() - 0.5) * 0.3;
 
-    // Respiración de opacidad muy leve — nunca desaparece del todo,
-    // por eso el piso mínimo es alto (0.14) y el rango de variación es chico.
-    material.uniforms.uOpacity.value = 0.18 + Math.sin(t * 3.0) * 0.06;
+        c.start.set(originX, originY, z);
+        c.end.set(originX + Math.cos(-angle) * length, originY - Math.sin(angle) * length, z);
+        c.progress = 0;
+        c.durationSec = 0.6 + Math.random() * 0.5;
+        c.flying = true;
+      } else {
+        material.uniforms.uOpacity.value = 0;
+        return;
+      }
+    }
+
+    c.progress += delta / c.durationSec;
+    if (c.progress >= 1) {
+      c.flying = false;
+      c.cooldown = 5 + Math.random() * 9;
+      material.uniforms.uOpacity.value = 0;
+      return;
+    }
+
+    const pos = c.start.clone().lerp(c.end, c.progress);
+    mesh.position.copy(pos);
+
+    const dir = c.end.clone().sub(c.start).normalize();
+    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir);
+
+    // Entra rápido, se apaga al llegar al final del recorrido.
+    const fadeIn = Math.min(1, c.progress * 8);
+    const fadeOut = Math.min(1, (1 - c.progress) * 3);
+    material.uniforms.uOpacity.value = fadeIn * fadeOut;
   });
 
   return (
-    <mesh ref={meshRef} material={material} renderOrder={997}>
-      <planeGeometry args={[4, 4]} />
+    <mesh ref={meshRef} material={material} renderOrder={998}>
+      <planeGeometry args={[2.4, 0.06]} />
     </mesh>
+  );
+}
+
+const SHOOTING_STAR_COUNT_BY_QUALITY: Record<string, number> = {
+  Ultra: 4,
+  High: 4,
+  Medium: 3,
+  Low: 2,
+};
+
+function ShootingStars() {
+  const { level } = useQuality();
+  const count = SHOOTING_STAR_COUNT_BY_QUALITY[level] ?? 3;
+
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <ShootingStar key={i} seed={i} />
+      ))}
+    </>
   );
 }
 
@@ -165,7 +229,7 @@ export const Environment = () => {
     <>
       <DeepSpaceStars />
       <CinematicOrbitalLight />
-      <AmbientSweep />
+      <ShootingStars />
 
       <ambientLight intensity={0.4} color="#4455aa" />
     </>
