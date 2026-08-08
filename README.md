@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+#README.md
+# AVENTHRA
 
-## Getting Started
+## Descripción
 
-First, run the development server:
+AVENTHRA es una plataforma SaaS impulsada por inteligencia artificial que permite a empresas gestionar sus procesos comerciales, clientes, productos, ventas y otros módulos desde una única plataforma. Su objetivo es automatizar tareas repetitivas y mejorar la productividad mediante asistentes inteligentes.
+
+---
+
+# Objetivos
+
+- Centralizar la administración del negocio.
+- Automatizar procesos mediante IA.
+- Ofrecer una plataforma escalable y segura.
+- Proporcionar una excelente experiencia de usuario.
+- Facilitar la integración con múltiples servicios.
+
+---
+
+# Tecnologías
+
+## Frontend
+
+- Next.js
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+
+## Backend
+
+- Supabase
+- PostgreSQL
+- Supabase Auth
+
+## Validaciones
+
+- Zod
+
+## Inteligencia Artificial
+
+- Anthropic Claude
+
+---
+
+# Estructura del proyecto
+
+app/
+components/
+lib/
+hooks/
+types/
+public/
+docs/
+
+---
+
+# Instalación
+
+```bash
+git clone <repositorio>
+
+cd aventhra
+
+npm install
+```
+
+---
+
+# Variables de entorno
+
+Crear un archivo .env.local con las variables necesarias.
+
+Ejemplo:
+
+SUPABASE_URL=
+
+SUPABASE_ANON_KEY=
+
+ANTHROPIC_API_KEY=
+
+...
+
+---
+
+# Ejecutar en desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Construcción
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+# Despliegue
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+El proyecto está preparado para desplegarse en Vercel.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+# Documentación
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Toda la documentación técnica se encuentra dentro de la carpeta docs.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+# Licencia
+
+Proyecto privado.
+
+Todos los derechos reservados.
