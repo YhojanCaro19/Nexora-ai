@@ -1,71 +1,155 @@
-// components/landing/Navbar.tsx
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { Menu, X, Users, MessageCircle, LogIn } from "lucide-react";
+import { useState } from "react";
 
 const navItems = [
-  { label: 'Sobre nosotros', href: '/sobre-nosotros' },
-  { label: 'Contáctanos', href: '/contacto' },
+  {
+    label: "Sobre nosotros",
+    href: "/sobre-nosotros",
+    icon: Users,
+  },
+  {
+    label: "Contáctanos",
+    href: "/contacto",
+    icon: MessageCircle,
+  },
 ];
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <nav className="w-full relative z-50">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 py-5 flex items-center justify-between">
-        <Link href="/" className="flex items-center flex-shrink-0">
-          <span className="nexora-logo text-white text-lg tracking-[0.15em] uppercase">
-            Nexora
-          </span>
+    <>
+      {/* DESKTOP */}
+
+      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-[260px] z-50 flex-col px-10 py-10">
+
+        {/* Logo */}
+        <Link href="/" className="block">
+
+          <h1 className="aventhra-logo text-[1.9rem] tracking-[0.18em] text-white">
+            AVENTHRA
+          </h1>
+
+          <p className="mt-2 w-fit max-w-[170px] text-center text-[10px] uppercase tracking-[0.35em] text-white/35 leading-5">
+            Tu empleado virtual
+          </p>
+
         </Link>
 
-        <div className="hidden md:flex items-center gap-10 absolute left-1/2 -translate-x-1/2">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href} className="text-white/50 text-[13px] font-light tracking-wider hover:text-white/90 transition-colors">
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {/* Menú + Iniciar sesión (centrado verticalmente como un solo bloque) */}
+        <div className="flex-1 flex flex-col items-start justify-center">
 
-        <div className="flex items-center gap-4 flex-shrink-0">
-          <Link href="/login" className="hidden md:inline-flex text-white/70 text-[13px] font-light tracking-wider border border-white/15 rounded-full px-4 py-1.5 hover:bg-white/5 hover:text-white transition-colors">
+          <nav className="flex flex-col gap-7">
+
+            {navItems.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="group flex items-center gap-3 pl-5 text-[15px] font-light text-white/55 transition-all duration-300 hover:text-white hover:translate-x-1"
+                >
+                  <Icon
+                    size={16}
+                    strokeWidth={1.5}
+                    className="text-white/35 transition-colors duration-300 group-hover:text-white/70"
+                  />
+                  {item.label}
+                </Link>
+              );
+            })}
+
+          </nav>
+
+          <Link
+            href="/login"
+            className="group mt-10 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm text-white/75 transition-all duration-300 hover:border-white/30 hover:bg-white/5 hover:text-white"
+          >
+            <LogIn
+              size={15}
+              strokeWidth={1.5}
+              className="text-white/50 transition-colors duration-300 group-hover:text-white"
+            />
             Iniciar sesión
           </Link>
 
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-white/50 hover:text-white">
-            {isOpen ? <X size={22} /> : <Menu size={22} />}
+        </div>
+
+      </aside>
+
+      {/* MOBILE */}
+
+      <nav className="md:hidden fixed top-0 left-0 right-0 z-50">
+
+        <div className="flex justify-between items-center px-6 py-5">
+
+          <Link href="/">
+            <span className="aventhra-logo text-white tracking-[0.18em] text-lg">
+              AVENTHRA
+            </span>
+          </Link>
+
+          <button onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? (
+              <X className="text-white" size={22} />
+            ) : (
+              <Menu className="text-white" size={22} />
+            )}
           </button>
-        </div>
-      </div>
 
-      <motion.div
-        initial={false}
-        animate={{ height: isOpen ? 'auto' : 0, opacity: isOpen ? 1 : 0 }}
-        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="md:hidden overflow-hidden bg-[#08090D]/90 backdrop-blur-xl border-b border-white/[0.06] mx-4 rounded-2xl mt-2"
-      >
-        <div className="p-6 space-y-4">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href} onClick={() => setIsOpen(false)} className="block text-white/55 text-sm font-light tracking-wider hover:text-white transition-colors">
-              {item.label}
-            </Link>
-          ))}
-          <Link href="/login" onClick={() => setIsOpen(false)} className="block text-white/70 text-sm font-light tracking-wider">
-            Iniciar sesión
-          </Link>
         </div>
-      </motion.div>
+
+        <motion.div
+          initial={false}
+          animate={{
+            height: isOpen ? "auto" : 0,
+            opacity: isOpen ? 1 : 0,
+          }}
+          transition={{
+            duration: .4,
+          }}
+          className="overflow-hidden bg-[#08090D]/90 backdrop-blur-xl"
+        >
+
+          <div className="flex flex-col gap-6 px-6 py-6">
+
+            {navItems.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setIsOpen(false)}
+                className="text-white/70"
+              >
+                {item.label}
+              </Link>
+            ))}
+
+            <Link
+              href="/login"
+              onClick={() => setIsOpen(false)}
+              className="inline-flex w-fit rounded-full border border-white/15 px-5 py-2 text-white/80"
+            >
+              Iniciar sesión
+            </Link>
+
+          </div>
+
+        </motion.div>
+
+      </nav>
 
       <style jsx global>{`
-        .nexora-logo {
+        .aventhra-logo {
           font-family: var(--font-space-grotesk), sans-serif;
           font-weight: 500;
         }
       `}</style>
-    </nav>
+
+    </>
   );
 };

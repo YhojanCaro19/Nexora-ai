@@ -1,29 +1,25 @@
 // app/layout.tsx
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import { Space_Grotesk } from "next/font/google";
-import { Experience } from "@/components/experience/Experience";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono-data",
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "NEXORA AI",
-    template: "%s | NEXORA AI",
+    default: "AVENTHRA",
+    template: "%s | AVENTHRA",
   },
   description: "Siempre hay alguien cuidando tu negocio.",
 };
@@ -36,10 +32,10 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-screen flex flex-col bg-[#08090D] text-[#F5F6F8] overflow-x-hidden">
-        <Experience>{children}</Experience>
+        {children}
       </body>
     </html>
   );

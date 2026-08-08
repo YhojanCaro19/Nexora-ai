@@ -37,7 +37,7 @@ export const Hero = () => {
             transition={{ duration: 1, delay: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="text-white/45 text-sm md:text-base font-light leading-relaxed max-w-md tracking-wide mb-10"
           >
-            NEXORA AI es un empleado que trabaja 24/7. Responde, vende,
+            AVENTHRA es un empleado que trabaja 24/7. Responde, vende,
             agenda, organiza y automatiza — para que tú te enfoques en lo que importa.
           </motion.p>
 
