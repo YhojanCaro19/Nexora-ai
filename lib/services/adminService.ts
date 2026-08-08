@@ -1,4 +1,5 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { generateTempPassword } from "@/lib/services/passwordService";
 
 export async function isCurrentUserPlatformAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -31,22 +32,6 @@ export async function getContactRequests() {
     return [];
   }
   return data;
-}
-
-function generateTempPassword(): string {
-  // Contraseña temporal legible pero suficientemente fuerte para un solo uso.
-  const letters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz";
-  const digits = "23456789";
-  const symbols = "!@#$%&*";
-  let pwd = "";
-  for (let i = 0; i < 8; i++) {
-    pwd += letters[Math.floor(Math.random() * letters.length)];
-  }
-  pwd += digits[Math.floor(Math.random() * digits.length)];
-  pwd += digits[Math.floor(Math.random() * digits.length)];
-  pwd += symbols[Math.floor(Math.random() * symbols.length)];
-  // Mezcla simple para no dejar el símbolo siempre al final.
-  return pwd.split("").sort(() => Math.random() - 0.5).join("");
 }
 
 export async function createAccountFromRequest(requestId: string) {

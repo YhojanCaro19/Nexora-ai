@@ -65,3 +65,22 @@ export const COLABORADOR_NAV: NavGroup[] = [
     ],
   },
 ];
+
+/**
+ * Módulos que un admin puede asignar a un colaborador vía `business_members.permissions`
+ * (ver docs/database.md y docs/architecture.md — "Regla de oro sobre permisos de colaborador").
+ * `key` coincide con el segmento final del href del módulo en ADMIN_NAV, por la regla de
+ * coding-standards.md de que las rutas coincidan con nav-items.ts.
+ *
+ * Se excluyen a propósito "Inicio" (siempre visible), "Mi Agente" (configura el agente de
+ * todo el negocio, no es dato operativo del día a día) y "Colaboradores"/"Perfil" (gestión
+ * exclusiva del admin / dato personal). Si el negocio necesita que un colaborador administre
+ * más módulos, ampliar esta lista.
+ */
+export const ASSIGNABLE_MODULES = [
+  { key: 'pedidos', label: 'Pedidos', icon: ShoppingBag },
+  { key: 'catalogo', label: 'Catálogo', icon: Package },
+  { key: 'reportes', label: 'Reportes', icon: FileBarChart },
+] as const;
+
+export type ModuleKey = (typeof ASSIGNABLE_MODULES)[number]['key'];

@@ -34,7 +34,7 @@ export default function RootLayout({
       lang="es"
       className={`${GeistSans.variable} ${GeistMono.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-screen flex flex-col bg-[#08090D] text-[#F5F6F8] overflow-x-hidden">
+      <body className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
         {children}
       </body>
     </html>

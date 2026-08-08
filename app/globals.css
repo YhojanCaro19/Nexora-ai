@@ -65,21 +65,80 @@ body {
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
+}
 
-  :root {
+:root {
   --nexora-void: #050507;
   --nexora-panel: #0b0b10;
+  --nexora-popover: #121219;
+  --nexora-muted: #0e0e14;
+  --nexora-secondary: #16161f;
+  --nexora-accent: rgba(124, 156, 255, 0.1);
   --nexora-line: rgba(255, 255, 255, 0.07);
+  --nexora-input: rgba(255, 255, 255, 0.14);
   --nexora-ink: #eef0f7;
   --nexora-ink-dim: rgba(238, 240, 247, 0.52);
   --nexora-nova: #7c9cff;
   --nexora-nova-deep: #4455aa;
+  --nexora-nova-ink: #06070c;
   --nexora-signal: #34d399;
   --nexora-alert: #f87171;
+  --nexora-alert-ink: #fff1f1;
+
+  --radius: 0.625rem;
+}
+
+/* ---------------------------------------------------------------
+ * Puente shadcn/ui → Nexora. Los componentes de components/ui/
+ * (Button, Card, Input, Select, Table, Checkbox…) usan clases como
+ * bg-primary, bg-card, border-input, text-muted-foreground: son
+ * generadas por Tailwind v4 a partir de este bloque @theme. Sin él
+ * esas clases no existen y los componentes se renderizan sin color
+ * ni fondo. `inline` para que el valor generado siga siendo
+ * var(--nexora-*) — una sola fuente de verdad, no un valor congelado.
+ * --------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--nexora-void);
+  --color-foreground: var(--nexora-ink);
+
+  --color-card: var(--nexora-panel);
+  --color-card-foreground: var(--nexora-ink);
+  --color-popover: var(--nexora-popover);
+  --color-popover-foreground: var(--nexora-ink);
+
+  --color-primary: var(--nexora-nova);
+  --color-primary-foreground: var(--nexora-nova-ink);
+  --color-secondary: var(--nexora-secondary);
+  --color-secondary-foreground: var(--nexora-ink);
+
+  --color-muted: var(--nexora-muted);
+  --color-muted-foreground: var(--nexora-ink-dim);
+  --color-accent: var(--nexora-accent);
+  --color-accent-foreground: var(--nexora-ink);
+
+  --color-destructive: var(--nexora-alert);
+  --color-destructive-foreground: var(--nexora-alert-ink);
+
+  --color-border: var(--nexora-line);
+  --color-input: var(--nexora-input);
+  --color-ring: var(--nexora-nova);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
 .font-nexora {
   font-family: var(--font-space-grotesk), sans-serif;
+}
+
+/* Wordmark "AVENTHRA" — mismo tratamiento que components/landing/Navbar.tsx
+   (la marca junto al robot en la landing), para que el panel se vea
+   consistente con el sitio público. Única fuente de verdad de esta clase. */
+.aventhra-logo {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-weight: 500;
 }
 
 .font-mono-data {
@@ -96,5 +155,4 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .nexora-pulse { animation: none; }
-}
 }
