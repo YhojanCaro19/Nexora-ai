@@ -1,5 +1,6 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { businessSchema, type BusinessInput } from "@/lib/validators/businessSchema";
+import { translateError } from "@/lib/errors/translate";
 
 export async function createBusiness(input: BusinessInput) {
   const parsed = businessSchema.safeParse(input);
@@ -36,7 +37,7 @@ export async function createBusiness(input: BusinessInput) {
 
   if (error) {
     console.error("[createBusiness] error:", error);
-    return { error: error.message, data: null };
+    return { error: translateError(error), data: null };
   }
 
   // El trigger on_business_created ya agrega al owner como miembro.

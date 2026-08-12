@@ -4,6 +4,7 @@ import {
   collaboratorSchema,
   type CollaboratorInput,
 } from "@/lib/validators/collaboratorSchema";
+import { translateError } from "@/lib/errors/translate";
 
 /**
  * Crea un colaborador: usuario de Supabase Auth + fila en business_members
@@ -40,7 +41,7 @@ export async function createCollaborator(
   });
 
   if (createError || !newUser.user) {
-    return { error: createError?.message ?? "No se pudo crear el usuario", data: null };
+    return { error: translateError(createError), data: null };
   }
 
   const { error: memberError } = await admin.from("business_members").insert({
@@ -60,7 +61,7 @@ export async function createCollaborator(
     // (ver docs/decisions.md — "No hay signup público").
     await admin.auth.admin.deleteUser(newUser.user.id);
     console.error("[createCollaborator] error al crear business_members:", memberError);
-    return { error: memberError.message, data: null };
+    return { error: translateError(memberError), data: null };
   }
 
   return {
