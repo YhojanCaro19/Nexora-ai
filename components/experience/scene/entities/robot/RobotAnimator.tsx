@@ -3,12 +3,15 @@
 
 import { useFrame } from '@react-three/fiber';
 import { forwardRef, useRef } from 'react';
-import { Group, MathUtils } from 'three';
+import { Group } from 'three';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
 import { lerp } from '@/lib/math';
 
 interface RobotAnimatorProps {
   isInteractive: boolean;
+  /** false mientras el robot todavía está bajando sostenido por los cables:
+   * se queda rígido, sin flotar ni respirar ni seguir el mouse. */
+  active: boolean;
   mouse: {
     smoothX: number;
     smoothY: number;
@@ -16,12 +19,13 @@ interface RobotAnimatorProps {
 }
 
 export const RobotAnimator = forwardRef<Group, RobotAnimatorProps>(
-  ({ isInteractive, mouse }, ref) => {
+  ({ isInteractive, active, mouse }, ref) => {
     // Guardamos el estado actual de la rotación para aplicar inercia (lerp)
     const currentRotation = useRef({ x: 0, y: 0 });
 
     useFrame((state) => {
       if (!ref || !('current' in ref) || !ref.current) return;
+      if (!active) return; // sigue colgado de los cables, sin animación propia
 
       const time = state.clock.getElapsedTime();
 
@@ -30,14 +34,11 @@ export const RobotAnimator = forwardRef<Group, RobotAnimatorProps>(
       const floatY = Math.sin(time * EXPERIENCE_CONFIG.robot.floatSpeed) * EXPERIENCE_CONFIG.robot.floatAmplitude;
       ref.current.position.y = floatY;
 
-      // --- 2. RESPIRACIÓN ---
-      // Aplicamos una escala casi imperceptible en el eje Y para simular el pecho.
-      const breath = 1 + Math.sin(time * 0.8) * (EXPERIENCE_CONFIG.robot.breathScale - 1);
-      // Nota: Si el GLB tiene el pivote en la base, escalar en Y hará que parezca que respira.
-      // Si el pivote está en el centro, escalar uniformemente funciona.
-      ref.current.scale.y = breath;
+      // La "respiración" por escala de grupo se quitó de aquí: ahora el rig
+      // respira de verdad con la animación idle_breathe horneada en el .glb
+      // (ver Robot.tsx) — tenerlas las dos a la vez las hacía pisarse.
 
-      // --- 3. SEGUIMIENTO DEL MOUSE (Inercia Pesada) ---
+      // --- 2. SEGUIMIENTO DEL MOUSE (Inercia Pesada) ---
       if (isInteractive) {
         // Calculamos el ángulo objetivo basado en el mouse suavizado
         // Multiplicamos por la sensibilidad configurada

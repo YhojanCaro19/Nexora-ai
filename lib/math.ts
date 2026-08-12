@@ -17,3 +17,9 @@ export const lerp = (start: number, end: number, amt: number) => {
 export const clamp = (val: number, min: number, max: number) => {
   return Math.max(min, Math.min(max, val));
 };
+
+/**
+ * Ease-out cúbico: arranca rápido y frena suave al llegar a 1.
+ * @param t Progreso lineal (0 a 1).
+ */
+export const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);

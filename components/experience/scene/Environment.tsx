@@ -9,17 +9,16 @@ import { useQuality } from '../providers/QualityProvider';
 // ============================================
 // 1. FONDO DE ESTRELLAS (Sutiles, con deriva lenta)
 // ============================================
-const STAR_COUNT_BY_QUALITY: Record<string, number> = {
-  Ultra: 6000,
-  High: 5000,
-  Medium: 4000,
-  Low: 2500,
-};
+// Fija, NO depende del nivel de calidad automático — antes se veía bien
+// mientras el robot bajaba y casi desaparecía al flotar, porque el ajuste
+// de FPS (QualityProvider) bajaba de nivel justo cuando arrancaba la
+// animación del rig y con eso caía la cantidad de estrellas. El fondo no
+// debería depender de eso.
+const STAR_COUNT = 20000;
 
 function DeepSpaceStars() {
   const pointsRef = useRef<THREE.Points>(null);
-  const { level } = useQuality();
-  const starCount = STAR_COUNT_BY_QUALITY[level] ?? 4000;
+  const starCount = STAR_COUNT;
 
   const geometry = useMemo(() => {
     const positions = new Float32Array(starCount * 3);
@@ -135,7 +134,9 @@ function ShootingStar({ seed }: { seed: number }) {
   const cycle = useRef({
     flying: false,
     progress: 0,
-    cooldown: 3 + seed * 4 + Math.random() * 4,
+    // Desfasadas por seed para que no arranquen todas a la vez, pero todas
+    // convergen al ritmo de "cada ~4 segundos" desde el primer lanzamiento.
+    cooldown: seed * 1.2 + Math.random() * 1,
     durationSec: 0.8,
     start: new THREE.Vector3(),
     end: new THREE.Vector3(),
@@ -170,7 +171,9 @@ function ShootingStar({ seed }: { seed: number }) {
     c.progress += delta / c.durationSec;
     if (c.progress >= 1) {
       c.flying = false;
-      c.cooldown = 5 + Math.random() * 9;
+      // "cada ~4 segundos" — un poco de jitter (4.0–4.6s) para que no se
+      // sientan mecánicas, pero siempre alrededor de ese ritmo.
+      c.cooldown = 4 + Math.random() * 0.6;
       material.uniforms.uOpacity.value = 0;
       return;
     }
@@ -195,15 +198,15 @@ function ShootingStar({ seed }: { seed: number }) {
 }
 
 const SHOOTING_STAR_COUNT_BY_QUALITY: Record<string, number> = {
-  Ultra: 4,
-  High: 4,
-  Medium: 3,
-  Low: 2,
+  Ultra: 6,
+  High: 6,
+  Medium: 6,
+  Low: 6, // cuestan poco de por sí, aplica parejo en todas las calidades.
 };
 
 function ShootingStars() {
   const { level } = useQuality();
-  const count = SHOOTING_STAR_COUNT_BY_QUALITY[level] ?? 3;
+  const count = SHOOTING_STAR_COUNT_BY_QUALITY[level] ?? 6;
 
   return (
     <>

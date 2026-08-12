@@ -9,7 +9,7 @@ export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback?next=/actualizar-password`,
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback?next=/actualizar-password`,
   });
 
   if (error) {

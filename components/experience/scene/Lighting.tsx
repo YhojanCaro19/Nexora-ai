@@ -38,8 +38,8 @@ export const Lighting = () => {
       {/* 🔥 LUZ ASTRAL: halo puntual detrás del robot, como si emanara luz propia */}
       <pointLight
         position={[EXPERIENCE_CONFIG.robot.baseX, EXPERIENCE_CONFIG.robot.baseY + 0.3, -1.4]}
-        intensity={3.5}
-        distance={4}
+        intensity={4.6}
+        distance={4.5}
         color="#4CC2E8"
       />
       <pointLight

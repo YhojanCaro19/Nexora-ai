@@ -32,12 +32,20 @@ async function resolveRole(
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const next = searchParams.get("next");
 
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      // Si el link traía un destino explícito (ej. recuperación de contraseña
+      // -> /actualizar-password), respetamos ese destino primero.
+      // Solo aceptamos rutas relativas propias, para evitar open-redirect.
+      if (next && next.startsWith("/")) {
+        return NextResponse.redirect(`${origin}${next}`);
+      }
+
       const {
         data: { user },
       } = await supabase.auth.getUser();

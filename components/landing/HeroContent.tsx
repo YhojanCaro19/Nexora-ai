@@ -28,16 +28,14 @@ export const HeroContent = () => {
           AVENTHRA es el empleado inteligente que atiende a tus clientes, impulsa tus ventas y automatiza tu negocio, las 24 horas del día. Tú decides las reglas; él se encarga del resto.
         </p>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-4">
-          <Link href="/dashboard">
+        {/* max-w-md igual que el párrafo de arriba, con justify-center: el
+            botón queda centrado respecto al ANCHO DEL TEXTO, no pegado a su
+            borde izquierdo — sin mover el título ni el párrafo de su sitio. */}
+        <div className="mt-8 w-full max-w-md flex justify-center">
+          <Link href="/contacto">
             <span className="group px-6 py-3 rounded-full bg-[#4CC2E8] text-black text-sm font-medium inline-flex items-center gap-2 hover:shadow-[0_0_30px_rgba(76,194,232,0.2)] transition-all">
               Empezar ahora
               <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </span>
-          </Link>
-          <Link href="/contacto">
-            <span className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-white/70 text-sm font-light hover:bg-white/10 transition-colors inline-block">
-              Ver cómo funciona
             </span>
           </Link>
         </div>

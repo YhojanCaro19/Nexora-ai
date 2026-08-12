@@ -1,77 +1,89 @@
 // components/experience/scene/RobotScene.tsx
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Group, Vector3 } from 'three';
+import { Group } from 'three';
 import { RobotController } from './entities/robot/RobotController';
-import { lerp } from '@/lib/math';
+import { DescentCables } from './entities/robot/DescentCables';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
+import { easeOutCubic } from '@/lib/math';
 
 const BASE_X = 2.5;
 const BASE_Y = -0.46;
-const CAMERA_Z = 2.8; // debe coincidir con el z fijo en CameraRig
+const ROTATION_Y = -1.2;
+const SCALE = 0.55;
+
+// Constante durante toda la vida del componente (no depende de props/estado),
+// así que no hace falta memoizarla ni guardarla en un ref para leerla en el render.
+const START_Y = BASE_Y + EXPERIENCE_CONFIG.entryAnimation.dropHeight;
 
 export const RobotScene = () => {
   const robotGroupRef = useRef<Group>(null);
+  const currentYRef = useRef(START_Y);
+  const elapsedRef = useRef(0);
+  // Progreso 0→1 de la "soltada": cables retrayéndose/desvaneciéndose y
+  // cabeza enderezándose, todos leen este mismo ref — un solo reloj, sin
+  // temporizadores independientes que se puedan desincronizar.
+  const releaseProgressRef = useRef(0);
 
-  // 🔥 Posición final real del robot (a donde queremos que llegue)
-  const finalPosition = useMemo(
-    () => new Vector3(BASE_X, BASE_Y, EXPERIENCE_CONFIG.entryAnimation.endZ),
-    []
-  );
-
-  // 🔥 Dirección exacta desde la cámara hasta esa posición final.
-  // Mover al robot SOBRE esta línea garantiza que su proyección en pantalla
-  // no cambie de lugar — solo cambia de tamaño (se acerca).
-  const rayDirection = useMemo(() => {
-    const cameraBase = new Vector3(0, 0, CAMERA_Z);
-    return finalPosition.clone().sub(cameraBase).normalize();
-  }, [finalPosition]);
-
-  // "s" = qué tan lejos está el robot MÁS ALLÁ de su posición final, sobre el rayo.
-  // Empieza grande (muy lejos) y termina en 0 (exactamente en su posición final).
-  const startDistance = Math.abs(
-    EXPERIENCE_CONFIG.entryAnimation.startZ - EXPERIENCE_CONFIG.entryAnimation.endZ
-  );
-  const currentS = useRef(startDistance);
-  const hasArrivedRef = useRef(false);
   const [arrived, setArrived] = useState(false);
+  const [cablesMounted, setCablesMounted] = useState(true);
 
-  const easingFactor = EXPERIENCE_CONFIG.entryAnimation.easingFactor;
+  useFrame((state, delta) => {
+    if (!arrived) {
+      elapsedRef.current += delta;
+      const t = Math.min(1, elapsedRef.current / EXPERIENCE_CONFIG.entryAnimation.descentDuration);
+      const eased = easeOutCubic(t);
+      currentYRef.current = START_Y + (BASE_Y - START_Y) * eased;
 
-  useFrame((state) => {
-    currentS.current = lerp(currentS.current, 0, easingFactor);
+      // Leve balanceo tipo péndulo mientras baja — se apaga solo (× (1 - t))
+      // así llega quieto a destino, sin frenazo brusco.
+      if (robotGroupRef.current) {
+        const { swayAmplitude, swaySpeed } = EXPERIENCE_CONFIG.entryAnimation;
+        const sway = Math.sin(state.clock.getElapsedTime() * swaySpeed) * swayAmplitude * (1 - eased);
+        robotGroupRef.current.rotation.z = sway;
+      }
 
-    if (!hasArrivedRef.current && currentS.current < 0.02) {
-      hasArrivedRef.current = true;
-      setArrived(true);
+      if (t >= 1) {
+        setArrived(true);
+      }
+    } else if (releaseProgressRef.current < 1) {
+      releaseProgressRef.current = Math.min(
+        1,
+        releaseProgressRef.current + delta / EXPERIENCE_CONFIG.entryAnimation.releaseDuration
+      );
+      if (releaseProgressRef.current >= 1 && cablesMounted) {
+        setCablesMounted(false);
+      }
     }
 
     if (robotGroupRef.current) {
-      // Posición = destino final + dirección * distancia restante sobre el rayo.
-      const pos = finalPosition.clone().addScaledVector(rayDirection, currentS.current);
-      robotGroupRef.current.position.x = pos.x;
-      robotGroupRef.current.position.z = pos.z;
-
-      if (hasArrivedRef.current) {
-        const t = state.clock.getElapsedTime();
-        const { floatAmplitude, floatSpeed } = EXPERIENCE_CONFIG.robot;
-        robotGroupRef.current.position.y = pos.y + Math.sin(t * floatSpeed) * floatAmplitude;
-      } else {
-        robotGroupRef.current.position.y = pos.y;
-      }
+      robotGroupRef.current.position.y = currentYRef.current;
     }
   });
 
   return (
-    <group
-      ref={robotGroupRef}
-      position={[BASE_X, BASE_Y, EXPERIENCE_CONFIG.entryAnimation.startZ]}
-      rotation={[0, -0.9, 0]}
-      scale={1.1}
-    >
-      <RobotController />
-    </group>
+    <>
+      <group
+        ref={robotGroupRef}
+        position={[BASE_X, START_Y, EXPERIENCE_CONFIG.entryAnimation.endZ]}
+        rotation={[0, ROTATION_Y, 0]}
+        scale={SCALE}
+      >
+        <RobotController arrived={arrived} releaseProgressRef={releaseProgressRef} />
+      </group>
+
+      {cablesMounted && (
+        <DescentCables
+          baseX={BASE_X}
+          endZ={EXPERIENCE_CONFIG.entryAnimation.endZ}
+          rotationY={ROTATION_Y}
+          startY={START_Y}
+          currentYRef={currentYRef}
+          releaseProgressRef={releaseProgressRef}
+        />
+      )}
+    </>
   );
 };

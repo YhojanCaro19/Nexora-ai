@@ -14,7 +14,7 @@ export const EXPERIENCE_CONFIG = {
       ambient: 0.2,
       key: 2.5,
       fill: 0.9,
-      rim: 1.8,
+      rim: 2.6,
     }
   },
 
@@ -28,6 +28,17 @@ export const EXPERIENCE_CONFIG = {
     floatSpeed: 0.8,
     breathScale: 1.001,
     emissivePulseSpeed: 0.6,
+    // 🎨 Material del cuerpo — única fuente de verdad, la usan tanto
+    // Robot.tsx (el mesh) como DescentCables.tsx (para que los cables sean
+    // del mismo material, no un shader aparte).
+    bodyColor: '#f0f3f8',
+    bodyMetalness: 0.55,
+    bodyRoughness: 0.28,
+    // Cables: mismo material/brillo que el cuerpo (para que se note que
+    // "vienen del mismo robot"), solo que en un tono más oscuro — el tubo
+    // en sí NO cambia de color ni brilla solo; el efecto de energía va
+    // aparte, en destellos puntuales (ver CablePulseShader.tsx).
+    cableColor: '#7d818a',
   },
 
   postprocessing: {
@@ -58,10 +69,24 @@ export const EXPERIENCE_CONFIG = {
   },
 
   entryAnimation: {
-    startZ: -45,
+    // 🪝 Descenso por cables: el robot arranca "dropHeight" unidades por
+    // encima de su Y final (baseY) y baja en línea recta en "descentDuration"
+    // segundos. X/Z quedan fijos en su destino desde el primer frame.
     endZ: 1.9,
-    duration: 2.5,
-    easingFactor: 0.04,
+    dropHeight: 9,
+    descentDuration: 3.4,
+    // Al llegar: los cables se retraen hacia arriba y se desvanecen, y la
+    // cabeza/cuello (que bajó inclinada) se endereza — los tres sincronizados
+    // sobre esta misma duración.
+    releaseDuration: 1.6,
+    // Inclinación de cabeza/cuello mientras cuelga de los cables (radianes),
+    // se endereza en sincronía con la soltada. Confirmada en pantalla — este
+    // signo sí quedó bien.
+    headTiltAngle: 0.55,
+    // Leve balanceo tipo péndulo mientras baja, para que no se sienta
+    // rígido — se apaga solo al llegar.
+    swayAmplitude: 0.06,
+    swaySpeed: 1.6,
   },
 } as const;
 
