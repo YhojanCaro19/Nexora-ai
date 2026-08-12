@@ -1,6 +1,7 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { generateTempPassword } from "@/lib/services/passwordService";
 import { translateError } from "@/lib/errors/translate";
+import { getToolKeysForIndustry } from "@/lib/services/agentTemplateService";
 
 export async function isCurrentUserPlatformAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -107,6 +108,22 @@ export async function createAccountFromRequest(
     await admin.from("businesses").delete().eq("id", business.id);
     await admin.auth.admin.deleteUser(newUser.user.id);
     return { error: translateError(memberError), data: null };
+  }
+
+  // El agente arranca con las herramientas por defecto de esa industria —
+  // esto tampoco se estaba creando antes (el negocio quedaba sin ninguna
+  // fila en agent_configs, ni siquiera vacía).
+  const defaultTools = await getToolKeysForIndustry(industryType);
+  const { error: agentError } = await admin.from("agent_configs").insert({
+    business_id: business.id,
+    enabled_tools: defaultTools,
+  });
+
+  if (agentError) {
+    // No es fatal para el flujo — el negocio y la cuenta ya existen y son
+    // válidos. Se deja registrado para revisar, el admin puede configurar
+    // sus herramientas después desde "Mi Agente".
+    console.error("[createAccountFromRequest] error al crear agent_configs:", agentError);
   }
 
   await admin

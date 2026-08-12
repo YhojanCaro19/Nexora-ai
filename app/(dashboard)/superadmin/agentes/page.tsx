@@ -1,14 +1,20 @@
-'use client';
+// app/(dashboard)/superadmin/agentes/page.tsx
+import { getIndustryTemplates, getToolCatalog } from "@/lib/services/agentTemplateService";
+import { AgentTemplatesPanel } from "./agent-templates-panel";
 
-import { Bot } from "lucide-react";
-import { EmptyStateSection } from "@/components/dashboard/shared/EmptyStateSection";
+export default async function AgentesPage() {
+  const [templates, catalog] = await Promise.all([
+    getIndustryTemplates(),
+    Promise.resolve(getToolCatalog()),
+  ]);
 
-export default function AgentesPage() {
   return (
-    <EmptyStateSection
-      icon={Bot}
-      title="Agentes"
-      description="Aquí administrarás los agentes de IA disponibles en la plataforma..."
-    />
+    <div className="space-y-6">
+      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
+        Agentes
+      </h1>
+
+      <AgentTemplatesPanel templates={templates} catalog={catalog} />
+    </div>
   );
 }
