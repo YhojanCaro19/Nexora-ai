@@ -24,7 +24,15 @@ export async function getIndustryTemplates(): Promise<IndustryTemplate[]> {
   const { data, error } = await admin.from("industry_agent_templates").select("industry_type, tool_keys");
 
   if (error) {
-    console.error("[getIndustryTemplates] error:", error);
+    // Los objetos de error de Supabase no siempre se ven completos en la
+    // consola del navegador (Next.js los muestra como "{}") — se listan
+    // los campos a mano para que el mensaje real quede visible.
+    console.error("[getIndustryTemplates] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
   }
 
   const byIndustry = new Map<string, AgentToolKey[]>();

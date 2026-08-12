@@ -30,7 +30,12 @@ export async function getContactRequests() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[getContactRequests] error:", error);
+    console.error("[getContactRequests] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     return [];
   }
   return data;
@@ -84,27 +89,42 @@ export async function createAccountFromRequest(
     .single();
 
   if (businessError || !business) {
+    console.error("[createAccountFromRequest] error al crear businesses:", {
+      message: businessError?.message,
+      code: businessError?.code,
+      details: businessError?.details,
+      hint: businessError?.hint,
+    });
     // No dejar un usuario de Auth huérfano si esto falla.
     await admin.auth.admin.deleteUser(newUser.user.id);
     return { error: translateError(businessError), data: null };
   }
 
-  const { error: memberError } = await admin.from("business_members").insert({
-    business_id: business.id,
-    user_id: newUser.user.id,
-    role: "admin",
-    full_name: request.full_name,
-    phone: request.phone,
-    permissions: [],
-    must_change_password: true,
-    is_active: true,
-    created_by: createdBy,
-  });
+  // El trigger on_business_created (en Supabase) ya crea automáticamente
+  // una fila mínima en business_members (business_id, user_id, role) apenas
+  // se inserta el negocio, ANTES de que este código siga corriendo — así
+  // que en vez de insertar una fila nueva (que duplicaría o chocaría con
+  // la del trigger), se completa la que el trigger ya dejó con el resto de
+  // los datos: nombre, teléfono, y el must_change_password que de verdad
+  // importa para forzar el cambio de la contraseña temporal.
+  const { error: memberError } = await admin
+    .from("business_members")
+    .update({
+      full_name: request.full_name,
+      phone: request.phone,
+      must_change_password: true,
+      created_by: createdBy,
+    })
+    .eq("business_id", business.id)
+    .eq("user_id", newUser.user.id);
 
-  // 23505 = ya existe esa fila (unique violation) — no se trata como error
-  // real: puede pasar si en algún momento se agrega un trigger que la cree
-  // automáticamente al insertar en businesses, y no queremos duplicar.
-  if (memberError && memberError.code !== "23505") {
+  if (memberError) {
+    console.error("[createAccountFromRequest] error al completar business_members:", {
+      message: memberError.message,
+      code: memberError.code,
+      details: memberError.details,
+      hint: memberError.hint,
+    });
     await admin.from("businesses").delete().eq("id", business.id);
     await admin.auth.admin.deleteUser(newUser.user.id);
     return { error: translateError(memberError), data: null };
@@ -123,7 +143,12 @@ export async function createAccountFromRequest(
     // No es fatal para el flujo — el negocio y la cuenta ya existen y son
     // válidos. Se deja registrado para revisar, el admin puede configurar
     // sus herramientas después desde "Mi Agente".
-    console.error("[createAccountFromRequest] error al crear agent_configs:", agentError);
+    console.error("[createAccountFromRequest] error al crear agent_configs:", {
+      message: agentError.message,
+      code: agentError.code,
+      details: agentError.details,
+      hint: agentError.hint,
+    });
   }
 
   await admin
@@ -160,7 +185,12 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("[getBusinesses] error:", error);
+    console.error("[getBusinesses] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
     return [];
   }
   if (!businesses) return [];
