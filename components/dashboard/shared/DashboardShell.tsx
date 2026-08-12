@@ -2,7 +2,7 @@
 
 import { LogOut } from 'lucide-react';
 import { Sidebar } from './Sidebar';
-import { logout } from '@/app/(auth)/actions';
+import { logout } from '@/app/(experience)/(auth)/actions';
 import { ADMIN_NAV, COLABORADOR_NAV, SUPERADMIN_NAV } from '@/lib/constants/nav-items';
 
 type Role = 'admin' | 'colaborador' | 'superadmin';

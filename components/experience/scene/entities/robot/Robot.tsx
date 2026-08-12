@@ -31,19 +31,15 @@ const POSE_BONES: Array<{ name: string; axis: 'x' | 'y' | 'z'; angle: number }> 
   { name: 'neck', axis: 'x', angle: EXPERIENCE_CONFIG.entryAnimation.headTiltAngle * 0.4 },
 ];
 
-// Los 6 huesos de cable que ya trae el propio modelo (su "cola" permanente).
-// idle_breathe los animaba mal (se veían girando feo cerca de los tobillos),
-// así que se ignora esa animación y en su lugar se les da un balanceo propio,
-// suave, tipo cable colgando con corriente de aire — no un giro raro, pero
-// tampoco completamente quietos. Cada uno con su propia frecuencia/fase para
-// que no se muevan todos en bloque, en el mismo espíritu que los destellos
-// de CablePulseShader.tsx.
+// Los 6 huesos de cable que ya trae el propio modelo (su "cola" permanente)
+// quedan animados por idle_breathe y se ven como algo girando cerca de los
+// tobillos — se piden quietos, así que se congelan en su bind pose siempre.
+//
+// Se intentó un balanceo propio por encima del bind pose (ver historial),
+// pero el pivote de estos huesos cae justo en la zona del tobillo y CUALQUIER
+// rotación —por mínima que fuera— se notaba ahí primero, apuntando hacia
+// arriba de forma rara. Vuelve a estar 100% quieto, que es como se veía bien.
 const CABLE_BONE_NAMES = ['cable_01', 'cable_02', 'cable_03', 'cable_04', 'cable_05', 'cable_06'];
-// El pivote de cada hueso queda justo en la zona del tobillo, así que
-// CUALQUIER rotación se nota ahí primero (es lo que se veía mal con
-// idle_breathe). Amplitud mínima y un solo eje — apenas un temblor, no un
-// balanceo visible.
-const CABLE_SWAY_AMPLITUDE = 0.015; // radianes
 
 interface PoseBone {
   bone: Bone;
@@ -51,14 +47,10 @@ interface PoseBone {
   angle: number;
 }
 
-interface CableBone {
+interface FrozenBone {
   bone: Bone;
   position: Vector3;
-  bindQuaternion: Quaternion;
-  // Fase/frecuencia propias, derivadas del índice — así cada cable se mece
-  // en su propio momento en vez de todos a la vez.
-  phase: number;
-  speed: number;
+  quaternion: Quaternion;
 }
 
 interface RobotProps {
@@ -76,7 +68,7 @@ export const Robot = forwardRef<Group, RobotProps>(({ arrived, releaseProgressRe
   const { actions } = useAnimations(animations, scene);
 
   const poseBonesRef = useRef<PoseBone[]>([]);
-  const cableBonesRef = useRef<CableBone[]>([]);
+  const frozenBonesRef = useRef<FrozenBone[]>([]);
 
   useEffect(() => {
     if (scene) {
@@ -96,17 +88,11 @@ export const Robot = forwardRef<Group, RobotProps>(({ arrived, releaseProgressRe
         return bone ? { bone, axis, angle } : null;
       }).filter((b): b is PoseBone => b !== null);
 
-      cableBonesRef.current = CABLE_BONE_NAMES.map((name, i) => {
+      frozenBonesRef.current = CABLE_BONE_NAMES.map((name) => {
         const bone = scene.getObjectByName(name) as Bone | undefined;
         if (!bone) return null;
-        return {
-          bone,
-          position: bone.position.clone(),
-          bindQuaternion: bone.quaternion.clone(),
-          phase: i * 1.8,
-          speed: 0.7 + i * 0.15,
-        };
-      }).filter((b): b is CableBone => b !== null);
+        return { bone, position: bone.position.clone(), quaternion: bone.quaternion.clone() };
+      }).filter((b): b is FrozenBone => b !== null);
 
       // 🔍 Medimos el bounding box real del modelo para saber su tamaño exacto.
       const box = new Box3().setFromObject(scene);
@@ -140,15 +126,11 @@ export const Robot = forwardRef<Group, RobotProps>(({ arrived, releaseProgressRe
     };
   }, [arrived, actions]);
 
-  useFrame((state) => {
-    // Los cables propios del modelo: posición fija en su bind pose, pero con
-    // un balanceo leve por encima (no la animación horneada, que se veía
-    // mal) — cada uno con su fase/velocidad para que no se muevan en bloque.
-    const t = state.clock.getElapsedTime();
-    cableBonesRef.current.forEach(({ bone, position, bindQuaternion, phase, speed }) => {
+  useFrame(() => {
+    // Los cables propios del modelo, siempre quietos en su bind pose.
+    frozenBonesRef.current.forEach(({ bone, position, quaternion }) => {
       bone.position.copy(position);
-      bone.quaternion.copy(bindQuaternion);
-      bone.rotateX(Math.sin(t * speed + phase) * CABLE_SWAY_AMPLITUDE);
+      bone.quaternion.copy(quaternion);
     });
 
     const release = releaseProgressRef.current ?? (arrived ? 1 : 0);

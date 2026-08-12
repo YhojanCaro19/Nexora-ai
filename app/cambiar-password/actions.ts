@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { translateError } from "@/lib/errors/translate";
 
 const schema = z.object({
   password: z
@@ -14,12 +15,6 @@ const schema = z.object({
     .regex(/[0-9]/, "Debe incluir al menos un número")
     .regex(/[^a-zA-Z0-9]/, "Debe incluir al menos un carácter especial"),
 });
-
-const roleHome: Record<string, string> = {
-  admin: "/admin",
-  colaborador: "/colaborador",
-  superadmin: "/superadmin",
-};
 
 // Cliente aparte, con service role, SOLO para esta escritura puntual que
 // RLS no permite hacer a un usuario sobre su propia fila. Nunca se expone
@@ -53,7 +48,7 @@ export async function changePasswordAction(formData: FormData) {
   });
 
   if (authError) {
-    redirect(`/cambiar-password?error=${encodeURIComponent(authError.message)}`);
+    redirect(`/cambiar-password?error=${encodeURIComponent(translateError(authError))}`);
   }
 
   // Con service role: apaga el flag real que lee getSessionProfile().
@@ -65,14 +60,12 @@ export async function changePasswordAction(formData: FormData) {
     .eq("user_id", user.id);
 
   if (memberError) {
-    redirect(`/cambiar-password?error=${encodeURIComponent(memberError.message)}`);
+    redirect(`/cambiar-password?error=${encodeURIComponent(translateError(memberError))}`);
   }
 
-  const { data: membership } = await supabaseAdmin
-    .from("business_members")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  redirect(roleHome[membership?.role ?? ""] ?? "/login");
+  // No lo dejamos entrar directo al panel con la sesión que abrió con la
+  // contraseña temporal — cierra sesión y que vuelva a entrar ya con la
+  // contraseña nueva, como pidió el superadmin.
+  await supabase.auth.signOut();
+  redirect("/login?message=" + encodeURIComponent("Contraseña actualizada. Inicia sesión de nuevo."));
 }

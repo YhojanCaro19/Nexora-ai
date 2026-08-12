@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { translateError } from "@/lib/errors/translate";
 
 const ROLE_PREFIX: Record<string, string> = {
   superadmin: "/superadmin",
@@ -56,7 +57,7 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(translateError(error))}`);
   }
 
   revalidatePath("/", "layout");
@@ -79,7 +80,7 @@ export async function signInWithGoogle() {
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(translateError(error))}`);
   }
 
   if (data.url) {

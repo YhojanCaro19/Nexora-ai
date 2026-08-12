@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { translateError } from "@/lib/errors/translate";
 
 const schema = z.object({
   password: z
@@ -49,7 +50,7 @@ export async function updatePasswordAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/actualizar-password?error=${encodeURIComponent(error.message)}`);
+    redirect(`/actualizar-password?error=${encodeURIComponent(translateError(error))}`);
   }
 
   // Sincroniza el flag real por si este usuario también tenía pendiente

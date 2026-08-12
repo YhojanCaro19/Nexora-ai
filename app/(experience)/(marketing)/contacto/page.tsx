@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 
 export default async function ContactPage({
   searchParams,
@@ -22,9 +23,9 @@ export default async function ContactPage({
 
   return (
     <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
-      <div className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
+      <FocusGlowCard className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
         <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
-          <CardHeader>
+          <CardHeader className="text-center">
             <CardTitle className="text-2xl font-normal text-white">
               Hablemos sobre tu negocio
             </CardTitle>
@@ -52,7 +53,7 @@ export default async function ContactPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="full_name"
-                    className="text-xs tracking-wide text-white/60"
+                    className="text-xs tracking-wide text-white/60 text-center"
                   >
                     Tu nombre
                   </Label>
@@ -68,7 +69,7 @@ export default async function ContactPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="business_name"
-                    className="text-xs tracking-wide text-white/60"
+                    className="text-xs tracking-wide text-white/60 text-center"
                   >
                     Nombre de tu negocio
                   </Label>
@@ -83,7 +84,7 @@ export default async function ContactPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="email"
-                    className="text-xs tracking-wide text-white/60"
+                    className="text-xs tracking-wide text-white/60 text-center"
                   >
                     Correo
                   </Label>
@@ -100,7 +101,7 @@ export default async function ContactPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="phone"
-                    className="text-xs tracking-wide text-white/60"
+                    className="text-xs tracking-wide text-white/60 text-center"
                   >
                     Teléfono
                   </Label>
@@ -115,7 +116,7 @@ export default async function ContactPage({
                 <div className="space-y-2">
                   <Label
                     htmlFor="message"
-                    className="text-xs tracking-wide text-white/60"
+                    className="text-xs tracking-wide text-white/60 text-center"
                   >
                     Cuéntanos sobre tu negocio
                   </Label>
@@ -138,7 +139,7 @@ export default async function ContactPage({
             )}
           </CardContent>
         </Card>
-      </div>
+      </FocusGlowCard>
     </div>
   );
 }

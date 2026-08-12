@@ -5,7 +5,7 @@ export default function AboutPage() {
     <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
       {/* Contenedor del contenido */}
       <div className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
-        <span className="text-[#4CC2E8] text-xs font-light tracking-[0.2em] uppercase">
+        <span className="block text-center text-[#4CC2E8] text-xs font-light tracking-[0.2em] uppercase">
           Sobre nosotros
         </span>
 

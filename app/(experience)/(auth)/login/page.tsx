@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 
 function GoogleLogo() {
   return (
@@ -44,10 +45,17 @@ export default async function LoginPage({
 
   return (
     <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
-      <div className="w-full max-w-sm ml-20 lg:ml-32 xl:ml-40 2xl:ml-52">
+      {/* 20% más grande, y luego 10% más chica sobre ese resultado:
+          1.2 × 0.9 = 1.08 de base. Al enfocar un campo pasa a 1.08 × 1.05 =
+          1.134 — no se suman los transforms, así que ya incluye la base. */}
+      <FocusGlowCard
+        className="w-full max-w-sm ml-20 lg:ml-32 xl:ml-40 2xl:ml-52"
+        baseScaleClass="scale-[1.08]"
+        activeScaleClass="scale-[1.134]"
+      >
         <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
-          <CardHeader>
-            <CardTitle className="text-white font-normal">Iniciar sesión</CardTitle>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl text-white font-normal">Iniciar sesión</CardTitle>
             <CardDescription className="text-white/45">
               Entra a tu panel de AVENTHRA
             </CardDescription>
@@ -83,7 +91,8 @@ export default async function LoginPage({
                   name="password"
                   type="password"
                   required
-                  className="bg-white/[0.03] border-white/10 text-white focus-visible:ring-[#4CC2E8]/40"
+                  placeholder="••••••••"
+                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
                 />
               </div>
               <Button
@@ -119,7 +128,7 @@ export default async function LoginPage({
             </p>
           </CardContent>
         </Card>
-      </div>
+      </FocusGlowCard>
     </div>
   );
 }
