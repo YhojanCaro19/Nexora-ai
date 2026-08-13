@@ -24,31 +24,6 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   return data as Order[];
 }
 
-export async function createOrder(businessId: string, items: OrderItem[]) {
-  if (items.length === 0) {
-    return { error: "Agrega al menos un producto", data: null };
-  }
-
-  const total = items.reduce((sum, item) => sum + item.quantity * item.unit_price, 0);
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .insert({
-      business_id: businessId,
-      items,
-      total,
-      status: "pending",
-    })
-    .select()
-    .single();
-
-  if (error) {
-    return { error: translateError(error), data: null };
-  }
-  return { error: null, data };
-}
-
 export async function updateOrderStatus(orderId: string, businessId: string, status: OrderStatus) {
   const supabase = await createClient();
   const { error } = await supabase

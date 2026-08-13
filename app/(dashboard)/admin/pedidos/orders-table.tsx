@@ -12,9 +12,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { updateOrderStatusAction } from "./actions";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS, type Order, type OrderStatus } from "@/lib/types/order";
+import { formatShortDateTime } from "@/lib/utils/date";
 
 const currency = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-const dateFormatter = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "var(--nexora-nova)",
@@ -35,7 +35,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>Pedidos</CardTitle>
         <CardDescription>
           {orders.length === 0
@@ -61,7 +61,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                   onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}
                 >
                   <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>
-                    {dateFormatter.format(new Date(o.created_at))}
+                    {formatShortDateTime(o.created_at)}
                   </TableCell>
                   <TableCell style={{ color: 'var(--nexora-ink)' }}>
                     {o.items.length} producto{o.items.length === 1 ? "" : "s"}
