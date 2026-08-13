@@ -1,0 +1,10 @@
+import { z } from "zod";
+
+export const productSchema = z.object({
+  name: z.string().min(2, "El nombre debe tener al menos 2 caracteres").max(100),
+  description: z.string().max(500).optional(),
+  price: z.number().min(0, "El precio no puede ser negativo"),
+  stock: z.number().int().min(0, "El stock no puede ser negativo").nullable().optional(),
+});
+
+export type ProductInput = z.infer<typeof productSchema>;
