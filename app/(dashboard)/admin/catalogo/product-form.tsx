@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
+import { ImagePlus } from "lucide-react";
 import { createProductAction, updateProductAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { Product } from "@/lib/services/productService";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "" };
+
+// "100" -> "100", "1000" -> "1,000", "10000000" -> "10,000,000" — separador
+// de miles mientras se escribe. Solo dígitos: se descarta cualquier otra
+// cosa que se pegue o escriba (comas, letras, puntos).
+function formatThousands(raw: string): string {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return Number(digits).toLocaleString("en-US");
+}
 
 // Mismo formulario sirve para crear y para editar — si le pasan
 // `editingProduct`, cambia a modo edición y llama a onDone al terminar.
@@ -26,13 +36,34 @@ export function ProductForm({
       ? {
           name: editingProduct.name,
           description: editingProduct.description ?? "",
-          price: String(editingProduct.price),
+          price: formatThousands(String(editingProduct.price)),
           stock: editingProduct.stock === null ? "" : String(editingProduct.stock),
         }
       : EMPTY_FORM
   );
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(editingProduct?.image_url ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setError(null);
+    if (!file) {
+      setImageFile(null);
+      return;
+    }
+    // Solo un filtro de UX (avisa antes de intentar subir) — la validación
+    // real, contra el contenido de verdad del archivo, pasa en el server.
+    if (file.type !== "image/jpeg" && file.type !== "image/webp") {
+      setError("La imagen debe ser JPG o WebP");
+      e.target.value = "";
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -42,13 +73,13 @@ export function ProductForm({
     const input = {
       name: form.name,
       description: form.description || undefined,
-      price: Number(form.price),
+      price: Number(form.price.replace(/,/g, "")),
       stock: form.stock === "" ? null : Number(form.stock),
     };
 
     const result = isEditing
-      ? await updateProductAction(editingProduct.id, input)
-      : await createProductAction(input);
+      ? await updateProductAction(editingProduct.id, input, imageFile)
+      : await createProductAction(input, imageFile);
 
     setLoading(false);
 
@@ -60,12 +91,15 @@ export function ProductForm({
       onDone?.();
     } else {
       setForm(EMPTY_FORM);
+      setImageFile(null);
+      onDone?.();
+      setImagePreview(null);
     }
   }
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>{isEditing ? "Editar producto" : "Nuevo producto"}</CardTitle>
         {!isEditing && (
           <CardDescription>Agrega un producto a tu catálogo.</CardDescription>
@@ -82,7 +116,7 @@ export function ProductForm({
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Nombre</Label>
+            <Label htmlFor="name" className="block text-center">Nombre</Label>
             <Input
               id="name"
               value={form.name}
@@ -92,7 +126,7 @@ export function ProductForm({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="description">Descripción</Label>
+            <Label htmlFor="description" className="block text-center">Descripción</Label>
             <Textarea
               id="description"
               rows={3}
@@ -101,21 +135,20 @@ export function ProductForm({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="price">Precio</Label>
+              <Label htmlFor="price" className="block text-center">Precio</Label>
               <Input
                 id="price"
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
+                inputMode="numeric"
                 value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                onChange={(e) => setForm((f) => ({ ...f, price: formatThousands(e.target.value) }))}
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="stock">Stock (opcional)</Label>
+              <Label htmlFor="stock" className="block text-center">Stock (opcional)</Label>
               <Input
                 id="stock"
                 type="number"
@@ -127,7 +160,53 @@ export function ProductForm({
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="space-y-2">
+            <Label className="block text-center">
+              Foto del producto (opcional) — la que el agente le muestra al cliente
+            </Label>
+
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative w-32 h-32 rounded-2xl border border-dashed overflow-hidden flex flex-col items-center justify-center gap-1.5 transition-colors"
+                style={{ borderColor: 'rgba(255,255,255,0.2)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
+              >
+                {imagePreview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
+                    <img src={imagePreview} alt="Vista previa" className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs font-medium text-white">Cambiar</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
+                    <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                      Subir foto
+                    </span>
+                  </>
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                id="image"
+                type="file"
+                accept="image/jpeg,image/webp"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </div>
+
+            <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Solo JPG o WebP, máximo 5MB.
+            </p>
+          </div>
+
+          <div className="flex justify-center gap-3">
             <Button type="submit" disabled={loading}>
               {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Agregar producto"}
             </Button>

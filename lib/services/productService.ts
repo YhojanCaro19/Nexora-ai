@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { productSchema, type ProductInput } from "@/lib/validators/productSchema";
+import { uploadProductImage } from "@/lib/services/productImageService";
 
 export interface Product {
   id: string;
@@ -10,6 +11,7 @@ export interface Product {
   price: number;
   stock: number | null;
   active: boolean;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -35,7 +37,7 @@ export async function getProducts(businessId: string): Promise<Product[]> {
   return data;
 }
 
-export async function createProduct(businessId: string, input: ProductInput) {
+export async function createProduct(businessId: string, input: ProductInput, imageFile?: File | null) {
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message, data: null };
@@ -57,13 +59,40 @@ export async function createProduct(businessId: string, input: ProductInput) {
   if (error) {
     return { error: translateError(error), data: null };
   }
+
+  // La imagen se sube DESPUÉS de tener el id real del producto (se usa como
+  // nombre del archivo). Si falla, el producto ya quedó creado igual —
+  // no se trata como error fatal, se puede agregar la foto después editando.
+  if (imageFile && imageFile.size > 0) {
+    const uploadResult = await uploadProductImage(businessId, data.id, imageFile);
+    if (uploadResult.error) {
+      return { error: uploadResult.error, data };
+    }
+    await supabase.from("products").update({ image_url: uploadResult.url }).eq("id", data.id);
+    data.image_url = uploadResult.url;
+  }
+
   return { error: null, data };
 }
 
-export async function updateProduct(productId: string, businessId: string, input: ProductInput) {
+export async function updateProduct(
+  productId: string,
+  businessId: string,
+  input: ProductInput,
+  imageFile?: File | null
+) {
   const parsed = productSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
+  }
+
+  let imageUrl: string | undefined;
+  if (imageFile && imageFile.size > 0) {
+    const uploadResult = await uploadProductImage(businessId, productId, imageFile);
+    if (uploadResult.error) {
+      return { error: uploadResult.error };
+    }
+    imageUrl = uploadResult.url ?? undefined;
   }
 
   const supabase = await createClient();
@@ -78,6 +107,9 @@ export async function updateProduct(productId: string, businessId: string, input
       description: parsed.data.description || null,
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
+      // Solo se pisa image_url si de verdad llegó una foto nueva — no se
+      // borra la que ya tenía el producto solo por editar otros campos.
+      ...(imageUrl ? { image_url: imageUrl } : {}),
     })
     .eq("id", productId)
     .eq("business_id", businessId);

@@ -35,7 +35,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>Catálogo</CardTitle>
         <CardDescription>
           {products.length === 0

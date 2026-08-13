@@ -1,8 +1,7 @@
 // app/(dashboard)/admin/catalogo/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getProducts } from "@/lib/services/productService";
-import { ProductForm } from "./product-form";
-import { ProductsTable } from "./products-table";
+import { CatalogoPanel } from "./catalogo-panel";
 
 export default async function CatalogoPage() {
   const profile = await getSessionProfile();
@@ -13,8 +12,7 @@ export default async function CatalogoPage() {
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Catálogo
       </h1>
-      <ProductForm />
-      <ProductsTable products={products} />
+      <CatalogoPanel products={products} />
     </div>
   );
 }

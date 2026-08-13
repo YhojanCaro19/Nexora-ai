@@ -13,24 +13,24 @@ async function requireAdminBusinessId() {
   return profile.businessId;
 }
 
-export async function createProductAction(input: ProductInput) {
+export async function createProductAction(input: ProductInput, imageFile?: File | null) {
   const businessId = await requireAdminBusinessId();
   if (!businessId) {
     return { error: "No autorizado", data: null };
   }
 
-  const result = await createProduct(businessId, input);
+  const result = await createProduct(businessId, input, imageFile);
   revalidatePath("/admin/catalogo");
   return result;
 }
 
-export async function updateProductAction(productId: string, input: ProductInput) {
+export async function updateProductAction(productId: string, input: ProductInput, imageFile?: File | null) {
   const businessId = await requireAdminBusinessId();
   if (!businessId) {
     return { error: "No autorizado" };
   }
 
-  const result = await updateProduct(productId, businessId, input);
+  const result = await updateProduct(productId, businessId, input, imageFile);
   revalidatePath("/admin/catalogo");
   return result;
 }
