@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { updateIndustryTemplateAction } from "./actions";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { IndustryTemplate } from "@/lib/services/agentTemplateService";
 
@@ -17,39 +17,62 @@ export function AgentTemplatesPanel({
   catalog: ToolCatalog;
 }) {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Catálogo de herramientas</CardTitle>
-          <CardDescription>
-            Lo que un agente puede hacer hoy en la plataforma. Cada una es código real —
-            para agregar una nueva hay que desarrollarla, no es un dato editable.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {catalog.map((tool) => (
-            <div key={tool.key} className="rounded-xl border px-4 py-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-              <p className="font-medium" style={{ color: 'var(--nexora-ink)' }}>{tool.label}</p>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--nexora-ink-dim)' }}>{tool.description}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+    <div className="space-y-8">
+      <ToolCatalogSection catalog={catalog} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Plantillas por industria</CardTitle>
-          <CardDescription>
+      <div className="space-y-4">
+        <div>
+          <h2 className="font-medium" style={{ color: 'var(--nexora-ink)' }}>Plantillas por industria</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--nexora-ink-dim)' }}>
             Qué herramientas trae por defecto un negocio nuevo, según su tipo. El admin de
             cada negocio puede después prender/apagar las suyas desde &quot;Mi Agente&quot;.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {templates.map((template) => (
             <IndustryTemplateRow key={template.industryType} template={template} catalog={catalog} />
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Colapsado por defecto — es solo informativo (qué existe hoy) y ocupaba
+// demasiado espacio siempre abierto encima de lo que sí se edita.
+function ToolCatalogSection({ catalog }: { catalog: ToolCatalog }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-2xl border" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+      >
+        <div>
+          <p className="font-medium" style={{ color: 'var(--nexora-ink)' }}>Catálogo de herramientas</p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Lo que un agente puede hacer hoy — cada una es código real, no un dato editable.
+          </p>
+        </div>
+        <ChevronDown
+          size={18}
+          className="shrink-0 transition-transform duration-200"
+          style={{ color: 'var(--nexora-ink-dim)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+        />
+      </button>
+
+      {open && (
+        <div className="border-t divide-y" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          {catalog.map((tool) => (
+            <div key={tool.key} className="px-4 py-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+              <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>{tool.label}</p>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--nexora-ink-dim)' }}>{tool.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -84,10 +107,10 @@ function IndustryTemplateRow({
   }
 
   return (
-    <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+    <div className="rounded-2xl border p-4 space-y-3 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
       <p className="font-medium" style={{ color: 'var(--nexora-ink)' }}>{template.industryLabel}</p>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         {catalog.map((tool) => {
           const active = selected.includes(tool.key);
           return (
@@ -108,7 +131,7 @@ function IndustryTemplateRow({
         })}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-center gap-3">
         <Button size="sm" disabled={saving} onClick={handleSave}>
           {saving ? "Guardando..." : "Guardar"}
         </Button>

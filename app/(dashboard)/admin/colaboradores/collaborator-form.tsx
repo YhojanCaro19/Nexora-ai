@@ -61,7 +61,7 @@ export function CollaboratorForm() {
     <div className="space-y-4">
       {credentials && (
         <div
-          className="rounded-xl border p-4"
+          className="rounded-xl border p-4 text-center"
           style={{ borderColor: 'rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)' }}
         >
           <p className="text-[14px] font-medium" style={{ color: 'var(--nexora-signal)' }}>
@@ -94,7 +94,7 @@ export function CollaboratorForm() {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="text-center">
           <CardTitle>Nuevo colaborador</CardTitle>
           <CardDescription>
             Se creará una cuenta con contraseña temporal; el colaborador deberá cambiarla en su primer inicio de sesión.
@@ -103,7 +103,7 @@ export function CollaboratorForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="full_name">Nombre completo</Label>
+              <Label htmlFor="full_name" className="block text-center">Nombre completo</Label>
               <Input
                 id="full_name"
                 value={form.full_name}
@@ -113,7 +113,7 @@ export function CollaboratorForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="phone">Teléfono</Label>
+              <Label htmlFor="phone" className="block text-center">Teléfono</Label>
               <Input
                 id="phone"
                 value={form.phone}
@@ -122,7 +122,7 @@ export function CollaboratorForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="email">Correo</Label>
+              <Label htmlFor="email" className="block text-center">Correo</Label>
               <Input
                 id="email"
                 type="email"
@@ -133,8 +133,8 @@ export function CollaboratorForm() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Módulos que puede ver</Label>
-              <div className="flex flex-col gap-2">
+              <Label className="block text-center">Módulos que puede ver</Label>
+              <div className="flex flex-col items-center gap-2">
                 {ASSIGNABLE_MODULES.map((mod) => (
                   <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
                     <Checkbox
@@ -148,9 +148,11 @@ export function CollaboratorForm() {
               </div>
             </div>
 
-            <Button type="submit" disabled={loading}>
-              {loading ? "Creando..." : "Crear colaborador"}
-            </Button>
+            <div className="flex justify-center">
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creando..." : "Crear colaborador"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

@@ -24,7 +24,7 @@ function ModulePills({ permissions }: { permissions: string[] }) {
         <span
           key={key}
           className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-          style={{ color: 'var(--nexora-nova)', background: 'rgba(124,156,255,0.1)' }}
+          style={{ color: 'var(--nexora-nova)', background: 'rgba(238,240,247,0.1)' }}
         >
           {MODULE_LABELS[key] ?? key}
         </span>
@@ -53,7 +53,7 @@ export function CollaboratorsTable({
 }) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="text-center">
         <CardTitle>Colaboradores</CardTitle>
         <CardDescription>
           {collaborators.length === 0

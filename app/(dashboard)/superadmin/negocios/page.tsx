@@ -1,21 +1,9 @@
 // app/(dashboard)/superadmin/negocios/page.tsx
-import { Building2 } from "lucide-react";
-import { EmptyStateSection } from "@/components/dashboard/shared/EmptyStateSection";
 import { getBusinesses } from "@/lib/services/adminService";
 import { BusinessesPanel } from "./businesses-panel";
 
 export default async function NegociosPage() {
   const businesses = await getBusinesses();
-
-  if (businesses.length === 0) {
-    return (
-      <EmptyStateSection
-        icon={Building2}
-        title="Negocios"
-        description="Aquí verás todos los negocios registrados en la plataforma..."
-      />
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -23,7 +11,18 @@ export default async function NegociosPage() {
         Negocios
       </h1>
 
-      <BusinessesPanel businesses={businesses} />
+      {businesses.length === 0 ? (
+        // Server Component: no se le puede pasar un ícono de lucide (una
+        // referencia a función/objeto) a EmptyStateSection porque es un
+        // Client Component — React solo permite cruzar esa frontera con
+        // datos planos o elementos ya renderizados. Estado vacío simple,
+        // sin ese componente compartido, para no toparse con eso.
+        <p className="text-sm text-center py-16" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Aquí verás todos los negocios registrados en la plataforma...
+        </p>
+      ) : (
+        <BusinessesPanel businesses={businesses} />
+      )}
     </div>
   );
 }

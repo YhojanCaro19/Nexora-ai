@@ -1,17 +1,10 @@
 // app/(dashboard)/superadmin/page.tsx
-import { StatCard } from '@/components/dashboard/shared/StatCard';
+//
+// El superadmin no tiene "Inicio" — no hace ventas, esos datos son de
+// admin/colaborador. Entrar a /superadmin (ej. justo después del login)
+// manda directo a la primera sección real, en vez de dar 404.
+import { redirect } from "next/navigation";
 
-export default function SuperAdminHomePage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
-        Inicio
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Negocios activos" value="0" />
-        <StatCard label="Solicitudes pendientes" value="0" />
-        <StatCard label="Ingresos de plataforma" value="$0" />
-      </div>
-    </div>
-  );
+export default function SuperAdminIndexPage() {
+  redirect("/superadmin/negocios");
 }

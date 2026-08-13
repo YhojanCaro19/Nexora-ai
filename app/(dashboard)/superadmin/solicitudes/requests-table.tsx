@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { ClipboardList, CheckCircle2, ChevronLeft, UserCircle, Building2, MessageSquare } from "lucide-react";
 import { createAccountAction, rejectRequestAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { industryTypes } from "@/lib/validators/businessSchema";
+import { formatShortDateTime } from "@/lib/utils/date";
 
 type ContactRequest = {
   id: string;
@@ -17,18 +19,15 @@ type ContactRequest = {
   created_at: string;
 };
 
-const dateFormatter = new Intl.DateTimeFormat("es-CO", {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
+type View = "chooser" | "pending" | "approved";
 
 export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
-  const [tab, setTab] = useState<"pending" | "approved">("pending");
+  const [view, setView] = useState<View>("chooser");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [industryByRequest, setIndustryByRequest] = useState<Record<string, string>>({});
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [rejected, setRejected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Numeración por orden de llegada (la más antigua = #1) — fija, no cambia
@@ -44,7 +43,7 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
 
   const pending = requests.filter((r) => r.status === "new");
   const approved = requests.filter((r) => r.status === "approved");
-  const list = tab === "pending" ? pending : approved;
+  const list = view === "approved" ? approved : pending;
   const selected = requests.find((r) => r.id === selectedId) ?? null;
 
   async function handleCreate(id: string) {
@@ -65,7 +64,7 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
     if (result.data) {
       setCredentials(result.data);
       setSelectedId(null);
-      setTab("approved");
+      setView("approved");
     }
   }
 
@@ -80,6 +79,8 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
       return;
     }
     setSelectedId(null);
+    setView("chooser");
+    setRejected(true);
   }
 
   return (
@@ -113,6 +114,24 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
         </Card>
       )}
 
+      {rejected && (
+        <Card>
+          <CardContent className="text-center py-4">
+            <p className="text-sm font-medium" style={{ color: 'var(--nexora-signal)' }}>
+              Solicitud rechazada exitosamente.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => setRejected(false)}
+            >
+              Cerrar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {error && (
         <p
           className="rounded-xl border p-3 text-sm"
@@ -122,32 +141,7 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
         </p>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setTab("pending"); setSelectedId(null); }}
-              className="rounded-full px-4 py-1.5 text-sm transition-colors"
-              style={{
-                background: tab === "pending" ? 'var(--nexora-signal)' : 'transparent',
-                color: tab === "pending" ? '#000' : 'var(--nexora-ink-dim)',
-              }}
-            >
-              Solicitudes ({pending.length})
-            </button>
-            <button
-              onClick={() => { setTab("approved"); setSelectedId(null); }}
-              className="rounded-full px-4 py-1.5 text-sm transition-colors"
-              style={{
-                background: tab === "approved" ? 'var(--nexora-signal)' : 'transparent',
-                color: tab === "approved" ? '#000' : 'var(--nexora-ink-dim)',
-              }}
-            >
-              Cuentas aceptadas ({approved.length})
-            </button>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <div>
           {selected ? (
             <RequestDetail
               request={selected}
@@ -161,33 +155,149 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
               onAccept={() => handleCreate(selected.id)}
               onReject={() => handleReject(selected.id)}
             />
+          ) : view === "chooser" ? (
+            <Chooser
+              pendingCount={pending.length}
+              approvedCount={approved.length}
+              onChoose={setView}
+            />
           ) : (
-            <div className="space-y-2">
-              {list.length === 0 && (
-                <p className="text-sm text-center py-6" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  {tab === "pending" ? "No hay solicitudes nuevas." : "Todavía no hay cuentas aceptadas."}
+            <div className="space-y-5">
+              <div className="relative flex items-center justify-center">
+                <BackButton onClick={() => setView("chooser")} className="absolute left-0" />
+                <h2 className="font-nexora text-base text-center" style={{ color: 'var(--nexora-ink)' }}>
+                  {view === "pending" ? "Solicitudes en espera" : "Cuentas aceptadas"}
+                </h2>
+              </div>
+
+              {list.length === 0 ? (
+                <p className="text-sm text-center py-10" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {view === "pending" ? "No hay solicitudes nuevas." : "Todavía no hay cuentas aceptadas."}
                 </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {list.map((r) => (
+                    <RequestCard
+                      key={r.id}
+                      number={numberById.get(r.id) ?? 0}
+                      date={r.created_at}
+                      approved={r.status === "approved"}
+                      onClick={() => setSelectedId(r.id)}
+                    />
+                  ))}
+                </div>
               )}
-              {list.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => setSelectedId(r.id)}
-                  className="w-full flex items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
-                  style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-                >
-                  <span className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
-                    Solicitud #{numberById.get(r.id)}
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-                    {dateFormatter.format(new Date(r.created_at))}
-                  </span>
-                </button>
-              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
     </div>
+  );
+}
+
+function Chooser({
+  pendingCount,
+  approvedCount,
+  onChoose,
+}: {
+  pendingCount: number;
+  approvedCount: number;
+  onChoose: (view: "pending" | "approved") => void;
+}) {
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-10">
+      <ChooserButton
+        icon={ClipboardList}
+        label="Solicitudes"
+        count={pendingCount}
+        accent="var(--nexora-nova)"
+        onClick={() => onChoose("pending")}
+      />
+      <ChooserButton
+        icon={CheckCircle2}
+        label="Cuentas aceptadas"
+        count={approvedCount}
+        accent="var(--nexora-nova)"
+        onClick={() => onChoose("approved")}
+      />
+    </div>
+  );
+}
+
+function ChooserButton({
+  icon: Icon,
+  label,
+  count,
+  accent,
+  onClick,
+}: {
+  icon: typeof ClipboardList;
+  label: string;
+  count: number;
+  accent: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex flex-col items-center justify-center gap-3 w-48 h-48 rounded-3xl border transition-all duration-300 hover:scale-105"
+      style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = accent)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+    >
+      <Icon size={32} strokeWidth={1.5} style={{ color: accent }} />
+      <span className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+        {label}
+      </span>
+      <span className="text-2xl font-light" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function BackButton({ onClick, className = "" }: { onClick: () => void; className?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06] ${className}`}
+      style={{ color: 'var(--nexora-ink-dim)' }}
+    >
+      <ChevronLeft size={16} />
+      Volver
+    </button>
+  );
+}
+
+function RequestCard({
+  number,
+  date,
+  approved,
+  onClick,
+}: {
+  number: number;
+  date: string;
+  approved: boolean;
+  onClick: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="aspect-square flex flex-col items-center justify-center rounded-2xl border p-4 transition-all duration-300 hover:scale-105"
+      style={{ borderColor: hovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)' }}
+    >
+      <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {approved ? "Cuenta número" : "Solicitud número"}
+      </span>
+      <span className="text-5xl font-light mt-3 mb-3" style={{ color: 'var(--nexora-ink)' }}>
+        {number}
+      </span>
+      <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {formatShortDateTime(date)}
+      </span>
+    </button>
   );
 }
 
@@ -213,57 +323,73 @@ function RequestDetail({
   const isPending = request.status === "new";
 
   return (
-    <div className="space-y-4">
-      <button
-        onClick={onBack}
-        className="text-sm underline"
-        style={{ color: 'var(--nexora-ink-dim)' }}
-      >
-        ← Volver
-      </button>
+    <div className="space-y-8">
+      <div className="relative flex items-center justify-center">
+        <BackButton onClick={onBack} className="absolute left-0" />
+      </div>
 
-      <h2 className="font-nexora text-lg" style={{ color: 'var(--nexora-ink)' }}>
-        Solicitud #{number}
-      </h2>
+      <div className="text-center space-y-2">
+        <h2 className="font-nexora text-3xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+          {isPending ? "Solicitud" : "Cuenta"} #{number}
+        </h2>
+        <span
+          className="inline-block rounded-full px-3 py-1 text-xs uppercase tracking-wide"
+          style={{
+            background: isPending ? 'rgba(238,240,247,0.08)' : 'rgba(52,211,153,0.1)',
+            color: isPending ? 'var(--nexora-ink-dim)' : 'var(--nexora-signal)',
+          }}
+        >
+          {isPending ? "En espera" : "Aprobada"}
+        </span>
+      </div>
 
-      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Nombre</dt>
-          <dd style={{ color: 'var(--nexora-ink)' }}>{request.full_name}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Negocio</dt>
-          <dd style={{ color: 'var(--nexora-ink)' }}>{request.business_name ?? "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Correo</dt>
-          <dd style={{ color: 'var(--nexora-ink)' }}>{request.email}</dd>
-        </div>
-        <div>
-          <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Teléfono</dt>
-          <dd style={{ color: 'var(--nexora-ink)' }}>{request.phone ?? "—"}</dd>
-        </div>
-      </dl>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <section className="rounded-2xl border p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="flex flex-col items-center gap-2">
+            <UserCircle size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
+              Contacto
+            </h3>
+          </div>
+          <div className="space-y-5">
+            <InfoRow label="Nombre" value={request.full_name} />
+            <InfoRow label="Correo" value={request.email} />
+            <InfoRow label="Teléfono" value={request.phone ?? "—"} />
+          </div>
+        </section>
 
-      <div>
-        <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Cuéntanos sobre tu negocio
-        </dt>
-        <dd className="mt-1 whitespace-pre-wrap" style={{ color: 'var(--nexora-ink)' }}>
-          {request.message ?? "—"}
-        </dd>
+        <section className="rounded-2xl border p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="flex flex-col items-center gap-2">
+            <Building2 size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
+              Negocio
+            </h3>
+          </div>
+          <div className="space-y-5">
+            <InfoRow label="Nombre del negocio" value={request.business_name ?? "—"} />
+            <div>
+              <dt className="text-xs uppercase tracking-wide flex items-center justify-center gap-1.5" style={{ color: 'var(--nexora-ink-dim)' }}>
+                <MessageSquare size={12} />
+                Cuéntanos sobre tu negocio
+              </dt>
+              <dd className="mt-1.5 text-sm whitespace-pre-wrap" style={{ color: 'var(--nexora-ink)' }}>
+                {request.message ?? "—"}
+              </dd>
+            </div>
+          </div>
+        </section>
       </div>
 
       {isPending ? (
-        <div className="space-y-3 pt-2">
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+        <div className="flex flex-col items-center text-center gap-4 pt-2">
+          <div className="space-y-1.5 w-full max-w-xs">
+            <label className="block text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
               Tipo de negocio (necesario para crear la cuenta)
             </label>
             <select
               value={industryType}
               onChange={(e) => onIndustryChange(e.target.value)}
-              className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
+              className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-center"
               style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'var(--nexora-ink)' }}
             >
               <option value="" disabled>Selecciona una opción...</option>
@@ -275,7 +401,7 @@ function RequestDetail({
             </select>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex justify-center gap-3">
             <Button disabled={loading} onClick={onAccept}>
               {loading ? "Creando..." : "Aceptar"}
             </Button>
@@ -290,10 +416,23 @@ function RequestDetail({
           </div>
         </div>
       ) : (
-        <p className="text-sm pt-2" style={{ color: 'var(--nexora-signal)' }}>
+        <p className="text-sm text-center" style={{ color: 'var(--nexora-signal)' }}>
           Cuenta creada.
         </p>
       )}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {label}
+      </dt>
+      <dd className="text-base font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+        {value}
+      </dd>
     </div>
   );
 }

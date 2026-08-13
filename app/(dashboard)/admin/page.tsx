@@ -1,17 +1,15 @@
 // app/(dashboard)/admin/page.tsx
-import { StatCard } from '@/components/dashboard/shared/StatCard';
+'use client';
+
+import { LayoutDashboard } from "lucide-react";
+import { EmptyStateSection } from "@/components/dashboard/shared/EmptyStateSection";
 
 export default function AdminHomePage() {
   return (
-    <div className="space-y-6">
-      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
-        Inicio
-      </h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard label="Ventas del día" value="$0" />
-        <StatCard label="Ventas del mes" value="$0" />
-        <StatCard label="Avance de mensualidad" value="—" variant="ring" ringPercent={0} />
-      </div>
-    </div>
+    <EmptyStateSection
+      icon={LayoutDashboard}
+      title="Inicio"
+      description="Todavía por definir qué va a mostrar este panel..."
+    />
   );
 }

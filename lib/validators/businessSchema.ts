@@ -4,7 +4,6 @@ export const industryTypes = [
   { value: "restaurant", label: "Restaurante" },
   { value: "jewelry", label: "Joyería" },
   { value: "barbershop", label: "Barbería" },
-  { value: "hotel", label: "Hotel" },
   { value: "workshop", label: "Taller" },
   { value: "store", label: "Tienda" },
 ] as const;
@@ -18,7 +17,6 @@ export const businessSchema = z.object({
     "restaurant",
     "jewelry",
     "barbershop",
-    "hotel",
     "workshop",
     "store",
   ]),
