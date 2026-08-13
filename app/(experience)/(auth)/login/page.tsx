@@ -49,7 +49,7 @@ export default async function LoginPage({
           1.2 × 0.9 = 1.08 de base. Al enfocar un campo pasa a 1.08 × 1.05 =
           1.134 — no se suman los transforms, así que ya incluye la base. */}
       <FocusGlowCard
-        className="w-full max-w-sm ml-20 lg:ml-32 xl:ml-40 2xl:ml-52"
+        className="w-full max-w-sm ml-0 md:ml-20 lg:ml-32 xl:ml-40 2xl:ml-52"
         baseScaleClass="scale-[1.08]"
         activeScaleClass="scale-[1.134]"
       >
