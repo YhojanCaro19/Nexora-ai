@@ -84,6 +84,9 @@ export async function createAccountFromRequest(
       owner_id: newUser.user.id,
       name: request.business_name ?? request.full_name,
       industry_type: industryType,
+      // Si la solicitud no trae país resuelto, se omite y queda el
+      // default 'CO' de la columna en vez de forzar un valor incorrecto.
+      ...(request.country_iso2 ? { country_iso2: request.country_iso2 } : {}),
     })
     .select()
     .single();

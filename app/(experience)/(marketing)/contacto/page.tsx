@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
+import { PhoneField } from "@/components/shared/PhoneField";
 
 export default async function ContactPage({
   searchParams,
@@ -98,20 +99,7 @@ export default async function ContactPage({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="phone"
-                    className="text-xs tracking-wide text-white/60 text-center"
-                  >
-                    Teléfono
-                  </Label>
-
-                  <Input
-                    id="phone"
-                    name="phone"
-                    className="border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
-                  />
-                </div>
+                <PhoneField />
 
                 <div className="space-y-2">
                   <Label
