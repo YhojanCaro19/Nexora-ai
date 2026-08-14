@@ -168,7 +168,9 @@ function TemplateDetail({
   template: IndustryTemplate;
   catalog: ToolCatalog;
 }) {
-  const [selected, setSelected] = useState<string[]>(template.toolKeys);
+  // Siempre arranca vacío — el superadmin marca a mano lo que quiere para
+  // esta plantilla cada vez, no se precarga con lo que ya estaba guardado.
+  const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
