@@ -86,13 +86,18 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
  *
  * Se excluyen a propósito "Inicio" (siempre visible), "Mi Agente" (configura el agente de
  * todo el negocio, no es dato operativo del día a día) y "Colaboradores"/"Perfil" (gestión
- * exclusiva del admin / dato personal). Si el negocio necesita que un colaborador administre
- * más módulos, ampliar esta lista.
+ * exclusiva del admin / dato personal).
+ *
+ * "Reportes" también se excluye a propósito (decisión explícita, no descuido): expone datos
+ * agregados de ventas/ingresos del negocio, un nivel de confianza distinto al operativo del
+ * día a día de un colaborador. Además la página de Reportes para colaborador todavía no
+ * existe. Si más adelante se construye Reportes de verdad y el negocio quiere delegarlo a
+ * colaboradores de confianza, agregarlo aquí es una decisión aparte, no algo que se dé por
+ * incluido solo porque ya existe la infraestructura de permisos.
  */
 export const ASSIGNABLE_MODULES = [
   { key: 'pedidos', label: 'Pedidos', icon: ShoppingBag },
   { key: 'catalogo', label: 'Catálogo', icon: Package },
-  { key: 'reportes', label: 'Reportes', icon: FileBarChart },
 ] as const;
 
 export type ModuleKey = (typeof ASSIGNABLE_MODULES)[number]['key'];
