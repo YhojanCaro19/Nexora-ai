@@ -9,7 +9,7 @@ export default async function ColaboradorLayout({ children }: { children: React.
   if (profile.mustChangePassword) redirect('/cambiar-password');
 
   return (
-    <DashboardShell role="colaborador" userName={profile.fullName}>
+    <DashboardShell role="colaborador" userName={profile.fullName} permissions={profile.permissions}>
       {children}
     </DashboardShell>
   );

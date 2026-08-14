@@ -55,16 +55,28 @@ export const ADMIN_NAV: NavGroup[] = [
   },
 ];
 
-export const COLABORADOR_NAV: NavGroup[] = [
-  {
-    label: 'Principal',
-    items: [
-      { label: 'Inicio', href: '/colaborador', icon: LayoutDashboard },
-      { label: 'Pedidos', href: '/colaborador/pedidos', icon: ShoppingBag },
-      { label: 'Mi Perfil', href: '/colaborador/perfil', icon: UserCircle },
-    ],
-  },
-];
+/**
+ * El menú del colaborador NO es una lista fija — antes lo era y mostraba
+ * "Pedidos"/"Mi Perfil" a todos los colaboradores sin importar sus
+ * `permissions` (y "Mi Perfil" ni siquiera tenía página construida, así
+ * que era un link roto). Ahora se arma según los módulos que el admin le
+ * asignó de verdad.
+ *
+ * "Mi Perfil" se quitó del todo por ahora — esa página no existe aún para
+ * colaborador (queda pendiente, no confundir con que ya funciona).
+ */
+export function getColaboradorNav(permissions: string[]): NavGroup[] {
+  const items: NavItem[] = [{ label: 'Inicio', href: '/colaborador', icon: LayoutDashboard }];
+
+  if (permissions.includes('pedidos')) {
+    items.push({ label: 'Pedidos', href: '/colaborador/pedidos', icon: ShoppingBag });
+  }
+  if (permissions.includes('catalogo')) {
+    items.push({ label: 'Catálogo', href: '/colaborador/catalogo', icon: Package });
+  }
+
+  return [{ label: 'Principal', items }];
+}
 
 /**
  * Módulos que un admin puede asignar a un colaborador vía `business_members.permissions`
