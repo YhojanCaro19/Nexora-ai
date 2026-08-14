@@ -5,6 +5,7 @@ import { ClipboardList, CheckCircle2, ChevronLeft, UserCircle, Building2, Messag
 import { createAccountAction, rejectRequestAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
 
@@ -343,6 +344,37 @@ function RequestDetail({
         </span>
       </div>
 
+      {/* El selector va arriba, antes de las cards — así el desplegable
+          tiene toda la página debajo para abrirse sin quedar cortado
+          contra el borde inferior de la ventana. */}
+      {isPending && (
+        <div className="flex flex-col items-center text-center gap-1.5 w-full max-w-xs mx-auto">
+          <label className="block text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Tipo de negocio (necesario para crear la cuenta)
+          </label>
+          {/* Siempre un string ("" al inicio, nunca undefined) para que el
+              Select quede controlado desde el primer render — pasar
+              undefined cuando industryType es "" lo arrancaba como
+              no-controlado y luego Base UI se quejaba al volverse
+              controlado apenas se elegía una opción. */}
+          <Select value={industryType} onValueChange={(value) => onIndustryChange(value as string)}>
+            <SelectTrigger
+              className="w-full py-2"
+              style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'var(--nexora-ink)' }}
+            >
+              <SelectValue placeholder="Selecciona una opción..." />
+            </SelectTrigger>
+            <SelectContent>
+              {industryTypes.map((it) => (
+                <SelectItem key={it.value} value={it.value}>
+                  {it.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
         <section className="rounded-2xl border p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex flex-col items-center gap-2">
@@ -381,39 +413,18 @@ function RequestDetail({
       </div>
 
       {isPending ? (
-        <div className="flex flex-col items-center text-center gap-4 pt-2">
-          <div className="space-y-1.5 w-full max-w-xs">
-            <label className="block text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
-              Tipo de negocio (necesario para crear la cuenta)
-            </label>
-            <select
-              value={industryType}
-              onChange={(e) => onIndustryChange(e.target.value)}
-              className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm text-center"
-              style={{ borderColor: 'rgba(255,255,255,0.15)', color: 'var(--nexora-ink)' }}
-            >
-              <option value="" disabled>Selecciona una opción...</option>
-              {industryTypes.map((it) => (
-                <option key={it.value} value={it.value} style={{ color: '#000' }}>
-                  {it.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex justify-center gap-3">
-            <Button disabled={loading} onClick={onAccept}>
-              {loading ? "Creando..." : "Aceptar"}
-            </Button>
-            <Button
-              variant="outline"
-              disabled={loading}
-              onClick={onReject}
-              style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
-            >
-              Rechazar
-            </Button>
-          </div>
+        <div className="flex justify-center gap-3">
+          <Button disabled={loading} onClick={onAccept}>
+            {loading ? "Creando..." : "Aceptar"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={loading}
+            onClick={onReject}
+            style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
+          >
+            Rechazar
+          </Button>
         </div>
       ) : (
         <p className="text-sm text-center" style={{ color: 'var(--nexora-signal)' }}>
