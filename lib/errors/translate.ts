@@ -27,6 +27,7 @@ const BY_CODE: Record<string, string> = {
   over_email_send_rate_limit: "Se enviaron muchos correos seguidos. Espera un momento y vuelve a intentarlo.",
   validation_failed: "Revisa los datos ingresados.",
   user_not_found: "No encontramos una cuenta con esos datos.",
+  email_address_invalid: "Ese correo no es válido. Verifica que esté bien escrito.",
   // Postgres
   "23505": "Ya existe un registro con esos datos.",
   "23503": "No se pudo completar la operación: hay datos relacionados que lo impiden.",
