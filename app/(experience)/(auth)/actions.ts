@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
+import { checkRateLimit } from "@/lib/utils/rateLimit";
+import { getClientIp } from "@/lib/utils/request";
 
 const ROLE_PREFIX: Record<string, string> = {
   superadmin: "/superadmin",
@@ -46,6 +48,12 @@ async function redirectByRole(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 export async function login(formData: FormData) {
+  const ip = await getClientIp();
+  const limit = checkRateLimit(`login:${ip}`, 10, 60 * 1000);
+  if (!limit.allowed) {
+    redirect(`/login?error=${encodeURIComponent(`Demasiados intentos. Espera ${limit.retryAfterSeconds}s y vuelve a intentarlo.`)}`);
+  }
+
   const supabase = await createClient();
 
   const email = formData.get("email") as string;

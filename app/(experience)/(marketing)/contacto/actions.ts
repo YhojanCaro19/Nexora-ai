@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isValidPhone } from "@/lib/utils/phone";
+import { checkRateLimit } from "@/lib/utils/rateLimit";
+import { getClientIp } from "@/lib/utils/request";
 
 const contactSchema = z.object({
   full_name: z.string().min(2, "El nombre es muy corto"),
@@ -31,6 +33,14 @@ const contactSchema = z.object({
 });
 
 export async function submitContactRequest(formData: FormData) {
+  // Es el único formulario de toda la app que cualquiera, sin sesión,
+  // puede mandar — el más expuesto a spam/abuso.
+  const ip = await getClientIp();
+  const limit = checkRateLimit(`contacto:${ip}`, 3, 10 * 60 * 1000);
+  if (!limit.allowed) {
+    redirect(`/contacto?error=${encodeURIComponent(`Demasiados intentos. Espera ${Math.ceil(limit.retryAfterSeconds / 60)} minutos y vuelve a intentarlo.`)}`);
+  }
+
   const parsed = contactSchema.safeParse({
     full_name: formData.get("full_name"),
     business_name: formData.get("business_name"),
