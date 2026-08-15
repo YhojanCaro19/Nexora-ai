@@ -12,6 +12,7 @@
 // vive en el servidor. Firmar con HMAC no expone ni debilita esa key (el
 // HMAC no se puede invertir para recuperarla).
 import { createHmac, timingSafeEqual } from "crypto";
+export { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 
 const OTP_COOKIE_NAME = "otp_verified";
 const OTP_VALID_MS = 5 * 60 * 1000; // 5 minutos
@@ -26,21 +27,29 @@ function hmac(payload: string): string {
   return createHmac("sha256", signingSecret()).update(payload).digest("hex");
 }
 
-export function signOtpVerification(userId: string): string {
+// `scope` ata la verificación a una acción concreta (y, si aplica, a un
+// recurso concreto — ej. "delete-business:<id>") para que verificar el
+// código para UNA cosa (cambiar tu contraseña) no sirva de pase libre
+// para OTRA (borrar un negocio) dentro de la misma ventana de 5 minutos.
+export function signOtpVerification(userId: string, scope: string = "default"): string {
   const timestamp = Date.now().toString();
-  const payload = `${userId}.${timestamp}`;
+  const payload = `${userId}.${scope}.${timestamp}`;
   return `${payload}.${hmac(payload)}`;
 }
 
-export function isOtpVerificationValid(cookieValue: string | undefined | null, userId: string): boolean {
+export function isOtpVerificationValid(
+  cookieValue: string | undefined | null,
+  userId: string,
+  scope: string = "default"
+): boolean {
   if (!cookieValue) return false;
 
   const parts = cookieValue.split(".");
-  if (parts.length !== 3) return false;
-  const [cookieUserId, timestampStr, signature] = parts;
-  if (cookieUserId !== userId) return false;
+  if (parts.length !== 4) return false;
+  const [cookieUserId, cookieScope, timestampStr, signature] = parts;
+  if (cookieUserId !== userId || cookieScope !== scope) return false;
 
-  const expected = hmac(`${cookieUserId}.${timestampStr}`);
+  const expected = hmac(`${cookieUserId}.${cookieScope}.${timestampStr}`);
   const a = Buffer.from(signature);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return false;

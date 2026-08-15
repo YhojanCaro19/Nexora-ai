@@ -168,6 +168,43 @@ export async function createAccountFromRequest(
   };
 }
 
+/**
+ * Elimina un negocio de verdad: todos sus datos (pedidos, productos,
+ * config del agente, reservas, clientes, conversaciones, suscripciones,
+ * miembros) y las cuentas de Auth de todos sus miembros (admin y
+ * colaboradores) — no es un "desactivar", es borrado real e irreversible.
+ *
+ * El borrado de las tablas pasa por la función `delete_business_cascade`
+ * en Postgres (ver SQL entregado al usuario), en una sola transacción:
+ * si algo falla a mitad de camino, no queda nada borrado a medias. Borrar
+ * las cuentas de Auth es un paso aparte porque eso no se puede hacer
+ * desde SQL — solo con la Admin API.
+ */
+export async function deleteBusiness(businessId: string): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+
+  const { data: memberUserIds, error: rpcError } = await admin.rpc("delete_business_cascade", {
+    target_business_id: businessId,
+  });
+
+  if (rpcError) {
+    console.error("[deleteBusiness] error en la cascada de borrado:", rpcError);
+    return { error: translateError(rpcError) };
+  }
+
+  for (const userId of (memberUserIds as string[] | null) ?? []) {
+    const { error } = await admin.auth.admin.deleteUser(userId);
+    if (error) {
+      // Los datos del negocio ya se borraron correctamente en la
+      // transacción de arriba — esto es un residuo de Auth a limpiar a
+      // mano si llega a pasar, no se revierte lo ya borrado.
+      console.error(`[deleteBusiness] no se pudo borrar el usuario de Auth ${userId}:`, error);
+    }
+  }
+
+  return { error: null };
+}
+
 export interface BusinessWithOwner {
   id: string;
   name: string;

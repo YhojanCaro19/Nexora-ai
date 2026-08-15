@@ -73,6 +73,61 @@ export async function createCollaborator(
   };
 }
 
+/**
+ * Elimina de verdad a un colaborador: borra su fila en business_members Y
+ * su cuenta de Auth (no es un "desactivar", es borrado real, a propósito
+ * — así lo pidió el negocio).
+ *
+ * Dos chequeos antes de borrar nada, no solo el id:
+ * - `business_id` debe coincidir con el negocio del admin que llama —
+ *   evita que un admin borre un colaborador de otro negocio adivinando un id.
+ * - `role` debe ser 'colaborador' — esta función nunca debe poder borrar
+ *   una fila de admin, aunque alguien pase el id equivocado.
+ *
+ * Usa service role: borrar un usuario de Auth solo se puede hacer con la
+ * Admin API, nunca desde el cliente normal.
+ */
+export async function deleteCollaborator(
+  collaboratorMemberId: string,
+  businessId: string
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+
+  const { data: member, error: findError } = await admin
+    .from("business_members")
+    .select("id, user_id, role, business_id")
+    .eq("id", collaboratorMemberId)
+    .eq("business_id", businessId)
+    .eq("role", "colaborador")
+    .maybeSingle();
+
+  if (findError || !member) {
+    return { error: "Colaborador no encontrado" };
+  }
+
+  const { error: deleteMemberError } = await admin
+    .from("business_members")
+    .delete()
+    .eq("id", member.id);
+
+  if (deleteMemberError) {
+    console.error("[deleteCollaborator] error al borrar business_members:", deleteMemberError);
+    return { error: translateError(deleteMemberError) };
+  }
+
+  const { error: deleteAuthError } = await admin.auth.admin.deleteUser(member.user_id);
+  if (deleteAuthError) {
+    // La fila de business_members ya se borró — la cuenta de Auth queda
+    // huérfana (sin negocio) pero no puede volver a iniciar sesión con
+    // ningún rol válido, así que no es un hueco de seguridad, solo un
+    // residuo que vale la pena limpiar a mano si esto llega a pasar.
+    console.error("[deleteCollaborator] la fila se borró pero falló borrar el usuario de Auth:", deleteAuthError);
+    return { error: "El colaborador se quitó del negocio, pero hubo un problema borrando su cuenta. Avisa para revisarlo." };
+  }
+
+  return { error: null };
+}
+
 export type CollaboratorListItem = {
   id: string;
   full_name: string | null;

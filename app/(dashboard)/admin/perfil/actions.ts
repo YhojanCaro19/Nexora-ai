@@ -61,7 +61,7 @@ export async function verifyPasswordOtpAction(code: string) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(OTP_COOKIE.name, signOtpVerification(user.id), {
+  cookieStore.set(OTP_COOKIE.name, signOtpVerification(user.id, "password-change"), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -84,7 +84,7 @@ export async function updateOwnPasswordAction(password: string) {
 
   const cookieStore = await cookies();
   const otpCookie = cookieStore.get(OTP_COOKIE.name)?.value;
-  if (!isOtpVerificationValid(otpCookie, user.id)) {
+  if (!isOtpVerificationValid(otpCookie, user.id, "password-change")) {
     return { error: "Verifica el código enviado a tu correo antes de cambiar la contraseña." };
   }
 

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { PasswordField, isStrongPassword } from "@/components/auth/PasswordField";
+import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 
 type Step = "idle" | "otp-sent" | "verified" | "done";
 
@@ -82,14 +83,14 @@ export function PasswordSection() {
         {step === "otp-sent" && (
           <div className="space-y-3 w-full max-w-xs">
             <div className="space-y-1.5">
-              <Label htmlFor="otp" className="block text-center">Código de 6 dígitos</Label>
+              <Label htmlFor="otp" className="block text-center">Código de verificación</Label>
               <Input
                 id="otp"
                 inputMode="numeric"
-                maxLength={6}
+                maxLength={OTP_CODE_LENGTH}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="000000"
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_CODE_LENGTH))}
+                placeholder="00000000"
                 className="text-center"
               />
               <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
@@ -97,7 +98,7 @@ export function PasswordSection() {
               </p>
             </div>
             <div className="flex justify-center gap-3">
-              <Button disabled={loading || code.length !== 6} onClick={handleVerifyCode}>
+              <Button disabled={loading || code.length !== OTP_CODE_LENGTH} onClick={handleVerifyCode}>
                 {loading ? "Verificando..." : "Verificar código"}
               </Button>
               <Button variant="outline" disabled={loading} onClick={handleRequestCode}>

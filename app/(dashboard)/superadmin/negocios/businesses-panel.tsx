@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Building2, UserCircle } from "lucide-react";
+import { ChevronLeft, Building2, UserCircle, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  requestDeleteBusinessOtpAction,
+  verifyDeleteBusinessOtpAction,
+  deleteBusinessAction,
+} from "./actions";
 import type { BusinessWithOwner } from "@/lib/services/adminService";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
+import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 
 const industryLabel = (value: string) =>
   industryTypes.find((it) => it.value === value)?.label ?? value;
@@ -73,6 +81,12 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
             </div>
           </section>
         </div>
+
+        <DeleteBusinessSection
+          businessId={selected.id}
+          businessName={selected.name}
+          onDeleted={() => setSelectedId(null)}
+        />
       </div>
     );
   }
@@ -82,6 +96,134 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
       {businesses.map((b) => (
         <BusinessCard key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
       ))}
+    </div>
+  );
+}
+
+// Borrado real e irreversible (negocio + miembros + pedidos + productos +
+// todo lo demás) — por eso pide código de verificación por correo antes de
+// dejar ejecutarlo, no solo un "¿estás seguro?".
+type DeleteStep = "idle" | "confirming" | "otp-sent";
+
+function DeleteBusinessSection({
+  businessId,
+  businessName,
+  onDeleted,
+}: {
+  businessId: string;
+  businessName: string;
+  onDeleted: () => void;
+}) {
+  const [step, setStep] = useState<DeleteStep>("idle");
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSendCode() {
+    setLoading(true);
+    setError(null);
+    const result = await requestDeleteBusinessOtpAction();
+    setLoading(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setStep("otp-sent");
+  }
+
+  async function handleVerifyAndDelete() {
+    setLoading(true);
+    setError(null);
+
+    const verifyResult = await verifyDeleteBusinessOtpAction(businessId, code);
+    if (verifyResult.error) {
+      setLoading(false);
+      setError(verifyResult.error);
+      return;
+    }
+
+    const deleteResult = await deleteBusinessAction(businessId);
+    setLoading(false);
+    if (deleteResult.error) {
+      setError(deleteResult.error);
+      return;
+    }
+    onDeleted();
+  }
+
+  return (
+    <div className="max-w-md mx-auto rounded-2xl border p-6 space-y-4 text-center" style={{ borderColor: 'rgba(248,113,113,0.25)' }}>
+      <div className="flex flex-col items-center gap-2">
+        <AlertTriangle size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-alert)' }} />
+        <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-alert)' }}>
+          Zona peligrosa
+        </h3>
+        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Elimina permanentemente <strong>{businessName}</strong>: su cuenta admin, colaboradores,
+          catálogo, pedidos y configuración del agente. No se puede deshacer.
+        </p>
+      </div>
+
+      {step === "idle" && (
+        <Button
+          type="button"
+          variant="outline"
+          style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
+          onClick={() => setStep("confirming")}
+        >
+          Eliminar este negocio
+        </Button>
+      )}
+
+      {step === "confirming" && (
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Te vamos a enviar un código de verificación a tu correo para confirmar.
+          </p>
+          <div className="flex justify-center gap-2">
+            <Button type="button" disabled={loading} onClick={handleSendCode}>
+              {loading ? "Enviando..." : "Enviar código"}
+            </Button>
+            <Button type="button" variant="outline" disabled={loading} onClick={() => setStep("idle")}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === "otp-sent" && (
+        <div className="space-y-3">
+          <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Ingresa el código de verificación que te llegó al correo.
+          </p>
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_CODE_LENGTH))}
+            inputMode="numeric"
+            maxLength={OTP_CODE_LENGTH}
+            placeholder="00000000"
+            className="text-center tracking-[0.3em]"
+          />
+          <div className="flex justify-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={loading || code.length !== OTP_CODE_LENGTH}
+              style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
+              onClick={handleVerifyAndDelete}
+            >
+              {loading ? "Eliminando..." : "Confirmar y eliminar"}
+            </Button>
+            <Button type="button" variant="outline" disabled={loading} onClick={() => setStep("idle")}>
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>
+      )}
     </div>
   );
 }
