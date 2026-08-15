@@ -1,14 +1,21 @@
-'use client';
+// app/(dashboard)/admin/mi-agente/page.tsx
+import { getSessionProfile } from "@/lib/auth/get-session";
+import { getAgentConfig } from "@/lib/services/agentConfigService";
+import { AGENT_TOOLS } from "@/lib/config/agentTools";
+import { MiAgentePanel } from "./mi-agente-panel";
 
-import { Bot } from "lucide-react";
-import { EmptyStateSection } from "@/components/dashboard/shared/EmptyStateSection";
+export default async function MiAgentePage() {
+  const profile = await getSessionProfile();
+  const agentConfig = profile?.businessId
+    ? await getAgentConfig(profile.businessId)
+    : { name: "Tu Agente", personality: "", enabledTools: [] };
 
-export default function MiAgentePage() {
   return (
-    <EmptyStateSection
-      icon={Bot}
-      title="Mi Agente"
-      description="Aquí configurarás tu agente de ventas..."
-    />
+    <div className="space-y-6">
+      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
+        Mi Agente
+      </h1>
+      <MiAgentePanel agentConfig={agentConfig} catalog={AGENT_TOOLS} />
+    </div>
   );
 }

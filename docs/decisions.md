@@ -14,5 +14,8 @@ Se decidió no confiar solo en RLS ni solo en checks de servidor. RLS es la gara
 ## `must_change_password` vive en `business_members`, no en `user_metadata` de auth
 Se detectó y corrigió un bug donde el flujo de cambio de contraseña escribía en `user_metadata` (que nadie lee) en vez de la columna real que consulta `getSessionProfile()`. Cualquier lógica nueva que dependa de este flag debe leer/escribir la columna de `business_members`, nunca el metadata de auth.
 
+## Personalización del agente: nunca reemplaza la capa de seguridad base
+`agent_configs` permite personalizar nombre y personalidad/tono del agente de cada negocio (visual por ahora — el motor conversacional real todavía no existe, ver Épica 09 en el backlog). Cuando ese motor se construya, la personalización del admin se inyecta en el prompt como una capa ADICIONAL sobre una instrucción base fija y no editable (sin groserías, nada ilegal, no salirse de los límites del rol de agente de negocio) — nunca la reemplaza ni la anula. Ningún campo de personalización debe poder desactivar o sobrescribir esa base.
+
 ## `/auth/callback` maneja dos flujos distintos con el parámetro `next`
 El mismo callback se usa para login OAuth (Google) y para recuperación de contraseña. Sin `next`, resuelve el rol y manda al dashboard (caso login). Con `next=/actualizar-password` (y solo si está en el allowlist `ALLOWED_NEXT_PATHS`), manda ahí en vez de al dashboard — porque el objetivo de la recuperación es que el usuario defina una contraseña nueva, no que quede logueado sin haberla cambiado.
