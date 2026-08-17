@@ -1,8 +1,7 @@
 // app/(dashboard)/admin/colaboradores/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getCollaborators } from "@/lib/services/collaboratorService";
-import { CollaboratorForm } from "./collaborator-form";
-import { CollaboratorsTable } from "./collaborators-table";
+import { ColaboradoresPanel } from "./colaboradores-panel";
 
 export default async function ColaboradoresPage() {
   const profile = await getSessionProfile();
@@ -15,8 +14,7 @@ export default async function ColaboradoresPage() {
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Colaboradores
       </h1>
-      <CollaboratorForm />
-      <CollaboratorsTable collaborators={collaborators} />
+      <ColaboradoresPanel collaborators={collaborators} />
     </div>
   );
 }

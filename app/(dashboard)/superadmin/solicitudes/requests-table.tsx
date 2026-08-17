@@ -6,8 +6,10 @@ import { createAccountAction, rejectRequestAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { InfoRow } from "@/components/dashboard/shared/InfoRow";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 
 type ContactRequest = {
   id: string;
@@ -386,7 +388,7 @@ function RequestDetail({
           <div className="space-y-5">
             <InfoRow label="Nombre" value={request.full_name} />
             <InfoRow label="Correo" value={request.email} />
-            <InfoRow label="Teléfono" value={request.phone ?? "—"} />
+            <InfoRow label="Teléfono" value={request.phone ? formatPhoneDisplay(request.phone) : "—"} />
           </div>
         </section>
 
@@ -435,15 +437,3 @@ function RequestDetail({
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
-        {label}
-      </dt>
-      <dd className="text-base font-semibold" style={{ color: 'var(--nexora-ink)' }}>
-        {value}
-      </dd>
-    </div>
-  );
-}

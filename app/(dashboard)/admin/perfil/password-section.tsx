@@ -59,9 +59,9 @@ export function PasswordSection() {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle>Contraseña</CardTitle>
+        <CardTitle>Cambiar Contraseña</CardTitle>
         <CardDescription>
-          Por seguridad, cambiar tu contraseña requiere confirmar un código que se envía a tu correo.
+          Por seguridad, Para cambiar tu contraseña te pediremos un codigo que te llegara al correo electronico.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 flex flex-col items-center text-center">

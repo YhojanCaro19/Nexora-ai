@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Building2, UserCircle, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Building2, UserCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,7 @@ import type { BusinessWithOwner } from "@/lib/services/adminService";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
+import { InfoRow } from "@/components/dashboard/shared/InfoRow";
 
 const industryLabel = (value: string) =>
   industryTypes.find((it) => it.value === value)?.label ?? value;
@@ -20,6 +21,9 @@ const industryLabel = (value: string) =>
 export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = businesses.find((b) => b.id === selectedId) ?? null;
+  // Se llama siempre, sin importar si hay negocio seleccionado o no — un
+  // hook no puede quedar detrás de un `if` (reglas de hooks de React).
+  const deleteFlow = useDeleteBusinessFlow(selectedId, () => setSelectedId(null));
 
   if (selected) {
     return (
@@ -33,6 +37,19 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
             <ChevronLeft size={16} />
             Volver
           </button>
+
+          {deleteFlow.step === "idle" && (
+            <button
+              type="button"
+              onClick={() => deleteFlow.setStep("typing")}
+              title="Eliminar este negocio"
+              aria-label="Eliminar este negocio"
+              className="absolute right-0 inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors hover:bg-[rgba(248,113,113,0.12)]"
+              style={{ color: 'var(--nexora-alert)' }}
+            >
+              <Trash2 size={17} strokeWidth={1.5} />
+            </button>
+          )}
         </div>
 
         <div className="text-center space-y-2">
@@ -82,11 +99,7 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
           </section>
         </div>
 
-        <DeleteBusinessSection
-          businessId={selected.id}
-          businessName={selected.name}
-          onDeleted={() => setSelectedId(null)}
-        />
+        {deleteFlow.step !== "idle" && <DeleteBusinessConfirmPanel flow={deleteFlow} />}
       </div>
     );
   }
@@ -101,25 +114,41 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
 }
 
 // Borrado real e irreversible (negocio + miembros + pedidos + productos +
-// todo lo demás) — por eso pide código de verificación por correo antes de
-// dejar ejecutarlo, no solo un "¿estás seguro?".
-type DeleteStep = "idle" | "confirming" | "otp-sent";
+// todo lo demás) — por eso pide DOS confirmaciones antes de dejar
+// ejecutarlo: escribir "ELIMINAR" a propósito (no es un click accidental) y
+// luego un código de verificación real enviado al correo.
+const CONFIRM_WORD = "ELIMINAR";
+type DeleteStep = "idle" | "typing" | "otp-sent";
 
-function DeleteBusinessSection({
-  businessId,
-  businessName,
-  onDeleted,
-}: {
-  businessId: string;
-  businessName: string;
-  onDeleted: () => void;
-}) {
+function useDeleteBusinessFlow(businessId: string | null, onDeleted: () => void) {
   const [step, setStep] = useState<DeleteStep>("idle");
+  const [typedConfirm, setTypedConfirm] = useState("");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSendCode() {
+  // Si cambia el negocio seleccionado (o se cierra el detalle), no debe
+  // quedar un paso de borrado a medias esperando por otro negocio distinto.
+  // Se ajusta durante el render (patrón recomendado por React para "resetear
+  // estado cuando cambia una prop"), no dentro de un efecto.
+  const [trackedBusinessId, setTrackedBusinessId] = useState(businessId);
+  if (businessId !== trackedBusinessId) {
+    setTrackedBusinessId(businessId);
+    setStep("idle");
+    setTypedConfirm("");
+    setCode("");
+    setError(null);
+  }
+
+  function cancel() {
+    setStep("idle");
+    setTypedConfirm("");
+    setCode("");
+    setError(null);
+  }
+
+  async function handleConfirmTyped() {
+    if (!businessId || typedConfirm !== CONFIRM_WORD) return;
     setLoading(true);
     setError(null);
     const result = await requestDeleteBusinessOtpAction();
@@ -132,6 +161,7 @@ function DeleteBusinessSection({
   }
 
   async function handleVerifyAndDelete() {
+    if (!businessId) return;
     setLoading(true);
     setError(null);
 
@@ -151,54 +181,63 @@ function DeleteBusinessSection({
     onDeleted();
   }
 
+  return {
+    step,
+    setStep,
+    typedConfirm,
+    setTypedConfirm,
+    code,
+    setCode,
+    loading,
+    error,
+    cancel,
+    handleConfirmTyped,
+    handleVerifyAndDelete,
+  };
+}
+
+type DeleteFlow = ReturnType<typeof useDeleteBusinessFlow>;
+
+function DeleteBusinessConfirmPanel({ flow }: { flow: DeleteFlow }) {
   return (
-    <div className="max-w-md mx-auto rounded-2xl border p-6 space-y-4 text-center" style={{ borderColor: 'rgba(248,113,113,0.25)' }}>
-      <div className="flex flex-col items-center gap-2">
-        <AlertTriangle size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-alert)' }} />
-        <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-alert)' }}>
-          Zona peligrosa
-        </h3>
-        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Elimina permanentemente <strong>{businessName}</strong>: su cuenta admin, colaboradores,
-          catálogo, pedidos y configuración del agente. No se puede deshacer.
-        </p>
-      </div>
-
-      {step === "idle" && (
-        <Button
-          type="button"
-          variant="outline"
-          style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
-          onClick={() => setStep("confirming")}
-        >
-          Eliminar este negocio
-        </Button>
-      )}
-
-      {step === "confirming" && (
-        <div className="space-y-3">
+    <div className="max-w-md mx-auto space-y-3 text-center">
+      {flow.step === "typing" && (
+        <>
           <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Te vamos a enviar un código de verificación a tu correo para confirmar.
+            Escribe <strong style={{ color: 'var(--nexora-alert)' }}>{CONFIRM_WORD}</strong> para
+            confirmar que quieres borrar este negocio. Luego te enviamos un código al correo.
           </p>
+          <Input
+            value={flow.typedConfirm}
+            onChange={(e) => flow.setTypedConfirm(e.target.value.toUpperCase())}
+            placeholder={CONFIRM_WORD}
+            className="text-center tracking-[0.2em]"
+          />
           <div className="flex justify-center gap-2">
-            <Button type="button" disabled={loading} onClick={handleSendCode}>
-              {loading ? "Enviando..." : "Enviar código"}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={flow.loading || flow.typedConfirm !== CONFIRM_WORD}
+              style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
+              onClick={flow.handleConfirmTyped}
+            >
+              {flow.loading ? "Enviando código..." : "Continuar"}
             </Button>
-            <Button type="button" variant="outline" disabled={loading} onClick={() => setStep("idle")}>
+            <Button type="button" variant="outline" disabled={flow.loading} onClick={flow.cancel}>
               Cancelar
             </Button>
           </div>
-        </div>
+        </>
       )}
 
-      {step === "otp-sent" && (
-        <div className="space-y-3">
+      {flow.step === "otp-sent" && (
+        <>
           <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
             Ingresa el código de verificación que te llegó al correo.
           </p>
           <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_CODE_LENGTH))}
+            value={flow.code}
+            onChange={(e) => flow.setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_CODE_LENGTH))}
             inputMode="numeric"
             maxLength={OTP_CODE_LENGTH}
             placeholder="00000000"
@@ -208,35 +247,22 @@ function DeleteBusinessSection({
             <Button
               type="button"
               variant="outline"
-              disabled={loading || code.length !== OTP_CODE_LENGTH}
+              disabled={flow.loading || flow.code.length !== OTP_CODE_LENGTH}
               style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
-              onClick={handleVerifyAndDelete}
+              onClick={flow.handleVerifyAndDelete}
             >
-              {loading ? "Eliminando..." : "Confirmar y eliminar"}
+              {flow.loading ? "Eliminando..." : "Confirmar y eliminar"}
             </Button>
-            <Button type="button" variant="outline" disabled={loading} onClick={() => setStep("idle")}>
+            <Button type="button" variant="outline" disabled={flow.loading} onClick={flow.cancel}>
               Cancelar
             </Button>
           </div>
-        </div>
+        </>
       )}
 
-      {error && (
-        <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>
+      {flow.error && (
+        <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{flow.error}</p>
       )}
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
-        {label}
-      </dt>
-      <dd className="text-base font-semibold" style={{ color: 'var(--nexora-ink)' }}>
-        {value}
-      </dd>
     </div>
   );
 }

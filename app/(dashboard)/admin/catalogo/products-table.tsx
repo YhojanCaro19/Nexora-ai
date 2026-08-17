@@ -14,10 +14,15 @@ import { Button } from "@/components/ui/button";
 import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
+import { formatCurrency } from "@/lib/utils/currency";
 
-const currency = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
-
-export function ProductsTable({ products }: { products: Product[] }) {
+export function ProductsTable({
+  products,
+  countryIso2,
+}: {
+  products: Product[];
+  countryIso2: string | null;
+}) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -60,7 +65,7 @@ export function ProductsTable({ products }: { products: Product[] }) {
                 <TableCell className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
                   {p.name}
                 </TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{currency.format(p.price)}</TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatCurrency(p.price, countryIso2)}</TableCell>
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{p.stock ?? "—"}</TableCell>
                 <TableCell>
                   <span

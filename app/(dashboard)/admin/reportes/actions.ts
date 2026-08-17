@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import {
-  updateBusinessContact,
+  updateBusinessBranding,
   uploadBusinessLogo,
 } from "@/lib/services/businessBrandingService";
 import { businessBrandingSchema } from "@/lib/validators/businessBrandingSchema";
@@ -19,7 +19,16 @@ async function requireAdminBusinessId() {
   return profile.businessId;
 }
 
-export async function updateBusinessContactAction(input: { contactEmail: string; contactPhone: string }) {
+export async function updateBusinessBrandingAction(input: {
+  contactEmail: string;
+  contactPhone: string;
+  taxId: string;
+  address: string;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  twitter: string;
+}) {
   const businessId = await requireAdminBusinessId();
   if (!businessId) {
     return { error: "No autorizado" };
@@ -30,9 +39,15 @@ export async function updateBusinessContactAction(input: { contactEmail: string;
     return { error: parsed.error.issues[0].message };
   }
 
-  const result = await updateBusinessContact(businessId, {
+  const result = await updateBusinessBranding(businessId, {
     contactEmail: parsed.data.contactEmail ?? "",
     contactPhone: parsed.data.contactPhone ?? "",
+    taxId: parsed.data.taxId ?? "",
+    address: parsed.data.address ?? "",
+    instagram: parsed.data.instagram ?? "",
+    facebook: parsed.data.facebook ?? "",
+    tiktok: parsed.data.tiktok ?? "",
+    twitter: parsed.data.twitter ?? "",
   });
   revalidatePath("/admin/reportes");
   return result;

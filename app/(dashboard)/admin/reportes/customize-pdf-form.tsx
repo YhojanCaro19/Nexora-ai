@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent } from "react";
 import { ImagePlus } from "lucide-react";
-import { updateBusinessContactAction, uploadBusinessLogoAction } from "./actions";
+import { updateBusinessBrandingAction, uploadBusinessLogoAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,13 +10,20 @@ import { PhoneField } from "@/components/shared/PhoneField";
 import type { BusinessBranding } from "@/lib/services/businessBrandingService";
 
 // Misma plantilla de reporte para todos los negocios — esto es lo único
-// que cambia por negocio: el logo, el correo y el teléfono que aparecen
-// en el encabezado del PDF.
+// que cambia por negocio: el logo, el correo, el teléfono, el NIT/
+// documento, la dirección y las redes sociales que aparecen en el
+// encabezado del PDF. Todo salvo el logo es texto libre y opcional.
 export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(branding.logoUrl);
   const [contactEmail, setContactEmail] = useState(branding.contactEmail ?? "");
   const [contactPhone, setContactPhone] = useState(branding.contactPhone ?? "");
+  const [taxId, setTaxId] = useState(branding.taxId ?? "");
+  const [address, setAddress] = useState(branding.address ?? "");
+  const [instagram, setInstagram] = useState(branding.instagram ?? "");
+  const [facebook, setFacebook] = useState(branding.facebook ?? "");
+  const [tiktok, setTiktok] = useState(branding.tiktok ?? "");
+  const [twitter, setTwitter] = useState(branding.twitter ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -57,11 +64,20 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
       setLogoFile(null);
     }
 
-    const contactResult = await updateBusinessContactAction({ contactEmail, contactPhone });
+    const result = await updateBusinessBrandingAction({
+      contactEmail,
+      contactPhone,
+      taxId,
+      address,
+      instagram,
+      facebook,
+      tiktok,
+      twitter,
+    });
     setLoading(false);
 
-    if (contactResult.error) {
-      setError(contactResult.error);
+    if (result.error) {
+      setError(result.error);
       return;
     }
     setSaved(true);
@@ -71,7 +87,8 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
     <div className="max-w-md mx-auto space-y-6">
       <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
         La plantilla del reporte diario es la misma para todos los negocios — esto es lo
-        que se personaliza en tu encabezado: logo, correo y teléfono de contacto.
+        que se personaliza en tu encabezado: logo, correo y teléfono de contacto, NIT,
+        dirección y redes sociales.
       </p>
 
       {error && (
@@ -147,6 +164,88 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
             setSaved(false);
           }}
         />
+
+        <div className="space-y-1.5">
+          <Label htmlFor="taxId" className="block text-center">NIT o documento (opcional)</Label>
+          <Input
+            id="taxId"
+            value={taxId}
+            onChange={(e) => {
+              setTaxId(e.target.value);
+              setSaved(false);
+            }}
+            placeholder="900.123.456-7"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="address" className="block text-center">Dirección (opcional)</Label>
+          <Input
+            id="address"
+            value={address}
+            onChange={(e) => {
+              setAddress(e.target.value);
+              setSaved(false);
+            }}
+            placeholder="Calle 123 #1-23, Medellin, Colombia"
+          />
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <Label className="block text-center">Redes sociales (opcional)</Label>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="instagram" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Instagram</Label>
+            <Input
+              id="instagram"
+              value={instagram}
+              onChange={(e) => {
+                setInstagram(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="@tunegocio"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="facebook" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Facebook</Label>
+            <Input
+              id="facebook"
+              value={facebook}
+              onChange={(e) => {
+                setFacebook(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="@tunegocio"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="tiktok" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>TikTok</Label>
+            <Input
+              id="tiktok"
+              value={tiktok}
+              onChange={(e) => {
+                setTiktok(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="@tunegocio"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="twitter" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>X (Twitter)</Label>
+            <Input
+              id="twitter"
+              value={twitter}
+              onChange={(e) => {
+                setTwitter(e.target.value);
+                setSaved(false);
+              }}
+              placeholder="@tunegocio"
+            />
+          </div>
+        </div>
 
         <div className="flex flex-col items-center gap-2 pt-2">
           <Button type="submit" disabled={loading}>

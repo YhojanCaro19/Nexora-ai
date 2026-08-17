@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Product } from "@/lib/services/productService";
+import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "" };
 
@@ -130,9 +131,13 @@ export function ProductForm({
             <Textarea
               id="description"
               rows={3}
+              maxLength={DESCRIPTION_MAX_LENGTH}
               value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
             />
+            <p className="text-xs text-right" style={{ color: 'var(--nexora-ink-dim)' }}>
+              {form.description.length}/{DESCRIPTION_MAX_LENGTH}
+            </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

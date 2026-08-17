@@ -1,0 +1,93 @@
+// Tarjeta grande de ventas: cifra de hoy + tendencia vs ayer + barras de
+// los últimos N días — hecha a mano con divs (sin librería de gráficas).
+// Cada barra muestra su valor en texto arriba (no hay que adivinar por la
+// altura ni pasar el mouse) y siempre tiene un "carril" de fondo visible,
+// para que un día sin ventas se vea como "cero", no como si faltara la
+// barra. No necesita interactividad de cliente, se renderiza directo
+// desde un Server Component.
+import type { DailyTrendPoint } from "@/lib/services/reportService";
+import type { TrendIndicator } from "@/lib/services/dashboardService";
+import { formatCurrency } from "@/lib/utils/currency";
+
+const TREND_COLOR: Record<TrendIndicator["direction"], string> = {
+  up: "#34D399",
+  down: "#F87171",
+  neutral: "var(--nexora-ink-dim)",
+};
+
+export function SalesTrendChart({
+  points,
+  todayRevenue,
+  trend,
+  countryIso2,
+}: {
+  points: DailyTrendPoint[];
+  todayRevenue: number;
+  trend: TrendIndicator;
+  countryIso2: string | null;
+}) {
+  const max = Math.max(1, ...points.map((p) => p.revenue));
+
+  return (
+    <div className="rounded-2xl border p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
+      <div className="flex items-start justify-between mb-1">
+        <div>
+          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Ventas de la semana
+          </p>
+          <p className="text-3xl font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>
+            {formatCurrency(todayRevenue, countryIso2)}
+          </p>
+        </div>
+        <span
+          className="text-xs font-medium px-2 py-1 rounded-md shrink-0"
+          style={{ color: TREND_COLOR[trend.direction], background: `${TREND_COLOR[trend.direction]}1A` }}
+        >
+          {trend.direction === "down" ? "↓" : trend.direction === "up" ? "↑" : ""} {trend.value} vs ayer
+        </span>
+      </div>
+      <p className="text-xs mb-6" style={{ color: 'var(--nexora-ink-dim)' }}>
+        Cuánto vendiste cada día — la barra de hoy va resaltada.
+      </p>
+
+      <div className="flex items-end justify-between gap-2 sm:gap-3 h-40">
+        {points.map((p, i) => {
+          const isToday = i === points.length - 1;
+          const heightPct = (p.revenue / max) * 100;
+          return (
+            <div key={p.date} className="flex-1 flex flex-col items-center gap-1.5 h-full">
+              <span
+                className="text-[10px] font-medium whitespace-nowrap"
+                style={{ color: isToday ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
+              >
+                {p.revenue > 0 ? formatCurrency(p.revenue, countryIso2) : "—"}
+              </span>
+              {/* El "carril" (fondo) siempre se ve completo — la barra de
+                  valor se dibuja encima, así un día en $0 se lee como
+                  "cero" y no como una barra rota o que falta. */}
+              <div
+                title={`${p.label}: ${formatCurrency(p.revenue, countryIso2)}`}
+                className="w-full max-w-[36px] flex-1 rounded-md relative overflow-hidden"
+                style={{ background: 'rgba(255,255,255,0.06)' }}
+              >
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-md transition-all duration-300"
+                  style={{
+                    height: `${heightPct}%`,
+                    background: isToday ? 'var(--nexora-nova)' : 'rgba(255,255,255,0.28)',
+                  }}
+                />
+              </div>
+              <span
+                className="text-[10px] uppercase tracking-wide font-medium"
+                style={{ color: isToday ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
+              >
+                {p.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

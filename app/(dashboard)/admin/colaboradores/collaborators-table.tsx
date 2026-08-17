@@ -17,6 +17,7 @@ import { requestDeleteCollaboratorOtpAction, verifyAndDeleteCollaboratorAction }
 import { ASSIGNABLE_MODULES } from "@/lib/constants/nav-items";
 import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 
 const MODULE_LABELS: Record<string, string> = Object.fromEntries(
   ASSIGNABLE_MODULES.map((m) => [m.key, m.label])
@@ -200,7 +201,7 @@ export function CollaboratorsTable({
                   {c.full_name ?? "—"}
                 </TableCell>
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.email}</TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.phone ?? "—"}</TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.phone ? formatPhoneDisplay(c.phone) : "—"}</TableCell>
                 <TableCell>
                   <ModulePills permissions={c.permissions} />
                 </TableCell>

@@ -17,7 +17,7 @@ import {
 
 const EMPTY_FORM = { full_name: "", phone: "", email: "" };
 
-export function CollaboratorForm() {
+export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [permissions, setPermissions] = useState<ModuleKey[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,9 +77,12 @@ export function CollaboratorForm() {
             variant="outline"
             size="sm"
             className="mt-3"
-            onClick={() => setCredentials(null)}
+            onClick={() => {
+              setCredentials(null);
+              onDone?.();
+            }}
           >
-            Cerrar
+            Listo
           </Button>
         </div>
       )}

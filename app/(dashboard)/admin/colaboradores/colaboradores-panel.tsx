@@ -1,36 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { PackagePlus, LayoutGrid, ChevronLeft } from "lucide-react";
-import { ProductForm } from "./product-form";
-import { ProductsTable } from "./products-table";
-import type { Product } from "@/lib/services/productService";
+import { UserPlus, Users, ChevronLeft } from "lucide-react";
+import { CollaboratorForm } from "./collaborator-form";
+import { CollaboratorsTable } from "./collaborators-table";
+import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 
 type View = "chooser" | "new" | "list";
 
-export function CatalogoPanel({
-  products,
-  countryIso2,
-}: {
-  products: Product[];
-  countryIso2: string | null;
-}) {
+export function ColaboradoresPanel({ collaborators }: { collaborators: CollaboratorListItem[] }) {
   const [view, setView] = useState<View>("chooser");
 
   if (view === "chooser") {
     return (
       <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-10">
+        <ChooserButton icon={UserPlus} label="Agregar colaborador" onClick={() => setView("new")} />
         <ChooserButton
-          icon={PackagePlus}
-          label="Agregar nuevo producto"
-          accent="var(--nexora-nova)"
-          onClick={() => setView("new")}
-        />
-        <ChooserButton
-          icon={LayoutGrid}
-          label="Ver catálogo"
-          count={products.length}
-          accent="var(--nexora-nova)"
+          icon={Users}
+          label="Ver colaboradores"
+          count={collaborators.length}
           onClick={() => setView("list")}
         />
       </div>
@@ -49,9 +37,9 @@ export function CatalogoPanel({
       </button>
 
       {view === "new" ? (
-        <ProductForm onDone={() => setView("list")} />
+        <CollaboratorForm onDone={() => setView("list")} />
       ) : (
-        <ProductsTable products={products} countryIso2={countryIso2} />
+        <CollaboratorsTable collaborators={collaborators} />
       )}
     </div>
   );
@@ -61,13 +49,11 @@ function ChooserButton({
   icon: Icon,
   label,
   count,
-  accent,
   onClick,
 }: {
-  icon: typeof PackagePlus;
+  icon: typeof UserPlus;
   label: string;
   count?: number;
-  accent: string;
   onClick: () => void;
 }) {
   return (
@@ -75,10 +61,10 @@ function ChooserButton({
       onClick={onClick}
       className="flex flex-col items-center justify-center gap-3 w-48 h-48 rounded-3xl border transition-all duration-300 hover:scale-105"
       style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = accent)}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
     >
-      <Icon size={32} strokeWidth={1.5} style={{ color: accent }} />
+      <Icon size={32} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
       <span className="text-sm font-medium text-center px-2" style={{ color: 'var(--nexora-ink)' }}>
         {label}
       </span>

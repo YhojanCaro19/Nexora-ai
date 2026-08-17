@@ -1,9 +1,11 @@
 // lib/services/businessBrandingService.ts
 //
-// Personalización del PDF de Reportes: logo, correo y teléfono propios
-// del negocio (columnas nuevas en `businesses`, independientes del correo/
-// teléfono del dueño en business_members — un negocio puede querer un
-// correo de contacto distinto al personal del admin).
+// Personalización del PDF de Reportes: logo, correo, teléfono, NIT/
+// documento, dirección y redes sociales — todos propios del negocio
+// (columnas en `businesses`, independientes del correo/teléfono del
+// dueño en business_members — un negocio puede querer un correo de
+// contacto distinto al personal del admin). NIT, dirección y redes son
+// opcionales, igual que el logo.
 //
 // Se escribe con service role, no con el cliente normal: hoy no existe
 // ninguna policy de "el admin edita su propio negocio" en `businesses`
@@ -22,6 +24,25 @@ export interface BusinessBranding {
   logoUrl: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
+  taxId: string | null;
+  address: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  tiktok: string | null;
+  twitter: string | null;
+}
+
+// Usado por Pedidos/Catálogo para formatear precios/totales en la moneda
+// real del negocio (ver lib/utils/currency.ts) — el mismo country_iso2
+// que ya usa Reportes para la zona horaria.
+export async function getBusinessCountryIso2(businessId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("businesses")
+    .select("country_iso2")
+    .eq("id", businessId)
+    .maybeSingle();
+  return data?.country_iso2 ?? null;
 }
 
 export async function getBusinessBranding(businessId: string): Promise<BusinessBranding> {
@@ -30,7 +51,7 @@ export async function getBusinessBranding(businessId: string): Promise<BusinessB
   const supabase = await createClient();
   const { data } = await supabase
     .from("businesses")
-    .select("logo_url, contact_email, contact_phone")
+    .select("logo_url, contact_email, contact_phone, tax_id, address, instagram, facebook, tiktok, twitter")
     .eq("id", businessId)
     .maybeSingle();
 
@@ -38,12 +59,27 @@ export async function getBusinessBranding(businessId: string): Promise<BusinessB
     logoUrl: data?.logo_url ?? null,
     contactEmail: data?.contact_email ?? null,
     contactPhone: data?.contact_phone ?? null,
+    taxId: data?.tax_id ?? null,
+    address: data?.address ?? null,
+    instagram: data?.instagram ?? null,
+    facebook: data?.facebook ?? null,
+    tiktok: data?.tiktok ?? null,
+    twitter: data?.twitter ?? null,
   };
 }
 
-export async function updateBusinessContact(
+export async function updateBusinessBranding(
   businessId: string,
-  input: { contactEmail: string; contactPhone: string }
+  input: {
+    contactEmail: string;
+    contactPhone: string;
+    taxId: string;
+    address: string;
+    instagram: string;
+    facebook: string;
+    tiktok: string;
+    twitter: string;
+  }
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
   const { error } = await admin
@@ -51,11 +87,17 @@ export async function updateBusinessContact(
     .update({
       contact_email: input.contactEmail || null,
       contact_phone: input.contactPhone || null,
+      tax_id: input.taxId || null,
+      address: input.address || null,
+      instagram: input.instagram || null,
+      facebook: input.facebook || null,
+      tiktok: input.tiktok || null,
+      twitter: input.twitter || null,
     })
     .eq("id", businessId);
 
   if (error) {
-    console.error("[updateBusinessContact] error:", {
+    console.error("[updateBusinessBranding] error:", {
       message: error.message,
       code: error.code,
       details: error.details,

@@ -2,6 +2,7 @@
 import { UserCircle } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getProfileDetails } from "@/lib/services/profileService";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { PasswordSection } from "./password-section";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -52,7 +53,7 @@ export default async function PerfilPage() {
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
           <InfoField label="Nombre" value={details.fullName} />
           <InfoField label="Correo" value={details.email ?? "—"} />
-          <InfoField label="Teléfono" value={details.phone ?? "—"} />
+          <InfoField label="Teléfono" value={details.phone ? formatPhoneDisplay(details.phone) : "—"} />
           <InfoField label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
           {details.businessName && <InfoField label="Negocio" value={details.businessName} />}
         </dl>

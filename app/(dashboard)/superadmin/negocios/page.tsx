@@ -8,7 +8,7 @@ export default async function NegociosPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
-        Negocios
+        Negocios Activos
       </h1>
 
       {businesses.length === 0 ? (

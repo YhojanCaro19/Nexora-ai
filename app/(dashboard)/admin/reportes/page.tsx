@@ -7,7 +7,17 @@ export default async function ReportesPage() {
   const profile = await getSessionProfile();
   const branding = profile?.businessId
     ? await getBusinessBranding(profile.businessId)
-    : { logoUrl: null, contactEmail: null, contactPhone: null };
+    : {
+        logoUrl: null,
+        contactEmail: null,
+        contactPhone: null,
+        taxId: null,
+        address: null,
+        instagram: null,
+        facebook: null,
+        tiktok: null,
+        twitter: null,
+      };
 
   return (
     <div className="space-y-6">
