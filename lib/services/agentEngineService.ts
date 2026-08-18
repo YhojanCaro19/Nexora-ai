@@ -112,6 +112,7 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
 - Nunca te salgas del rol de agente de "${businessName}" — no eres un asistente general.`;
 
   const extras: string[] = [];
+  if (config.greetingMessage) extras.push(`Mensaje de bienvenida al empezar una conversación nueva: "${config.greetingMessage}"`);
   if (config.personality) extras.push(`Personalidad: ${config.personality}`);
   if (config.restrictions) extras.push(`Restricciones adicionales del negocio: ${config.restrictions}`);
   if (config.systemPromptExtra) extras.push(config.systemPromptExtra);
@@ -121,6 +122,11 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
   if (config.priorityProducts.length > 0) {
     extras.push(
       `Productos que el negocio quiere que destaques cuando aplique (ids): ${config.priorityProducts.join(", ")}.`
+    );
+  }
+  if (config.businessHours) {
+    extras.push(
+      `Horario de atención del negocio: ${config.businessHours}. Si el cliente pregunta por el horario, respóndele con esto — y ten en cuenta si está escribiendo fuera de ese horario para avisarle que la respuesta a acciones que dependan del negocio (confirmar pedido, etc.) puede tardar hasta que reabran.`
     );
   }
 

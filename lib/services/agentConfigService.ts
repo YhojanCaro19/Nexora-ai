@@ -11,13 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeToolKeys, type AgentToolKey } from "@/lib/config/agentTools";
 
-// `agent_configs` en Supabase tiene más columnas de las que esta pantalla
-// expone hoy (Mi Agente solo deja editar name/personality/enabled_tools)
-// — el resto (system_prompt_extra, use_emojis, response_length, language,
-// priority_products, restrictions, faq_text) ya existen en la base,
-// esperando su UI. El motor del agente SÍ las lee y las usa todas, aunque
-// todavía no haya dónde configurarlas desde el panel — cuando se
-// construya esa UI, ya quedan conectadas.
+// `agent_configs` — personalización completa del agente. El motor
+// (agentEngineService.ts) lee y usa todos estos campos; esta pantalla es
+// donde el admin los edita.
 export interface AgentConfig {
   name: string;
   personality: string;
@@ -29,6 +25,23 @@ export interface AgentConfig {
   priorityProducts: string[];
   restrictions: string;
   faqText: string;
+  businessHours: string;
+  greetingMessage: string;
+}
+
+export interface UpdateAgentConfigInput {
+  name: string;
+  personality: string;
+  enabledTools: string[];
+  systemPromptExtra: string;
+  useEmojis: boolean;
+  responseLength: string;
+  language: string;
+  priorityProducts: string[];
+  restrictions: string;
+  faqText: string;
+  businessHours: string;
+  greetingMessage: string;
 }
 
 export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
@@ -36,7 +49,7 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
   const { data, error } = await supabase
     .from("agent_configs")
     .select(
-      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text"
+      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text, business_hours, greeting_message"
     )
     .eq("business_id", businessId)
     .maybeSingle();
@@ -56,21 +69,35 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     priorityProducts: Array.isArray(data?.priority_products) ? data.priority_products : [],
     restrictions: data?.restrictions ?? "",
     faqText: data?.faq_text ?? "",
+    businessHours: data?.business_hours ?? "",
+    greetingMessage: data?.greeting_message ?? "",
   };
 }
 
 export async function updateAgentConfig(
   businessId: string,
-  input: { name: string; personality: string; enabledTools: string[] }
+  input: UpdateAgentConfigInput
 ): Promise<{ error: string | null }> {
   const name = input.name.trim() || "Tu Agente";
-  const personality = input.personality.trim();
   const clean = sanitizeToolKeys(input.enabledTools);
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("agent_configs")
-    .update({ name, personality: personality || null, enabled_tools: clean })
+    .update({
+      name,
+      personality: input.personality.trim() || null,
+      enabled_tools: clean,
+      system_prompt_extra: input.systemPromptExtra.trim() || null,
+      use_emojis: input.useEmojis,
+      response_length: input.responseLength || null,
+      language: input.language.trim() || null,
+      priority_products: input.priorityProducts,
+      restrictions: input.restrictions.trim() || null,
+      faq_text: input.faqText.trim() || null,
+      business_hours: input.businessHours.trim() || null,
+      greeting_message: input.greetingMessage.trim() || null,
+    })
     .eq("business_id", businessId);
 
   if (error) {
