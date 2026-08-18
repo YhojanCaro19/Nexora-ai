@@ -54,7 +54,7 @@ export default async function AdminHomePage() {
           de verse estirado. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <div className="lg:col-span-2">
-          <SalesTrendChart points={salesTrend} todayRevenue={todayRevenue} trend={revenueTrend} countryIso2={countryIso2} />
+          <SalesTrendChart points={salesTrend} todayRevenue={todayRevenue} countryIso2={countryIso2} />
         </div>
         <PendingOrdersPreview orders={stats?.pendingPreview ?? []} countryIso2={countryIso2} />
       </div>
