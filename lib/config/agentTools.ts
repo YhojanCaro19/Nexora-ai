@@ -20,6 +20,20 @@ export const AGENT_TOOLS = [
 
 export type AgentToolKey = (typeof AGENT_TOOLS)[number]["key"];
 
+// Del catálogo completo de 8 herramientas, estas 3 son las que ya tienen
+// motor real detrás (services que consultan datos reales — ver
+// agentEngineService.ts). Las otras 5 (agendar_cita, reservar_mesa,
+// reservar_habitacion, cobrar, recordatorios) dependen de infraestructura
+// que todavía no existe (reservations sin schema, sin pasarela de pago,
+// sin scheduler) — si un admin las prende en Mi Agente, el motor las
+// ignora silenciosamente en vez de ofrecerle al modelo una tool que
+// promete algo que no puede cumplir.
+export const SUPPORTED_TOOL_KEYS: readonly AgentToolKey[] = [
+  "catalogo_productos",
+  "tomar_pedido",
+  "responder_faq",
+];
+
 export const AGENT_TOOL_KEYS: readonly string[] = AGENT_TOOLS.map((t) => t.key);
 
 export const isValidAgentToolKey = (key: string): key is AgentToolKey =>

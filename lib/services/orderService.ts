@@ -3,6 +3,7 @@ import { translateError } from "@/lib/errors/translate";
 import { sanitizeImageUpload } from "@/lib/services/imageSecurityService";
 import { ALLOWED_STATUS_TRANSITIONS, isValidOrderStatus } from "@/lib/types/order";
 import type { Order, OrderItem, OrderStatus } from "@/lib/types/order";
+import { createOrderSchema, type CreateOrderInput } from "@/lib/validators/orderSchema";
 
 export type { Order, OrderItem, OrderStatus };
 export { ORDER_STATUSES, ORDER_STATUS_LABELS, ALLOWED_STATUS_TRANSITIONS } from "@/lib/types/order";
@@ -26,6 +27,77 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   return data as Order[];
 }
 
+// Crea un pedido nuevo — la usa la tool `tomar_pedido` del agente
+// conversacional, y cualquier futuro flujo de pedidos (ej. un catálogo
+// público). Nunca confía en nombre/precio que venga de afuera (ni del
+// cliente, ni del modelo): busca cada producto REAL en la base de datos y
+// arma el pedido con esos datos — así no se puede inventar un precio
+// distinto al que el negocio configuró en Catálogo.
+//
+// El stock NO se toca acá — se descuenta recién cuando el admin confirma
+// el pedido (ver updateOrderStatus), para no perder inventario por
+// pedidos que quedan pendientes para siempre o terminan rechazados.
+//
+// customer_id queda null a propósito — todavía no existe la tabla
+// `customers` (ver docs/database.md, mencionada pero sin schema real);
+// cuando se construya, este es el punto donde se conecta.
+export async function createOrder(
+  businessId: string,
+  input: CreateOrderInput
+): Promise<{ error: string | null; data: Order | null }> {
+  const parsed = createOrderSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message, data: null };
+  }
+
+  const supabase = await createClient();
+  const productIds = parsed.data.items.map((item) => item.productId);
+
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select("id, name, price, active")
+    .eq("business_id", businessId)
+    .in("id", productIds);
+
+  if (productsError) {
+    return { error: translateError(productsError), data: null };
+  }
+
+  const items: OrderItem[] = [];
+  let total = 0;
+
+  for (const line of parsed.data.items) {
+    const product = products?.find((p) => p.id === line.productId);
+    if (!product || !product.active) {
+      return { error: "Uno de los productos del pedido ya no está disponible", data: null };
+    }
+    total += product.price * line.quantity;
+    items.push({
+      product_id: product.id,
+      name: product.name,
+      quantity: line.quantity,
+      unit_price: product.price,
+    });
+  }
+
+  const { data, error } = await supabase
+    .from("orders")
+    .insert({
+      business_id: businessId,
+      customer_id: null,
+      status: "pending",
+      items,
+      total,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    return { error: translateError(error), data: null };
+  }
+  return { error: null, data: data as Order };
+}
+
 // El estado nunca retrocede — se verifica contra el estado REAL que tiene
 // el pedido en la base de datos ahora mismo, no contra lo que mande el
 // cliente, porque un botón viejo en pantalla (o alguien llamando la
@@ -35,7 +107,7 @@ export async function updateOrderStatus(orderId: string, businessId: string, sta
 
   const { data: current, error: findError } = await supabase
     .from("orders")
-    .select("status")
+    .select("status, items")
     .eq("id", orderId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -60,6 +132,24 @@ export async function updateOrderStatus(orderId: string, businessId: string, sta
   if (error) {
     return { error: translateError(error) };
   }
+
+  // El stock se descuenta justo acá — recién cuando se confirma, nunca al
+  // crear el pedido (ver createOrder). Si el descuento falla, no se
+  // revierte la confirmación — queda logueado, pero el pedido ya
+  // confirmado es lo importante; el stock se puede ajustar a mano.
+  if (status === "confirmed") {
+    const items = (current.items as OrderItem[]) ?? [];
+    for (const item of items) {
+      const { error: stockError } = await supabase.rpc("decrement_product_stock", {
+        p_product_id: item.product_id,
+        p_quantity: item.quantity,
+      });
+      if (stockError) {
+        console.error("[updateOrderStatus] error descontando stock:", stockError);
+      }
+    }
+  }
+
   return { error: null };
 }
 

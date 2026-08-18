@@ -11,17 +11,33 @@ import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeToolKeys, type AgentToolKey } from "@/lib/config/agentTools";
 
+// `agent_configs` en Supabase tiene más columnas de las que esta pantalla
+// expone hoy (Mi Agente solo deja editar name/personality/enabled_tools)
+// — el resto (system_prompt_extra, use_emojis, response_length, language,
+// priority_products, restrictions, faq_text) ya existen en la base,
+// esperando su UI. El motor del agente SÍ las lee y las usa todas, aunque
+// todavía no haya dónde configurarlas desde el panel — cuando se
+// construya esa UI, ya quedan conectadas.
 export interface AgentConfig {
   name: string;
   personality: string;
   enabledTools: AgentToolKey[];
+  systemPromptExtra: string;
+  useEmojis: boolean;
+  responseLength: string | null;
+  language: string | null;
+  priorityProducts: string[];
+  restrictions: string;
+  faqText: string;
 }
 
 export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("agent_configs")
-    .select("name, personality, enabled_tools")
+    .select(
+      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text"
+    )
     .eq("business_id", businessId)
     .maybeSingle();
 
@@ -33,6 +49,13 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     name: data?.name ?? "Tu Agente",
     personality: data?.personality ?? "",
     enabledTools: sanitizeToolKeys(data?.enabled_tools),
+    systemPromptExtra: data?.system_prompt_extra ?? "",
+    useEmojis: data?.use_emojis ?? false,
+    responseLength: data?.response_length ?? null,
+    language: data?.language ?? null,
+    priorityProducts: Array.isArray(data?.priority_products) ? data.priority_products : [],
+    restrictions: data?.restrictions ?? "",
+    faqText: data?.faq_text ?? "",
   };
 }
 

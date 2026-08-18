@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { productSchema, type ProductInput } from "@/lib/validators/productSchema";
 import { uploadProductImage } from "@/lib/services/productImageService";
+import { generateEmbedding, buildProductEmbeddingText } from "@/lib/services/embeddingService";
 
 export interface Product {
   id: string;
@@ -43,6 +44,14 @@ export async function createProduct(businessId: string, input: ProductInput, ima
     return { error: parsed.error.issues[0].message, data: null };
   }
 
+  // Se genera ANTES del insert porque solo depende de nombre/descripción,
+  // no del id del producto — así entra en la misma fila desde el
+  // principio, sin un segundo update. Si Voyage falla, embedding queda
+  // null y el producto se crea igual (no es un error fatal — puede
+  // regenerarse editando el producto más tarde).
+  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null);
+  const embedding = await generateEmbedding(embeddingText);
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
@@ -52,6 +61,7 @@ export async function createProduct(businessId: string, input: ProductInput, ima
       description: parsed.data.description || null,
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
+      embedding,
     })
     .select()
     .single();
@@ -95,6 +105,14 @@ export async function updateProduct(
     imageUrl = uploadResult.url ?? undefined;
   }
 
+  // Se regenera porque nombre/descripción pudieron cambiar. Si Voyage
+  // falla acá, NO se pisa el embedding anterior con null — se deja el que
+  // ya había (sigue siendo válido para búsqueda aunque quede un poco
+  // desactualizado) en vez de perder la búsqueda por completo por una
+  // falla transitoria de la API.
+  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null);
+  const embedding = await generateEmbedding(embeddingText);
+
   const supabase = await createClient();
   // El filtro por business_id acá no es solo defensivo: sin él, alguien
   // podría intentar editar el id de un producto de OTRO negocio — RLS ya
@@ -110,6 +128,7 @@ export async function updateProduct(
       // Solo se pisa image_url si de verdad llegó una foto nueva — no se
       // borra la que ya tenía el producto solo por editar otros campos.
       ...(imageUrl ? { image_url: imageUrl } : {}),
+      ...(embedding ? { embedding } : {}),
     })
     .eq("id", productId)
     .eq("business_id", businessId);
