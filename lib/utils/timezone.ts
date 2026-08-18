@@ -53,3 +53,11 @@ export function endOfDayInTimezone(timezone: string, reference: Date = new Date(
 export function formatLongDateInTimezone(date: Date, timezone: string): string {
   return new Intl.DateTimeFormat("es-CO", { dateStyle: "long", timeZone: timezone }).format(date);
 }
+
+// "2026-08-06" — versión máquina del mismo día, para guardar en columnas
+// `date` (ej. report_downloads.report_date). en-CA es el truco estándar
+// para que Intl devuelva año-mes-día en ese orden sin tener que
+// reordenar los parts a mano.
+export function formatDateOnlyInTimezone(date: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: timezone }).format(date);
+}

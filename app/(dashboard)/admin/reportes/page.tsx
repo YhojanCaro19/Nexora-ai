@@ -1,6 +1,7 @@
 // app/(dashboard)/admin/reportes/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getBusinessBranding } from "@/lib/services/businessBrandingService";
+import { getReportDownloadHistory } from "@/lib/services/reportHistoryService";
 import { ReportesPanel } from "./reportes-panel";
 
 export default async function ReportesPage() {
@@ -18,13 +19,14 @@ export default async function ReportesPage() {
         tiktok: null,
         twitter: null,
       };
+  const history = profile?.businessId ? await getReportDownloadHistory(profile.businessId) : [];
 
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Reportes
       </h1>
-      <ReportesPanel branding={branding} />
+      <ReportesPanel branding={branding} history={history} />
     </div>
   );
 }

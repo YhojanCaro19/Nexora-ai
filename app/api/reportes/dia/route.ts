@@ -1,13 +1,14 @@
 // app/api/reportes/dia/route.ts
 //
 // Descarga bajo demanda del reporte de HOY — el envío automático a
-// medianoche (con historial guardado) es un paso aparte, todavía
-// pendiente. Esto ya sirve para verificar que el PDF se genera bien con
-// los datos reales de cada negocio.
+// medianoche es un paso aparte, todavía pendiente. Cada descarga exitosa
+// queda registrada en report_downloads (ver Reportes → Historial de
+// reportes).
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getDailySalesSummary } from "@/lib/services/reportService";
 import { renderDailySalesReportPdf } from "@/lib/pdf/renderDailySalesReport";
+import { logReportDownload } from "@/lib/services/reportHistoryService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
 export async function GET() {
@@ -31,6 +32,14 @@ export async function GET() {
 
   const pdfBuffer = await renderDailySalesReportPdf(summary);
   const fileDate = summary.dateLabel.replace(/\s+/g, "-");
+
+  // El PDF ya se generó bien — si el log falla no tiene sentido negarle
+  // la descarga al admin por eso, solo se pierde ese renglón del
+  // historial.
+  const { error: logError } = await logReportDownload(profile.businessId, profile.userId, summary.dateIso);
+  if (logError) {
+    console.error("[GET /api/reportes/dia] no se pudo registrar la descarga:", logError);
+  }
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {

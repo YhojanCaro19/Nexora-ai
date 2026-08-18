@@ -10,6 +10,7 @@ import {
   startOfDayInTimezone,
   endOfDayInTimezone,
   formatLongDateInTimezone,
+  formatDateOnlyInTimezone,
 } from "@/lib/utils/timezone";
 
 export interface DailySalesSummary {
@@ -28,6 +29,10 @@ export interface DailySalesSummary {
     countryIso2: string | null;
   };
   dateLabel: string;
+  // "2026-08-16" — mismo día que dateLabel, en formato máquina. Para
+  // guardar en columnas `date` (ej. report_downloads.report_date) sin
+  // tener que reparsear el label en español.
+  dateIso: string;
   timezone: string;
   orderCount: number;
   totalRevenue: number;
@@ -100,6 +105,7 @@ export async function getDailySalesSummary(
       countryIso2: business.country_iso2,
     },
     dateLabel: formatLongDateInTimezone(startUTC, timezone),
+    dateIso: formatDateOnlyInTimezone(startUTC, timezone),
     timezone,
     orderCount: safeOrders.length,
     totalRevenue,

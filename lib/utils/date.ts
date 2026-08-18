@@ -21,3 +21,14 @@ export function formatShortDateTime(iso: string): string {
   const minutes = d.getMinutes().toString().padStart(2, "0");
   return `${d.getDate()} ${MONTHS_ES[d.getMonth()]}. ${d.getFullYear()}, ${hours}:${minutes}`;
 }
+
+// Para columnas `date` sin hora (ej. "2026-08-16", como report_date). A
+// diferencia de formatShortDate/formatShortDateTime, NO pasa por `new
+// Date(iso)` — ese constructor interpreta un string sin hora como
+// medianoche UTC, y en husos horarios negativos (toda Latinoamérica)
+// eso se lee un día antes al convertir de vuelta a hora local. Parsear
+// los componentes directo del string evita el corrimiento.
+export function formatDateOnly(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return `${day} ${MONTHS_ES[month - 1]}. ${year}`;
+}
