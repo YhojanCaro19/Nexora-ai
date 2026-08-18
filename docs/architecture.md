@@ -87,3 +87,19 @@ No existe signup público. Las únicas puertas de entrada son:
 2. Admin crea colaborador desde `/admin/colaboradores` → se crea cuenta colaborador.
 
 Ambas usan credenciales temporales de un solo uso + `must_change_password = true`.
+
+## Motor conversacional del agente
+
+`lib/services/agentEngineService.ts` (`runAgentTurn`) — un solo agente por negocio, **sin orquestación multi-agente** (decisión explícita, ver `decisions.md`). Corre sobre Claude (`claude-sonnet-5` por defecto — balance costo/calidad, el costo por mensaje se multiplica por cada negocio cliente) vía el Tool Runner del SDK de Anthropic (`client.beta.messages.toolRunner`).
+
+**System prompt en dos capas** (nunca se mezclan al revés):
+1. Base fija, no editable — reglas de negocio (nunca inventar datos, nunca groserías/ilegal, nunca salirse del rol de agente de ese negocio).
+2. Personalización del admin (`agent_configs`: `personality`, `restrictions`, `system_prompt_extra`, `use_emojis`, `response_length`, `language`, `priority_products`) — se agrega ENCIMA de la base, nunca la reemplaza (ver `decisions.md`, "Personalización del agente").
+
+**Tools:** del catálogo completo de 8 en `lib/config/agentTools.ts` (`AGENT_TOOLS`), solo 3 tienen motor real hoy (`SUPPORTED_TOOL_KEYS`): `catalogo_productos` (RAG + SQL exacto según el caso), `tomar_pedido` (`orderService.createOrder`), `responder_faq` (lee `agent_configs.faq_text`). Las otras 5 dependen de infraestructura que no existe todavía (reservations sin schema, sin pasarela de pago, sin scheduler) — si un admin las prende, el motor las ignora en vez de ofrecerle al modelo una tool que no puede cumplir.
+
+**Sin streaming, a propósito** — el destino final (WhatsApp) recibe un mensaje completo por llamada, no texto incremental, así que el motor corre igual desde el canal de prueba interno hasta producción, sin comportamiento distinto entre ambos.
+
+**Memoria y canales:** `customers`/`conversations` ya existían en Supabase con diseño multi-canal (columna `channel`) antes de que el motor las usara — el canal de prueba interno (Mi Agente → "Probar tu agente") usa `channel = "test"`, separado del futuro canal `"whatsapp"`.
+
+**Uso/costo:** cada turno se loguea en `agent_usage_log` (tokens de entrada/salida, modelo, por `business_id`) — desde el día uno, aunque todavía no se cobre por uso.

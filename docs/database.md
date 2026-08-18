@@ -40,13 +40,105 @@ Solicitudes públicas de alta de negocio (formulario `/contacto`).
 Distinta de `contact_requests` — confirmar con el equipo el caso de uso exacto antes de asumir que son intercambiables.
 
 ### Tablas operativas (todas con `business_id`, scoped por tenant)
-`orders`, `reservations`, `customers`, `products`, `conversations`, `agent_configs`, `subscriptions`.
+`orders`, `reservations`, `customers`, `products`, `conversations`, `agent_configs`, `subscriptions`, `agent_usage_log`, `report_downloads`.
+
+### `customers`
+Un cliente identificado por `business_id + phone + channel` — el mismo número puede ser un hilo distinto en cada canal (WhatsApp, el canal de prueba interno del agente, etc.).
+
+| columna | tipo | notas |
+|---|---|---|
+| `id` | uuid | PK |
+| `business_id` | uuid | FK a `businesses`, NOT NULL |
+| `name` | text | nullable |
+| `phone` | text | |
+| `channel` | text | ej. `"test"` (canal de prueba interno), `"whatsapp"` (futuro) |
+| `created_at` | timestamptz | |
+
+Sin constraint UNIQUE sobre `(business_id, phone, channel)` todavía — `getOrCreateCustomer()` (`lib/services/customerService.ts`) resuelve get-or-create a mano. RLS: policy `ALL` para `is_business_member(business_id)`.
+
+### `conversations`
+Una fila por HILO de conversación (`business_id + customer_id + channel`), no una fila por mensaje — todos los turnos viven en la columna `messages` (jsonb, array de `{role, content, at}`).
+
+| columna | tipo | notas |
+|---|---|---|
+| `id` | uuid | PK |
+| `business_id` | uuid | FK a `businesses`, NOT NULL |
+| `customer_id` | uuid | FK a `customers` |
+| `channel` | text | mismo valor que el `channel` del cliente |
+| `messages` | jsonb | array de turnos, se reescribe completo en cada turno nuevo |
+| `created_at` / `updated_at` | timestamptz | |
+
+RLS: policy `ALL` para `is_business_member(business_id)`. Gestión vía `lib/services/conversationService.ts`.
+
+### `products` — columnas agregadas para RAG
+Además de las columnas base (`name`, `description`, `price`, `stock`, `active`, `image_url`), tiene:
+
+| columna | tipo | notas |
+|---|---|---|
+| `embedding` | `vector(1024)` | nullable — `null` hasta que se genere. Ver sección RAG más abajo. |
+
+### `agent_configs`
+Tiene más columnas de las que expone la UI de Mi Agente hoy (solo `name`/`personality`/`enabled_tools` son editables desde pantalla) — el resto ya existen en la base y el motor del agente ya las lee (`lib/services/agentConfigService.ts`):
+
+| columna | tipo | notas |
+|---|---|---|
+| `business_id` | uuid | PK/FK |
+| `name` | text | |
+| `personality` | text | |
+| `enabled_tools` | jsonb array | keys validadas contra `lib/config/agentTools.ts` |
+| `system_prompt_extra` | text | instrucción libre adicional, sin UI todavía |
+| `use_emojis` | boolean | sin UI todavía |
+| `response_length` | text | sin UI todavía |
+| `language` | text | sin UI todavía |
+| `priority_products` | jsonb array | ids de producto a destacar, sin UI todavía |
+| `restrictions` | text | sin UI todavía |
+| `faq_text` | text | fuente de la tool `responder_faq` |
+| `updated_at` | timestamptz | |
+
+### `agent_usage_log`
+Tracking de tokens/costo del agente por negocio, desde el día uno (aunque no se cobre todavía).
+
+| columna | tipo | notas |
+|---|---|---|
+| `id` | uuid | PK |
+| `business_id` | uuid | FK a `businesses`, NOT NULL |
+| `input_tokens` / `output_tokens` | integer | |
+| `model` | text | |
+| `created_at` | timestamptz | |
+
+RLS: solo SELECT para `is_business_admin(business_id)` — sin policy de INSERT, se escribe con `createAdminClient()` (`lib/services/agentUsageService.ts`).
+
+### `report_downloads`
+Historial de descargas del reporte diario (Reportes → Historial de reportes).
+
+| columna | tipo | notas |
+|---|---|---|
+| `id` | uuid | PK |
+| `business_id` | uuid | FK a `businesses`, NOT NULL |
+| `downloaded_by` | uuid | FK a `auth.users` |
+| `downloaded_at` | timestamptz | |
+| `report_date` | date | qué día cubre el reporte descargado |
+
+RLS: SELECT/INSERT para `is_business_admin(business_id)`, sin UPDATE/DELETE (es un log). Gestión vía `lib/services/reportHistoryService.ts`.
+
+## RAG del catálogo (búsqueda vectorial)
+
+Para negocios con catálogos grandes o búsqueda en lenguaje natural — **no es lo que evita que el agente invente productos** (eso ya lo resuelve el tool-calling contra datos reales, sea SQL exacto o vectorial); es para cuando SQL exacto no alcanza por volumen o ambigüedad del lenguaje del cliente.
+
+- Extensión `pgvector` habilitada. `products.embedding vector(1024)` + índice `products_embedding_idx` (`hnsw`, `vector_cosine_ops`).
+- Proveedor de embeddings: **Voyage AI** (`voyage-4-lite`, 1024 dims) — Claude/Anthropic no tiene API de embeddings propia. Se llama vía `fetch` directo (`lib/services/embeddingService.ts`), sin SDK. Cambiar de modelo/dimensión implica migrar la columna y recalcular todos los embeddings existentes — no se hace sin razón real.
+- Pipeline automático: `productService.ts` (`createProduct`/`updateProduct`) genera el embedding en cada creación/edición. Si Voyage falla, el producto se crea/edita igual (nunca bloquea) y el embedding queda `null`/sin actualizar.
 
 ## Funciones RLS reutilizables (ya existen, usarlas siempre en vez de repetir SQL)
 
 - `is_platform_admin()` — true si el usuario está en `platform_admins`
 - `is_business_admin(business_id)` — true si el usuario es admin de ese negocio
 - `is_business_member(business_id)` — true si el usuario es admin O colaborador activo de ese negocio
+
+## Funciones SQL propias (no RLS, lógica de negocio en la base)
+
+- `match_products(query_embedding, filter_business_id, match_count, min_similarity)` — búsqueda por similitud coseno sobre `products.embedding`. Filtra `business_id` explícito en el `where` aunque RLS ya lo protegería (doble capa). No es `security definer` — corre con los permisos de quien llama.
+- `decrement_product_stock(p_product_id, p_quantity)` — resta atómica de stock (`greatest(stock - qty, 0)`), usada por `orderService.updateOrderStatus()` al confirmar un pedido, nunca al crearlo.
 
 ## Estado de las políticas RLS
 
