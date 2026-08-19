@@ -35,6 +35,15 @@ const RESPONSE_LENGTH_OPTIONS = [
   { value: "larga", label: "Larga y detallada" },
 ];
 
+// Fijo en código a propósito, mismo criterio que RESPONSE_LENGTH_OPTIONS —
+// el valor se inyecta tal cual en el prompt ("Responde siempre en: X."),
+// así que el label ES el valor, no hace falta un mapeo aparte. Agregar un
+// idioma nuevo es un cambio de código, no un dato editable desde acá.
+const LANGUAGE_OPTIONS = [
+  { value: "Español", label: "Español" },
+  { value: "Inglés", label: "Inglés" },
+];
+
 // Patrón "drill-in", el mismo mecanismo que catalogo-panel.tsx (chooser →
 // vista dedicada con botón Volver) en vez del acordeón que usa Perfil.
 // Tocar una fila reemplaza el contenido por la vista de esa sección; no
@@ -326,7 +335,7 @@ export function MiAgentePanel({
                       setSaved(false);
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full h-10 text-sm">
                       <SelectValue placeholder="Sin preferencia" />
                     </SelectTrigger>
                     <SelectContent>
@@ -339,16 +348,25 @@ export function MiAgentePanel({
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="agent-language" className="block">Idioma</Label>
-                  <Input
-                    id="agent-language"
+                  <Label className="block">Idioma</Label>
+                  <Select
                     value={language}
-                    onChange={(e) => {
-                      setLanguage(e.target.value);
+                    onValueChange={(v) => {
+                      setLanguage(v ?? "");
                       setSaved(false);
                     }}
-                    placeholder="Español"
-                  />
+                  >
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue placeholder="Español" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
