@@ -1,9 +1,11 @@
 // lib/services/agentConfigService.ts
 //
-// El agente de CADA negocio: nombre y personalidad/tono (personalización
-// visual, sin efecto funcional todavía — ver docs/decisions.md, "Personalización
-// del agente: nunca reemplaza la capa de seguridad base") y qué herramientas
-// del catálogo tiene prendidas. Se crea automáticamente al aprobar una
+// El agente de CADA negocio: nombre, personalidad/tono y el resto de la
+// personalización (ver docs/decisions.md, "Personalización del agente:
+// nunca reemplaza la capa de seguridad base") — todo esto tiene efecto
+// real, agentEngineService.ts lo inyecta en el system prompt — y qué
+// herramientas del catálogo tiene prendidas. Se crea automáticamente al
+// aprobar una
 // solicitud (ver createAccountFromRequest en adminService.ts), precargado
 // con las herramientas por defecto de su industria — esta pantalla es
 // donde el admin lo ve y lo ajusta.
@@ -27,6 +29,13 @@ export interface AgentConfig {
   faqText: string;
   businessHours: string;
   greetingMessage: string;
+  escalationMessage: string;
+  fallbackMessage: string;
+  afterHoursMessage: string;
+  farewellMessage: string;
+  acceptsCashPickup: boolean;
+  bankName: string;
+  bankAccountNumber: string;
 }
 
 export interface UpdateAgentConfigInput {
@@ -42,6 +51,13 @@ export interface UpdateAgentConfigInput {
   faqText: string;
   businessHours: string;
   greetingMessage: string;
+  escalationMessage: string;
+  fallbackMessage: string;
+  afterHoursMessage: string;
+  farewellMessage: string;
+  acceptsCashPickup: boolean;
+  bankName: string;
+  bankAccountNumber: string;
 }
 
 export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
@@ -49,7 +65,7 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
   const { data, error } = await supabase
     .from("agent_configs")
     .select(
-      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text, business_hours, greeting_message"
+      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text, business_hours, greeting_message, escalation_message, fallback_message, after_hours_message, farewell_message, accepts_cash_pickup, bank_name, bank_account_number"
     )
     .eq("business_id", businessId)
     .maybeSingle();
@@ -71,6 +87,13 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     faqText: data?.faq_text ?? "",
     businessHours: data?.business_hours ?? "",
     greetingMessage: data?.greeting_message ?? "",
+    escalationMessage: data?.escalation_message ?? "",
+    fallbackMessage: data?.fallback_message ?? "",
+    afterHoursMessage: data?.after_hours_message ?? "",
+    farewellMessage: data?.farewell_message ?? "",
+    acceptsCashPickup: data?.accepts_cash_pickup ?? false,
+    bankName: data?.bank_name ?? "",
+    bankAccountNumber: data?.bank_account_number ?? "",
   };
 }
 
@@ -97,6 +120,13 @@ export async function updateAgentConfig(
       faq_text: input.faqText.trim() || null,
       business_hours: input.businessHours.trim() || null,
       greeting_message: input.greetingMessage.trim() || null,
+      escalation_message: input.escalationMessage.trim() || null,
+      fallback_message: input.fallbackMessage.trim() || null,
+      after_hours_message: input.afterHoursMessage.trim() || null,
+      farewell_message: input.farewellMessage.trim() || null,
+      accepts_cash_pickup: input.acceptsCashPickup,
+      bank_name: input.bankName.trim() || null,
+      bank_account_number: input.bankAccountNumber.trim() || null,
     })
     .eq("business_id", businessId);
 
