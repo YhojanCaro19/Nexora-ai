@@ -1,6 +1,7 @@
 // app/(dashboard)/colaborador/layout.tsx
 import { redirect } from 'next/navigation';
 import { getSessionProfile } from '@/lib/auth/get-session';
+import { getAvatarUrl } from '@/lib/services/profileService';
 import { DashboardShell } from '@/components/dashboard/shared/DashboardShell';
 
 export default async function ColaboradorLayout({ children }: { children: React.ReactNode }) {
@@ -8,8 +9,15 @@ export default async function ColaboradorLayout({ children }: { children: React.
   if (!profile || profile.role !== 'colaborador') redirect('/login');
   if (profile.mustChangePassword) redirect('/cambiar-password');
 
+  const avatarUrl = await getAvatarUrl(profile.userId, profile.businessId);
+
   return (
-    <DashboardShell role="colaborador" userName={profile.fullName} permissions={profile.permissions}>
+    <DashboardShell
+      role="colaborador"
+      userName={profile.fullName}
+      permissions={profile.permissions}
+      avatarUrl={avatarUrl}
+    >
       {children}
     </DashboardShell>
   );

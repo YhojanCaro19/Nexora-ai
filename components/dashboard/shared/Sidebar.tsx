@@ -5,10 +5,16 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import type { NavGroup } from '@/lib/constants/nav-items';
+import { Avatar } from '@/components/shared/Avatar';
 
 interface SidebarProps {
   groups: NavGroup[];
   roleLabel: string;
+  userName: string;
+  // null para superadmin o para quien no haya subido foto — Avatar cae
+  // al fallback de iniciales. Solo visualización, sin click-to-upload
+  // (eso vive únicamente en Perfil).
+  avatarUrl?: string | null;
 }
 
 function NavGroups({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
@@ -55,7 +61,7 @@ function NavGroups({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathn
   );
 }
 
-export const Sidebar = ({ groups, roleLabel }: SidebarProps) => {
+export const Sidebar = ({ groups, roleLabel, userName, avatarUrl = null }: SidebarProps) => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -66,7 +72,8 @@ export const Sidebar = ({ groups, roleLabel }: SidebarProps) => {
         className="hidden md:flex w-64 shrink-0 h-full flex-col"
         style={{ background: 'var(--nexora-panel)' }}
       >
-        <div className="px-6 py-7 text-center">
+        <div className="px-6 py-7 flex items-center justify-center gap-2.5">
+          <Avatar url={avatarUrl} name={userName} size={26} />
           <p className="text-[15px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
             {roleLabel}
           </p>
@@ -79,9 +86,12 @@ export const Sidebar = ({ groups, roleLabel }: SidebarProps) => {
         className="md:hidden flex items-center justify-between px-4 py-3 shrink-0"
         style={{ background: 'var(--nexora-panel)' }}
       >
-        <p className="text-[13px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
-          {roleLabel}
-        </p>
+        <div className="flex items-center gap-2">
+          <Avatar url={avatarUrl} name={userName} size={24} />
+          <p className="text-[13px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
+            {roleLabel}
+          </p>
+        </div>
         <button onClick={() => setIsOpen(true)} aria-label="Abrir menú">
           <Menu size={20} style={{ color: 'var(--nexora-ink)' }} />
         </button>
@@ -94,9 +104,12 @@ export const Sidebar = ({ groups, roleLabel }: SidebarProps) => {
             style={{ background: 'var(--nexora-panel)' }}
           >
             <div className="px-6 py-7 flex items-center justify-between">
-              <p className="text-[15px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
-                {roleLabel}
-              </p>
+              <div className="flex items-center gap-2.5">
+                <Avatar url={avatarUrl} name={userName} size={26} />
+                <p className="text-[15px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
+                  {roleLabel}
+                </p>
+              </div>
               <button onClick={() => setIsOpen(false)} aria-label="Cerrar menú">
                 <X size={20} style={{ color: 'var(--nexora-ink)' }} />
               </button>

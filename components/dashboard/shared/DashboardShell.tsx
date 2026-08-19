@@ -20,16 +20,20 @@ interface DashboardShellProps {
   // completo. El menú del colaborador se arma en base a esto, no es una
   // lista fija (ver getColaboradorNav).
   permissions?: string[];
+  // null para superadmin (no tiene business_member, así que no tiene
+  // avatar propio) o para cualquiera que no haya subido foto todavía —
+  // el Sidebar cae al fallback de iniciales en ambos casos.
+  avatarUrl?: string | null;
   children: React.ReactNode;
 }
 
-export const DashboardShell = ({ role, userName, permissions = [], children }: DashboardShellProps) => {
+export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = null, children }: DashboardShellProps) => {
   const groups =
     role === 'admin' ? ADMIN_NAV : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
 
   return (
     <div className="h-screen flex flex-col md:flex-row overflow-hidden" style={{ background: 'var(--nexora-void)' }}>
-      <Sidebar groups={groups} roleLabel={LABEL_BY_ROLE[role]} />
+      <Sidebar groups={groups} roleLabel={LABEL_BY_ROLE[role]} userName={userName} avatarUrl={avatarUrl} />
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="h-16 relative flex items-center justify-end px-4 md:px-8 shrink-0">
           <span
