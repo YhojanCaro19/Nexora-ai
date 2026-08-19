@@ -3,7 +3,9 @@
 // Agrega las ventas de UN negocio para "el día de hoy" según SU propia
 // zona horaria (derivada de businesses.country_iso2) — nunca la hora del
 // servidor. Cada negocio tiene su propio corte de medianoche.
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/database.types";
 import type { Order, OrderItem } from "@/lib/types/order";
 import {
   getTimezoneForCountry,
@@ -41,9 +43,16 @@ export interface DailySalesSummary {
 
 export async function getDailySalesSummary(
   businessId: string,
-  referenceDate: Date = new Date()
+  referenceDate: Date = new Date(),
+  // Por defecto usa el cliente de sesión (respeta RLS del admin
+  // autenticado, como hoy en /api/reportes/dia). El cron de envío
+  // automático (app/api/cron/daily-reports) corre sin sesión de ningún
+  // usuario — ahí SÍ hace falta pasar explícitamente un
+  // createAdminClient(), o esta función devolvería null para todos los
+  // negocios (RLS bloqueando todo porque auth.uid() es null).
+  client?: SupabaseClient<Database>
 ): Promise<DailySalesSummary | null> {
-  const supabase = await createClient();
+  const supabase = client ?? (await createClient());
 
   const { data: business, error: businessError } = await supabase
     .from("businesses")
