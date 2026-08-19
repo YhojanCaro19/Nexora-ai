@@ -4,8 +4,18 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { createClient } from "@/lib/supabase/server";
-import { createCollaborator, deleteCollaborator } from "@/lib/services/collaboratorService";
-import { collaboratorSchema, type CollaboratorInput } from "@/lib/validators/collaboratorSchema";
+import {
+  createCollaborator,
+  deleteCollaborator,
+  updateCollaborator,
+  setCollaboratorActive,
+} from "@/lib/services/collaboratorService";
+import {
+  collaboratorSchema,
+  collaboratorUpdateSchema,
+  type CollaboratorInput,
+  type CollaboratorUpdateInput,
+} from "@/lib/validators/collaboratorSchema";
 import { translateError } from "@/lib/errors/translate";
 import { signOtpVerification, isOtpVerificationValid, OTP_COOKIE } from "@/lib/services/otpService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
@@ -22,6 +32,39 @@ export async function createCollaboratorAction(input: CollaboratorInput) {
   }
 
   const result = await createCollaborator(profile.businessId, profile.userId, parsed.data);
+  revalidatePath("/admin/colaboradores");
+  return result;
+}
+
+export async function updateCollaboratorAction(
+  collaboratorMemberId: string,
+  input: CollaboratorUpdateInput
+) {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+
+  const parsed = collaboratorUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const result = await updateCollaborator(collaboratorMemberId, profile.businessId, parsed.data);
+  revalidatePath("/admin/colaboradores");
+  return result;
+}
+
+// Activar/desactivar es la alternativa a eliminar cuando solo se quiere
+// quitar el acceso temporalmente — no requiere el flujo de OTP porque no
+// borra nada, es reversible.
+export async function setCollaboratorActiveAction(collaboratorMemberId: string, isActive: boolean) {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+
+  const result = await setCollaboratorActive(collaboratorMemberId, profile.businessId, isActive);
   revalidatePath("/admin/colaboradores");
   return result;
 }

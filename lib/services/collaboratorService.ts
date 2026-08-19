@@ -2,7 +2,9 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { generateTempPassword } from "@/lib/services/passwordService";
 import {
   collaboratorSchema,
+  collaboratorUpdateSchema,
   type CollaboratorInput,
+  type CollaboratorUpdateInput,
 } from "@/lib/validators/collaboratorSchema";
 import { translateError } from "@/lib/errors/translate";
 
@@ -125,6 +127,82 @@ export async function deleteCollaborator(
     return { error: "El colaborador se quitó del negocio, pero hubo un problema borrando su cuenta. Avisa para revisarlo." };
   }
 
+  return { error: null };
+}
+
+/**
+ * Edita nombre, teléfono y permisos de un colaborador existente. El correo
+ * NO es editable acá — está atado a la cuenta de Auth (cambiarlo requeriría
+ * re-invitar), fuera de este alcance (ver collaboratorUpdateSchema).
+ *
+ * Mismo doble chequeo que deleteCollaborator, no solo el id:
+ * - `business_id` debe coincidir con el negocio del admin que llama.
+ * - `role` debe ser 'colaborador' — nunca debe poder tocar una fila de admin.
+ *
+ * Usa service role por la misma razón que createCollaborator/deleteCollaborator:
+ * no existe (ni debe existir) una policy de "cada quien edita su fila" en
+ * business_members (ver docs/database.md), así que esta escritura no puede
+ * pasar por RLS del cliente normal.
+ */
+export async function updateCollaborator(
+  collaboratorMemberId: string,
+  businessId: string,
+  input: CollaboratorUpdateInput
+): Promise<{ error: string | null }> {
+  const parsed = collaboratorUpdateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("business_members")
+    .update({
+      full_name: parsed.data.full_name,
+      phone: parsed.data.phone || null,
+      permissions: parsed.data.permissions,
+    })
+    .eq("id", collaboratorMemberId)
+    .eq("business_id", businessId)
+    .eq("role", "colaborador");
+
+  if (error) {
+    console.error("[updateCollaborator] error:", error);
+    return { error: translateError(error) };
+  }
+  return { error: null };
+}
+
+/**
+ * Activa o desactiva a un colaborador sin borrar su cuenta — la alternativa
+ * a deleteCollaborator para quitarle acceso sin perder el historial ni tener
+ * que volver a invitarlo después.
+ *
+ * getSessionProfile() (lib/auth/get-session.ts) filtra business_members por
+ * is_active = true al resolver la sesión: al poner is_active = false, la
+ * persona pierde acceso a CUALQUIER página del panel en su siguiente
+ * request, sin necesidad de ningún bloqueo adicional acá.
+ *
+ * Mismo doble chequeo que updateCollaborator/deleteCollaborator, y misma
+ * razón para usar service role.
+ */
+export async function setCollaboratorActive(
+  collaboratorMemberId: string,
+  businessId: string,
+  isActive: boolean
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("business_members")
+    .update({ is_active: isActive })
+    .eq("id", collaboratorMemberId)
+    .eq("business_id", businessId)
+    .eq("role", "colaborador");
+
+  if (error) {
+    console.error("[setCollaboratorActive] error:", error);
+    return { error: translateError(error) };
+  }
   return { error: null };
 }
 

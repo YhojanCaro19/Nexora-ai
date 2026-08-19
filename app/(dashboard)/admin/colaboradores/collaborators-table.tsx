@@ -13,7 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { requestDeleteCollaboratorOtpAction, verifyAndDeleteCollaboratorAction } from "./actions";
+import {
+  requestDeleteCollaboratorOtpAction,
+  verifyAndDeleteCollaboratorAction,
+  setCollaboratorActiveAction,
+} from "./actions";
+import { CollaboratorForm } from "./collaborator-form";
 import { ASSIGNABLE_MODULES } from "@/lib/constants/nav-items";
 import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
@@ -167,11 +172,54 @@ function DeleteCollaboratorButton({ id, name }: { id: string; name: string }) {
   );
 }
 
+// Activar/desactivar es reversible (a diferencia de eliminar) — sin OTP,
+// solo el toggle. getSessionProfile() ya filtra por is_active al resolver
+// la sesión, así que desactivar corta el acceso al panel en la siguiente
+// request del colaborador sin bloqueo adicional acá.
+function ToggleActiveButton({ id, active }: { id: string; active: boolean }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleToggle() {
+    setLoading(true);
+    setError(null);
+    const result = await setCollaboratorActiveAction(id, !active);
+    setLoading(false);
+    if (result.error) {
+      setError(result.error);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={loading}
+        onClick={handleToggle}
+        className="text-xs transition-colors disabled:opacity-50"
+        style={{ color: 'var(--nexora-ink-dim)' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-nova)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
+      >
+        {loading ? "..." : active ? "Desactivar" : "Activar"}
+      </button>
+      {error && <span className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</span>}
+    </div>
+  );
+}
+
 export function CollaboratorsTable({
   collaborators,
 }: {
   collaborators: CollaboratorListItem[];
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = collaborators.find((c) => c.id === editingId) ?? null;
+
+  if (editing) {
+    return <CollaboratorForm editingCollaborator={editing} onDone={() => setEditingId(null)} />;
+  }
+
   return (
     <Card>
       <CardHeader className="text-center">
@@ -209,7 +257,22 @@ export function CollaboratorsTable({
                   <StatusBadge active={c.is_active} />
                 </TableCell>
                 <TableCell className="text-right">
-                  <DeleteCollaboratorButton id={c.id} name={c.full_name ?? c.email} />
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(c.id)}
+                        className="text-xs transition-colors"
+                        style={{ color: 'var(--nexora-ink-dim)' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-nova)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
+                      >
+                        Editar
+                      </button>
+                      <ToggleActiveButton id={c.id} active={c.is_active} />
+                      <DeleteCollaboratorButton id={c.id} name={c.full_name ?? c.email} />
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

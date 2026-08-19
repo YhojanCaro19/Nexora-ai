@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { createCollaboratorAction } from "./actions";
+import { createCollaboratorAction, updateCollaboratorAction } from "./actions";
 import { ASSIGNABLE_MODULES, type ModuleKey } from "@/lib/constants/nav-items";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PhoneField } from "@/components/shared/PhoneField";
 import {
   Card,
   CardContent,
@@ -14,12 +15,39 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 
 const EMPTY_FORM = { full_name: "", phone: "", email: "" };
 
-export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [permissions, setPermissions] = useState<ModuleKey[]>([]);
+// Mismo formulario sirve para crear y para editar — si le pasan
+// `editingCollaborator`, cambia a modo edición y llama a onDone al terminar
+// (mismo patrón que catalogo/product-form.tsx). El correo nunca se edita:
+// está atado a la cuenta de Auth.
+export function CollaboratorForm({
+  editingCollaborator,
+  onDone,
+}: {
+  editingCollaborator?: CollaboratorListItem | null;
+  onDone?: () => void;
+}) {
+  const isEditing = !!editingCollaborator;
+  const [form, setForm] = useState(
+    editingCollaborator
+      ? {
+          full_name: editingCollaborator.full_name ?? "",
+          phone: editingCollaborator.phone ?? "",
+          email: editingCollaborator.email,
+        }
+      : EMPTY_FORM
+  );
+  // PhoneField no es controlado (solo lee su valor inicial al montar, ver
+  // el mismo criterio ya documentado en perfil/identity-form.tsx) — para
+  // que se vacíe de verdad tras crear un colaborador (setForm(EMPTY_FORM)
+  // no le llega solo), se fuerza a remontar cambiando este key.
+  const [phoneFieldKey, setPhoneFieldKey] = useState(0);
+  const [permissions, setPermissions] = useState<ModuleKey[]>(
+    (editingCollaborator?.permissions as ModuleKey[]) ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{ email: string; tempPassword: string } | null>(
@@ -36,6 +64,21 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    if (isEditing) {
+      const result = await updateCollaboratorAction(editingCollaborator.id, {
+        full_name: form.full_name,
+        phone: form.phone,
+        permissions,
+      });
+      setLoading(false);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      onDone?.();
+      return;
+    }
 
     const result = await createCollaboratorAction({
       full_name: form.full_name,
@@ -54,6 +97,7 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
       setCredentials(result.data);
       setForm(EMPTY_FORM);
       setPermissions([]);
+      setPhoneFieldKey((k) => k + 1);
     }
   }
 
@@ -100,10 +144,12 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
 
       <Card>
         <CardHeader className="text-center">
-          <CardTitle>Nuevo colaborador</CardTitle>
-          <CardDescription>
-            Se creará una cuenta con contraseña temporal; el colaborador deberá cambiarla en su primer inicio de sesión.
-          </CardDescription>
+          <CardTitle>{isEditing ? "Editar colaborador" : "Nuevo colaborador"}</CardTitle>
+          {!isEditing && (
+            <CardDescription>
+              Se creará una cuenta con contraseña temporal; el colaborador deberá cambiarla en su primer inicio de sesión.
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,25 +163,25 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="phone" className="block text-center">Teléfono</Label>
-              <Input
-                id="phone"
-                value={form.phone}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              />
-            </div>
+            <PhoneField
+              key={phoneFieldKey}
+              label="Teléfono"
+              defaultValue={editingCollaborator?.phone ?? undefined}
+              onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
+            />
 
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="block text-center">Correo</Label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                required
-              />
-            </div>
+            {!isEditing && (
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="block text-center">Correo</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  required
+                />
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="block text-center">Módulos que puede ver</Label>
@@ -156,10 +202,15 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
               </div>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-3">
               <Button type="submit" disabled={loading}>
-                {loading ? "Creando..." : "Crear colaborador"}
+                {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear colaborador"}
               </Button>
+              {isEditing && (
+                <Button type="button" variant="outline" onClick={onDone}>
+                  Cancelar
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>
