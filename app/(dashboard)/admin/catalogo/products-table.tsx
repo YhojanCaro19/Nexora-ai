@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, AlertTriangle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
 import { formatCurrency } from "@/lib/utils/currency";
+
+/** Debajo de este umbral, el stock se resalta como bajo. `null` sigue significando "sin control de stock". */
+const LOW_STOCK_THRESHOLD = 5;
 
 export function ProductsTable({
   products,
@@ -58,19 +60,26 @@ export function ProductsTable({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Ícono e input como hermanos en una fila flex con gap explícito
+            — no superpuestos con position:absolute + padding, que en la
+            práctica quedaba sin espacio real entre el ícono y el texto
+            sin importar qué tanto padding se le agregara al Input. */}
         {products.length > 0 && (
-          <div className="relative max-w-sm mx-auto">
+          <div
+            className="flex items-center gap-2 max-w-sm mx-auto h-8 rounded-lg border border-input bg-transparent px-2.5"
+          >
             <Search
               size={14}
               strokeWidth={1.75}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+              className="shrink-0 pointer-events-none"
               style={{ color: 'var(--nexora-ink-dim)' }}
             />
-            <Input
+            <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar producto..."
-              className="pl-9"
+              className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              style={{ color: 'var(--nexora-ink)' }}
             />
           </div>
         )}
@@ -91,7 +100,20 @@ export function ProductsTable({
                   {p.name}
                 </TableCell>
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatCurrency(p.price, countryIso2)}</TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{p.stock ?? "—"}</TableCell>
+                <TableCell>
+                  {p.stock !== null && p.stock < LOW_STOCK_THRESHOLD ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 font-medium"
+                      style={{ color: 'var(--nexora-alert)' }}
+                      title="Stock bajo"
+                    >
+                      <AlertTriangle size={14} strokeWidth={1.75} />
+                      {p.stock}
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--nexora-ink-dim)' }}>{p.stock ?? "—"}</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <span
                     className="inline-flex items-center gap-1.5 text-[12px] font-medium"

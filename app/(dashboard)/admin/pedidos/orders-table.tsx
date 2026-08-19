@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, Package, Receipt, AlertTriangle } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronLeft, Package, Receipt, AlertTriangle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -62,7 +62,22 @@ export function OrdersTable({
   onDetailChange?: (viewingDetail: boolean) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
   const selected = orders.find((o) => o.id === selectedId) ?? null;
+
+  // Sin nombre de cliente disponible en el pedido hoy (Order.customer_id
+  // no trae el nombre, ver lib/types/order.ts) — se busca por lo que SÍ
+  // hay: el número de pedido (el mismo "#N" que se ve en la tarjeta) y los
+  // productos dentro de items.
+  const filteredOrders = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return orders;
+    return orders.filter((o) => {
+      const number = orderNumbers.get(o.id);
+      if (number !== undefined && String(number).includes(q)) return true;
+      return o.items.some((item) => item.name.toLowerCase().includes(q));
+    });
+  }, [orders, orderNumbers, query]);
 
   function openDetail(id: string) {
     setSelectedId(id);
@@ -96,17 +111,45 @@ export function OrdersTable({
           {emptyMessage}
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {orders.map((o) => (
-            <OrderCard
-              key={o.id}
-              order={o}
-              number={orderNumbers.get(o.id) ?? 0}
-              countryIso2={countryIso2}
-              onClick={() => openDetail(o.id)}
+        <>
+          {/* Ícono e input como hermanos en flex con gap — ver misma nota
+              en catalogo/products-table.tsx. */}
+          <div
+            className="flex items-center gap-2 max-w-sm mx-auto h-8 rounded-lg border border-input bg-transparent px-2.5"
+          >
+            <Search
+              size={14}
+              strokeWidth={1.75}
+              className="shrink-0 pointer-events-none"
+              style={{ color: 'var(--nexora-ink-dim)' }}
             />
-          ))}
-        </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar por # de pedido o producto..."
+              className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              style={{ color: 'var(--nexora-ink)' }}
+            />
+          </div>
+
+          {filteredOrders.length === 0 ? (
+            <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Ningún pedido coincide con &quot;{query}&quot;.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredOrders.map((o) => (
+                <OrderCard
+                  key={o.id}
+                  order={o}
+                  number={orderNumbers.get(o.id) ?? 0}
+                  countryIso2={countryIso2}
+                  onClick={() => openDetail(o.id)}
+                />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
