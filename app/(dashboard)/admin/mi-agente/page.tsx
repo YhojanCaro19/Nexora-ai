@@ -19,7 +19,7 @@ const DEFAULT_AGENT_CONFIG = {
   language: null,
   priorityProducts: [],
   restrictions: "",
-  faqText: "",
+  faqs: [],
   businessHours: "",
   greetingMessage: "",
   escalationMessage: "",

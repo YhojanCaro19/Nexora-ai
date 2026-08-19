@@ -13,6 +13,25 @@ import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeToolKeys, type AgentToolKey } from "@/lib/config/agentTools";
 
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+// Nunca confiar en jsonb crudo de la base sin pasar por acá — filtra
+// cualquier fila que no tenga la forma esperada (dato viejo, edición a
+// mano) y descarta pares con pregunta o respuesta vacía.
+function sanitizeFaqs(value: unknown): FaqEntry[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((v): v is { question: unknown; answer: unknown } => typeof v === "object" && v !== null)
+    .map((v) => ({
+      question: typeof v.question === "string" ? v.question.trim() : "",
+      answer: typeof v.answer === "string" ? v.answer.trim() : "",
+    }))
+    .filter((v) => v.question && v.answer);
+}
+
 // `agent_configs` — personalización completa del agente. El motor
 // (agentEngineService.ts) lee y usa todos estos campos; esta pantalla es
 // donde el admin los edita.
@@ -26,7 +45,7 @@ export interface AgentConfig {
   language: string | null;
   priorityProducts: string[];
   restrictions: string;
-  faqText: string;
+  faqs: FaqEntry[];
   businessHours: string;
   greetingMessage: string;
   escalationMessage: string;
@@ -48,7 +67,7 @@ export interface UpdateAgentConfigInput {
   language: string;
   priorityProducts: string[];
   restrictions: string;
-  faqText: string;
+  faqs: FaqEntry[];
   businessHours: string;
   greetingMessage: string;
   escalationMessage: string;
@@ -65,7 +84,7 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
   const { data, error } = await supabase
     .from("agent_configs")
     .select(
-      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faq_text, business_hours, greeting_message, escalation_message, fallback_message, after_hours_message, farewell_message, accepts_cash_pickup, bank_name, bank_account_number"
+      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faqs, business_hours, greeting_message, escalation_message, fallback_message, after_hours_message, farewell_message, accepts_cash_pickup, bank_name, bank_account_number"
     )
     .eq("business_id", businessId)
     .maybeSingle();
@@ -84,7 +103,7 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     language: data?.language ?? null,
     priorityProducts: Array.isArray(data?.priority_products) ? data.priority_products : [],
     restrictions: data?.restrictions ?? "",
-    faqText: data?.faq_text ?? "",
+    faqs: sanitizeFaqs(data?.faqs),
     businessHours: data?.business_hours ?? "",
     greetingMessage: data?.greeting_message ?? "",
     escalationMessage: data?.escalation_message ?? "",
@@ -117,7 +136,7 @@ export async function updateAgentConfig(
       language: input.language.trim() || null,
       priority_products: input.priorityProducts,
       restrictions: input.restrictions.trim() || null,
-      faq_text: input.faqText.trim() || null,
+      faqs: sanitizeFaqs(input.faqs),
       business_hours: input.businessHours.trim() || null,
       greeting_message: input.greetingMessage.trim() || null,
       escalation_message: input.escalationMessage.trim() || null,

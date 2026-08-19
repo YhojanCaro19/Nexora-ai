@@ -78,22 +78,33 @@ Además de las columnas base (`name`, `description`, `price`, `stock`, `active`,
 | `embedding` | `vector(1024)` | nullable — `null` hasta que se genere. Ver sección RAG más abajo. |
 
 ### `agent_configs`
-Tiene más columnas de las que expone la UI de Mi Agente hoy (solo `name`/`personality`/`enabled_tools` son editables desde pantalla) — el resto ya existen en la base y el motor del agente ya las lee (`lib/services/agentConfigService.ts`):
+Personalización completa del agente de cada negocio — todas las columnas son editables desde Mi Agente y todas tienen efecto real: `agentEngineService.ts` (`buildSystemPrompt`) las inyecta en el system prompt del motor.
 
 | columna | tipo | notas |
 |---|---|---|
 | `business_id` | uuid | PK/FK |
-| `name` | text | |
+| `name` | text | nombre propio del agente (ej. "Nova"), se presenta como tal en el prompt |
 | `personality` | text | |
 | `enabled_tools` | jsonb array | keys validadas contra `lib/config/agentTools.ts` |
-| `system_prompt_extra` | text | instrucción libre adicional, sin UI todavía |
-| `use_emojis` | boolean | sin UI todavía |
-| `response_length` | text | sin UI todavía |
-| `language` | text | sin UI todavía |
-| `priority_products` | jsonb array | ids de producto a destacar, sin UI todavía |
-| `restrictions` | text | sin UI todavía |
-| `faq_text` | text | fuente de la tool `responder_faq` |
+| `system_prompt_extra` | text | instrucción libre adicional |
+| `use_emojis` | boolean | |
+| `response_length` | text | `"corta" \| "media" \| "larga"` |
+| `language` | text | |
+| `priority_products` | jsonb array | ids de producto a destacar |
+| `restrictions` | text | |
+| `faqs` | jsonb array | `{question, answer}[]`, fuente de la tool `responder_faq`. Reemplazó a `faq_text` (texto libre) — la columna vieja sigue en la base sin usarse, no se borró. |
+| `business_hours` | text | horario en texto libre, el motor avisa si el cliente escribe fuera de rango |
+| `greeting_message` | text | saludo inicial |
+| `escalation_message` | text | qué decir cuando el cliente pide un humano o algo fuera del alcance del agente |
+| `fallback_message` | text | frase de marca para "no lo sé", en vez de que el modelo improvise |
+| `after_hours_message` | text | mensaje específico fuera de horario (distinto del dato crudo en `business_hours`) |
+| `farewell_message` | text | despedida al cierre natural de la conversación |
+| `accepts_cash_pickup` | boolean | default `false` — efectivo, recoger en tienda |
+| `bank_name` | text | texto libre, nunca un catálogo de bancos — así escala a cualquier país sin mantenimiento (ver docs/decisions.md) |
+| `bank_account_number` | text | texto libre |
 | `updated_at` | timestamptz | |
+
+Métodos de pago (`accepts_cash_pickup`/`bank_name`/`bank_account_number`) son deliberadamente texto libre y no un dropdown de bancos/fintechs por país — no hay pasarela de pago integrada todavía (puramente informativo para el agente) y un catálogo de bancos por región sería mantenimiento permanente sin beneficio funcional. Si en el futuro se integra una pasarela de pago real, ESE es el momento de estructurar esto (selector de gateway conectado), no antes.
 
 ### `agent_usage_log`
 Tracking de tokens/costo del agente por negocio, desde el día uno (aunque no se cobre todavía).

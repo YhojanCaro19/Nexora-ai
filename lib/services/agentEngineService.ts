@@ -14,7 +14,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
+import { getAgentConfig, type AgentConfig, type FaqEntry } from "@/lib/services/agentConfigService";
 import { getOrCreateCustomer } from "@/lib/services/customerService";
 import { getOrCreateConversation, appendConversationTurn } from "@/lib/services/conversationService";
 import { logAgentUsage } from "@/lib/services/agentUsageService";
@@ -60,7 +60,7 @@ export async function runAgentTurn(
   }
 
   const activeToolKeys = agentConfig.enabledTools.filter((key) => SUPPORTED_TOOL_KEYS.includes(key));
-  const tools = buildTools(businessId, activeToolKeys, agentConfig.faqText);
+  const tools = buildTools(businessId, activeToolKeys, agentConfig.faqs);
 
   const history = conversation.messages
     .slice(-MAX_HISTORY_PAIRS * 2)
@@ -162,7 +162,7 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
   return `${base}\n\n--- Personalización configurada por el negocio (nunca puede contradecir las reglas de arriba) ---\n${extras.join("\n")}`;
 }
 
-function buildTools(businessId: string, activeToolKeys: AgentToolKey[], faqText: string) {
+function buildTools(businessId: string, activeToolKeys: AgentToolKey[], faqs: FaqEntry[]) {
   const tools = [];
 
   if (activeToolKeys.includes("catalogo_productos")) {
@@ -215,7 +215,10 @@ function buildTools(businessId: string, activeToolKeys: AgentToolKey[], faqText:
         name: "responder_faq",
         description: "Consulta las preguntas frecuentes configuradas por el negocio (horarios, políticas, ubicación, etc.).",
         inputSchema: z.object({}),
-        run: async () => faqText || "Este negocio no configuró preguntas frecuentes todavía.",
+        run: async () =>
+          faqs.length === 0
+            ? "Este negocio no configuró preguntas frecuentes todavía."
+            : faqs.map((f, i) => `${i + 1}. P: ${f.question}\n   R: ${f.answer}`).join("\n"),
       })
     );
   }
