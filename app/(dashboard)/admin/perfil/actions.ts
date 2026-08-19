@@ -10,6 +10,7 @@ import { strongPasswordSchema } from "@/lib/validators/passwordSchema";
 import { ownProfileSchema } from "@/lib/validators/profileSchema";
 import { signOtpVerification, isOtpVerificationValid, OTP_COOKIE } from "@/lib/services/otpService";
 import { updateOwnProfile, signOutAllSessions, uploadAvatar } from "@/lib/services/profileService";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
 export async function requestPasswordOtpAction() {
@@ -117,6 +118,14 @@ export async function updateOwnPasswordAction(password: string) {
 
   // Un solo uso — no se reutiliza la misma verificación para un segundo cambio.
   cookieStore.delete(OTP_COOKIE.name);
+
+  // No bloquea la respuesta si falla — es un log de auditoría, la
+  // contraseña ya quedó cambiada. businessId puede faltar en teoría (esta
+  // action no lo exige como los otros), así que solo se loguea si existe.
+  if (profile.businessId) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "password_changed");
+  }
+
   return { error: null };
 }
 
@@ -133,6 +142,14 @@ export async function updateOwnProfileAction(input: { fullName: string; phone: s
     fullName: parsed.data.fullName,
     phone: parsed.data.phone ?? "",
   });
+
+  // result.field distingue el error de cooldown (30 días por campo) de
+  // cualquier otro error — así el formulario puede resaltar el input que
+  // corresponde en vez de mostrar un error genérico.
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "profile_updated");
+  }
+
   revalidatePath("/admin/perfil");
   return result;
 }
@@ -147,6 +164,9 @@ export async function uploadAvatarAction(file: File) {
   }
 
   const result = await uploadAvatar(profile.businessId, profile.userId, file);
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "avatar_updated");
+  }
   revalidatePath("/admin/perfil");
   return result;
 }
@@ -164,6 +184,14 @@ export async function signOutAllDevicesAction() {
 
   const result = await signOutAllSessions(profile.userId);
   if (result.error) return result;
+
+  // Antes del redirect: redirect() corta la ejecución del server action
+  // (lanza internamente), así que cualquier código después de la línea
+  // nunca corre. businessId puede faltar en teoría, igual que en
+  // updateOwnPasswordAction — solo se loguea si existe.
+  if (profile.businessId) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "signed_out_all_devices");
+  }
 
   const supabase = await createClient();
   await supabase.auth.signOut();
