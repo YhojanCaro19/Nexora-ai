@@ -156,3 +156,21 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nexora-pulse { animation: none; }
 }
+
+/* Panel de components/ui/accordion.tsx (fila "toca para expandir" de
+   Seguridad en perfil, y cualquier otra pantalla que use Accordion). Base UI
+   solo expone la altura real del contenido vía --accordion-panel-height y
+   los atributos data-starting-style/data-ending-style — la transición en sí
+   es responsabilidad de esta hoja de estilos. */
+.nexora-accordion-panel {
+  overflow: hidden;
+  height: var(--accordion-panel-height, auto);
+  transition: height 200ms ease-out;
+}
+.nexora-accordion-panel[data-starting-style],
+.nexora-accordion-panel[data-ending-style] {
+  height: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexora-accordion-panel { transition: none; }
+}
