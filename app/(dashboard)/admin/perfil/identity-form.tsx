@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionPanel } from "@/components/ui/accordion";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { Avatar } from "@/components/shared/Avatar";
+import { AvatarCropper } from "@/components/shared/AvatarCropper";
 import { formatShortDateTime } from "@/lib/utils/date";
-import { updateOwnProfileAction, uploadAvatarAction } from "./actions";
+import { updateOwnProfileAction, uploadAvatarAction, deleteAvatarAction } from "./actions";
 import type { ProfileDetails } from "@/lib/services/profileService";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -17,6 +18,11 @@ const ROLE_LABELS: Record<string, string> = {
   colaborador: "Colaborador",
   superadmin: "Superadmin",
 };
+
+// Mismo tamaño para el avatar mostrado y para el círculo de recorte del
+// editor — así lo que el usuario ajusta en AvatarCropper corresponde 1:1
+// con lo que ve después en la card.
+const AVATAR_SIZE = 144;
 
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
@@ -32,14 +38,18 @@ function InfoField({ label, value }: { label: string; value: string }) {
 }
 
 // Mismo patrón de selección + preview + validación de tipo en cliente que
-// reportes/customize-pdf-form.tsx (logo del negocio) — la diferencia es
-// que acá la subida ocurre de inmediato al elegir el archivo (no hay un
-// "Guardar" separado para la foto), porque el avatar no forma parte del
-// formulario de nombre/teléfono.
+// reportes/customize-pdf-form.tsx (logo del negocio) — la diferencia es que
+// acá, al elegir el archivo, se sube al confirmar el encuadre en
+// AvatarCropper (no hay un "Guardar" separado para la foto), porque el
+// avatar no forma parte del formulario de nombre/teléfono.
 export function IdentityForm({ details }: { details: ProfileDetails }) {
   const [avatarUrl, setAvatarUrl] = useState(details.avatarUrl);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
+  // Archivo recién elegido, pendiente de encuadrar en el editor — mientras
+  // no sea null, se muestra AvatarCropper por encima de todo lo demás y no
+  // se sube nada todavía.
+  const [pendingAvatarFile, setPendingAvatarFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [fullName, setFullName] = useState(details.fullName);
@@ -50,7 +60,7 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
 
   const hasChanges = fullName.trim() !== details.fullName || phone !== (details.phone ?? "");
 
-  async function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     e.target.value = "";
     if (!file) return;
@@ -58,16 +68,23 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
     setAvatarError(null);
     // Solo un filtro de UX — la validación real, contra el contenido de
     // verdad del archivo, pasa en el server (mismo pipeline que Catálogo
-    // y el logo del negocio). Solo JPG a propósito (pedido explícito).
-    if (file.type !== "image/jpeg") {
-      setAvatarError("La foto debe ser JPG");
+    // y el logo del negocio, ver imageSecurityService.ts).
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      setAvatarError("La foto debe ser JPG o PNG");
       return;
     }
 
+    // No se sube todavía — primero se ajusta el encuadre en AvatarCropper,
+    // que llama a handleCropConfirm con el recorte final.
+    setPendingAvatarFile(file);
+  }
+
+  async function handleCropConfirm(croppedFile: File) {
+    setPendingAvatarFile(null);
     const previousUrl = avatarUrl;
-    setAvatarUrl(URL.createObjectURL(file));
+    setAvatarUrl(URL.createObjectURL(croppedFile));
     setAvatarUploading(true);
-    const result = await uploadAvatarAction(file);
+    const result = await uploadAvatarAction(croppedFile);
     setAvatarUploading(false);
 
     if (result.error || !result.url) {
@@ -76,6 +93,20 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
       return;
     }
     setAvatarUrl(result.url);
+  }
+
+  async function handleDeleteAvatar() {
+    setAvatarError(null);
+    const previousUrl = avatarUrl;
+    setAvatarUrl(null);
+    setAvatarUploading(true);
+    const result = await deleteAvatarAction();
+    setAvatarUploading(false);
+
+    if (result.error) {
+      setAvatarError(result.error);
+      setAvatarUrl(previousUrl);
+    }
   }
 
   async function handleSaveProfile() {
@@ -102,7 +133,7 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
           disabled={avatarUploading}
           className="group relative block shrink-0 rounded-full overflow-hidden transition-opacity"
         >
-          <Avatar url={avatarUrl} name={details.fullName} size={144} />
+          <Avatar url={avatarUrl} name={details.fullName} size={AVATAR_SIZE} />
           <div
             className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ opacity: avatarUploading ? 1 : undefined }}
@@ -113,13 +144,23 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg"
+          accept="image/jpeg,image/png"
           onChange={handleAvatarChange}
           className="hidden"
         />
         <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-          {avatarUploading ? "Subiendo foto..." : "JPG, máximo 3MB"}
+          {avatarUploading ? "Subiendo foto..." : "JPG o PNG, máximo 3MB"}
         </p>
+        {avatarUrl && !avatarUploading && (
+          <button
+            type="button"
+            onClick={handleDeleteAvatar}
+            className="text-xs underline underline-offset-2"
+            style={{ color: 'var(--nexora-alert)' }}
+          >
+            Eliminar foto
+          </button>
+        )}
         {avatarError && (
           <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>
             {avatarError}
@@ -159,9 +200,17 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
                 />
               </div>
 
+              {/* defaultValue lee el estado LOCAL actual (`phone`), no
+                  `details.phone` — PhoneField es no-controlado (solo lee su
+                  valor inicial al montar) y el Accordion desmonta este panel
+                  al cerrarlo. Si leyera `details.phone` (el valor congelado
+                  de cuando cargó la página), cada vez que se cierra y se
+                  vuelve a abrir "Datos personales" se perdería lo escrito o
+                  incluso lo recién guardado, porque PhoneField se remonta
+                  desde cero y pisa el estado real con el viejo. */}
               <PhoneField
                 label="Teléfono"
-                defaultValue={details.phone ?? undefined}
+                defaultValue={phone || undefined}
                 onChange={(value) => {
                   setPhone(value);
                   setProfileSaved(false);
@@ -205,6 +254,15 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
           </AccordionPanel>
         </AccordionItem>
       </Accordion>
+
+      {pendingAvatarFile && (
+        <AvatarCropper
+          file={pendingAvatarFile}
+          size={AVATAR_SIZE}
+          onCancel={() => setPendingAvatarFile(null)}
+          onConfirm={handleCropConfirm}
+        />
+      )}
     </div>
   );
 }

@@ -264,3 +264,30 @@ export async function uploadAvatar(
 
   return { error: null, url };
 }
+
+// Borra la foto — mismo path determinístico que uploadAvatar(), así que
+// no hace falta guardar la ruta aparte. Si falla el borrado en Storage no
+// bloqueamos: igual limpiamos avatar_url para que la UI vuelva al
+// fallback de iniciales (peor caso: un archivo huérfano en el bucket, no
+// una foto vieja que sigue apareciendo).
+export async function deleteAvatar(businessId: string, userId: string): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const path = `${businessId}/${userId}/avatar.jpg`;
+
+  const { error: storageError } = await admin.storage.from("user-avatars").remove([path]);
+  if (storageError) {
+    console.error("[deleteAvatar] error borrando de storage:", storageError);
+  }
+
+  const { error } = await admin
+    .from("business_members")
+    .update({ avatar_url: null })
+    .eq("user_id", userId)
+    .eq("business_id", businessId);
+
+  if (error) {
+    console.error("[deleteAvatar] error:", error);
+    return { error: translateError(error) };
+  }
+  return { error: null };
+}

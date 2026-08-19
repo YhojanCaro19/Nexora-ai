@@ -9,7 +9,7 @@ import { translateError } from "@/lib/errors/translate";
 import { strongPasswordSchema } from "@/lib/validators/passwordSchema";
 import { ownProfileSchema } from "@/lib/validators/profileSchema";
 import { signOtpVerification, isOtpVerificationValid, OTP_COOKIE } from "@/lib/services/otpService";
-import { updateOwnProfile, signOutAllSessions, uploadAvatar } from "@/lib/services/profileService";
+import { updateOwnProfile, signOutAllSessions, uploadAvatar, deleteAvatar } from "@/lib/services/profileService";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
@@ -164,6 +164,18 @@ export async function uploadAvatarAction(file: File) {
   }
 
   const result = await uploadAvatar(profile.businessId, profile.userId, file);
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "avatar_updated");
+  }
+  revalidatePath("/admin/perfil");
+  return result;
+}
+
+export async function deleteAvatarAction() {
+  const profile = await getSessionProfile();
+  if (!profile || !profile.businessId) return { error: "No autorizado" };
+
+  const result = await deleteAvatar(profile.businessId, profile.userId);
   if (!result.error) {
     await logProfileSecurityEvent(profile.userId, profile.businessId, "avatar_updated");
   }
