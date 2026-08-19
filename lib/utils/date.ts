@@ -22,6 +22,16 @@ export function formatShortDateTime(iso: string): string {
   return `${d.getDate()} ${MONTHS_ES[d.getMonth()]}. ${d.getFullYear()}, ${hours}:${minutes}`;
 }
 
+// Solo la hora, sin fecha — usado en burbujas de chat (Clientes >
+// conversaciones) donde la fecha ya se muestra una vez arriba del hilo,
+// no en cada mensaje.
+export function formatTimeOnly(iso: string): string {
+  const d = new Date(iso);
+  const hours = d.getHours().toString().padStart(2, "0");
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 // Para columnas `date` sin hora (ej. "2026-08-16", como report_date). A
 // diferencia de formatShortDate/formatShortDateTime, NO pasa por `new
 // Date(iso)` — ese constructor interpreta un string sin hora como
