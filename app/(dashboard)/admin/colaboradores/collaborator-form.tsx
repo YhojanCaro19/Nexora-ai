@@ -60,31 +60,33 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
   return (
     <div className="space-y-4">
       {credentials && (
-        <div
-          className="rounded-xl border p-4 text-center"
-          style={{ borderColor: 'rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.08)' }}
-        >
-          <p className="text-[14px] font-medium" style={{ color: 'var(--nexora-signal)' }}>
-            Colaborador creado — copia estas credenciales ahora, no se volverán a mostrar:
-          </p>
-          <p className="mt-2 text-sm" style={{ color: 'var(--nexora-ink)' }}>
-            Correo: <span className="font-mono-data">{credentials.email}</span>
-          </p>
-          <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
-            Contraseña temporal: <span className="font-mono-data">{credentials.tempPassword}</span>
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3"
-            onClick={() => {
-              setCredentials(null);
-              onDone?.();
-            }}
-          >
-            Listo
-          </Button>
-        </div>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle style={{ color: 'var(--nexora-signal)' }}>Colaborador creado</CardTitle>
+            <CardDescription>
+              Copia estas credenciales ahora, no se volverán a mostrar:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
+              Correo: <span className="font-mono-data">{credentials.email}</span>
+            </p>
+            <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
+              Contraseña temporal: <span className="font-mono-data">{credentials.tempPassword}</span>
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                setCredentials(null);
+                onDone?.();
+              }}
+            >
+              Listo
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {error && (
@@ -137,17 +139,20 @@ export function CollaboratorForm({ onDone }: { onDone?: () => void }) {
 
             <div className="space-y-1.5">
               <Label className="block text-center">Módulos que puede ver</Label>
-              <div className="flex flex-col items-center gap-2">
-                {ASSIGNABLE_MODULES.map((mod) => (
-                  <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
-                    <Checkbox
-                      id={`perm-${mod.key}`}
-                      checked={permissions.includes(mod.key)}
-                      onCheckedChange={(checked) => togglePermission(mod.key, checked === true)}
-                    />
-                    {mod.label}
-                  </Label>
-                ))}
+              <div className="flex justify-center">
+                <div className="flex flex-col items-start gap-2">
+                  {ASSIGNABLE_MODULES.map((mod) => (
+                    <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
+                      <Checkbox
+                        id={`perm-${mod.key}`}
+                        checked={permissions.includes(mod.key)}
+                        onCheckedChange={(checked) => togglePermission(mod.key, checked === true)}
+                      />
+                      <mod.icon size={14} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
+                      {mod.label}
+                    </Label>
+                  ))}
+                </div>
               </div>
             </div>
 
