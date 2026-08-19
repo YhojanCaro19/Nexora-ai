@@ -51,6 +51,50 @@ export async function getOrdersByCustomer(businessId: string, customerId: string
   return data as Order[];
 }
 
+export interface CustomerOrderStats {
+  orderCount: number;
+  lastOrderAt: string | null;
+}
+
+// Versión liviana de getOrdersByCustomer() — solo cuenta y fecha del
+// último pedido, sin traer items/total de cada uno. La usa el motor del
+// agente (agentEngineService.ts) en CADA turno para saber si el cliente
+// es recurrente, así que debe ser barata — no tiene sentido traer el
+// historial completo solo para eso.
+export async function getCustomerOrderStats(businessId: string, customerId: string): Promise<CustomerOrderStats> {
+  const supabase = await createClient();
+  const { count, error: countError } = await supabase
+    .from("orders")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId);
+
+  if (countError) {
+    console.error("[getCustomerOrderStats] error contando pedidos:", countError);
+    return { orderCount: 0, lastOrderAt: null };
+  }
+
+  if (!count || count === 0) {
+    return { orderCount: 0, lastOrderAt: null };
+  }
+
+  const { data: latest, error: latestError } = await supabase
+    .from("orders")
+    .select("created_at")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (latestError) {
+    console.error("[getCustomerOrderStats] error buscando último pedido:", latestError);
+    return { orderCount: count, lastOrderAt: null };
+  }
+
+  return { orderCount: count, lastOrderAt: latest?.created_at ?? null };
+}
+
 // Crea un pedido nuevo — la usa la tool `tomar_pedido` del agente
 // conversacional, y cualquier futuro flujo de pedidos (ej. un catálogo
 // público). Nunca confía en nombre/precio que venga de afuera (ni del
