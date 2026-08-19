@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
@@ -25,8 +27,15 @@ export function ProductsTable({
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
   const editing = products.find((p) => p.id === editingId) ?? null;
+
+  const filteredProducts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q));
+  }, [products, query]);
 
   async function handleToggle(product: Product) {
     setTogglingId(product.id);
@@ -48,7 +57,23 @@ export function ProductsTable({
             : `${products.length} producto${products.length === 1 ? "" : "s"} en tu catálogo.`}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {products.length > 0 && (
+          <div className="relative max-w-sm mx-auto">
+            <Search
+              size={14}
+              strokeWidth={1.75}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+              style={{ color: 'var(--nexora-ink-dim)' }}
+            />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar producto..."
+              className="pl-8"
+            />
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
@@ -60,7 +85,7 @@ export function ProductsTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((p) => (
+            {filteredProducts.map((p) => (
               <TableRow key={p.id}>
                 <TableCell className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
                   {p.name}
@@ -100,6 +125,13 @@ export function ProductsTable({
               <TableRow>
                 <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
                   No hay productos todavía.
+                </TableCell>
+              </TableRow>
+            )}
+            {products.length > 0 && filteredProducts.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  Ningún producto coincide con &quot;{query}&quot;.
                 </TableCell>
               </TableRow>
             )}
