@@ -39,8 +39,8 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
     }
     // Solo un filtro de UX — la validación real, contra el contenido de
     // verdad del archivo, pasa en el server (mismo pipeline que Catálogo).
-    if (file.type !== "image/jpeg" && file.type !== "image/webp") {
-      setError("El logo debe ser JPG o WebP");
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      setError("El logo debe ser JPG o PNG");
       e.target.value = "";
       return;
     }
@@ -132,13 +132,13 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/webp"
+              accept="image/jpeg,image/png"
               onChange={handleLogoChange}
               className="hidden"
             />
           </div>
           <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Solo JPG o WebP, máximo 3MB.
+            JPG o PNG, máximo 3MB.
           </p>
         </div>
 

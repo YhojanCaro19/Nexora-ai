@@ -57,8 +57,8 @@ export function ProductForm({
     }
     // Solo un filtro de UX (avisa antes de intentar subir) — la validación
     // real, contra el contenido de verdad del archivo, pasa en el server.
-    if (file.type !== "image/jpeg" && file.type !== "image/webp") {
-      setError("La imagen debe ser JPG o WebP");
+    if (file.type !== "image/jpeg" && file.type !== "image/png") {
+      setError("La imagen debe ser JPG o PNG");
       e.target.value = "";
       return;
     }
@@ -200,14 +200,14 @@ export function ProductForm({
                 ref={fileInputRef}
                 id="image"
                 type="file"
-                accept="image/jpeg,image/webp"
+                accept="image/jpeg,image/png"
                 onChange={handleImageChange}
                 className="hidden"
               />
             </div>
 
             <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-              Solo JPG o WebP, máximo 5MB.
+              JPG o PNG, máximo 5MB.
             </p>
           </div>
 

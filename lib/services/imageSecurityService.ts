@@ -7,8 +7,9 @@
 // (ambos se falsifican trivialmente renombrando cualquier archivo):
 //
 // 1. Se leen los primeros bytes reales del archivo y se comparan contra la
-//    firma binaria conocida de JPEG/WebP — si no calza con ninguna, se
-//    rechaza antes de tocar nada más.
+//    firma binaria conocida de JPEG/PNG — si no calza con ninguna, se
+//    rechaza antes de tocar nada más. WebP se quitó a propósito (pedido
+//    explícito, solo JPG/JPEG/PNG en todo el proyecto).
 // 2. Se decodifica con sharp y se vuelve a codificar desde cero como JPEG.
 //    Esto es lo que de verdad protege: cualquier archivo con algo pegado
 //    al final (una técnica común para esconder contenido dentro de un
@@ -32,17 +33,17 @@ const DEFAULT_MAX_DIMENSION = 1600;
 const DEFAULT_QUALITY = 85;
 
 // Firmas binarias reales — no la extensión del nombre del archivo.
-function detectRealImageType(bytes: Uint8Array): "jpeg" | "webp" | null {
+function detectRealImageType(bytes: Uint8Array): "jpeg" | "png" | null {
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
     return "jpeg";
   }
-  // WebP: "RIFF" .... "WEBP"
+  // PNG: 8 bytes fijos de cabecera (89 50 4E 47 0D 0A 1A 0A).
   if (
-    bytes.length >= 12 &&
-    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
-    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a
   ) {
-    return "webp";
+    return "png";
   }
   return null;
 }
@@ -67,7 +68,7 @@ export async function sanitizeImageUpload(
 
   const realType = detectRealImageType(bytes);
   if (!realType) {
-    return { error: "El archivo no es una imagen JPG o WebP válida", buffer: null };
+    return { error: "El archivo no es una imagen JPG o PNG válida", buffer: null };
   }
 
   try {
