@@ -1,5 +1,5 @@
 // app/(dashboard)/admin/page.tsx
-import { Wallet, ShoppingBag, Receipt, MessageCircle } from "lucide-react";
+import { Wallet, ShoppingBag, Receipt } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAdminDashboardStats } from "@/lib/services/dashboardService";
 import { IconStatCard } from "@/components/dashboard/shared/IconStatCard";
@@ -92,19 +92,6 @@ export default async function AdminHomePage() {
           <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Colaboradores activos</p>
           <p className="text-base font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>{stats?.activeCollaborators ?? 0}</p>
         </div>
-      </div>
-
-      {/* Honesto a propósito: no se inventan números de chats/calificación
-          porque todavía no existe ningún canal conversacional conectado
-          (ver Épica 09 del roadmap). */}
-      <div
-        className="rounded-2xl border border-dashed p-5 flex flex-col sm:flex-row items-center justify-center gap-3 text-center"
-        style={{ borderColor: 'rgba(255,255,255,0.12)' }}
-      >
-        <MessageCircle size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
-        <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Chats atendidos por el agente y calificación del servicio — próximamente, cuando conectemos el canal conversacional.
-        </p>
       </div>
     </div>
   );
