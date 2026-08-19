@@ -48,10 +48,30 @@ const BY_MESSAGE_PATTERN: Array<[RegExp, string]> = [
   [/network|fetch failed|failed to fetch/i, "No pudimos conectarnos. Revisa tu conexión e intenta de nuevo."],
 ];
 
+// Constraints UNIQUE puntuales para las que sí sabemos exactamente qué
+// columna chocó — un mensaje específico ayuda más que el genérico de
+// BY_CODE["23505"]. Postgres siempre incluye el nombre del constraint en
+// el mensaje del error (`duplicate key value violates unique constraint
+// "<nombre>"`), así que se matchea por ahí en vez de adivinar por texto.
+//
+// No hay ninguna entrada por teléfono duplicado: se decidió explícitamente
+// NO crear un índice único sobre `business_members.phone` — un mismo dueño
+// real puede tener varios negocios con el mismo teléfono, así que eso se
+// resuelve con un aviso informativo al superadmin en Solicitudes, no con
+// una constraint que lo bloquee.
+const UNIQUE_CONSTRAINT_MESSAGES: Record<string, string> = {};
+
 const GENERIC_FALLBACK = "Ocurrió un error inesperado. Intenta de nuevo.";
 
 export function translateError(error: SupabaseLikeError): string {
   if (!error) return GENERIC_FALLBACK;
+
+  if (error.code === "23505") {
+    const message = error.message ?? "";
+    for (const [constraintName, spanish] of Object.entries(UNIQUE_CONSTRAINT_MESSAGES)) {
+      if (message.includes(constraintName)) return spanish;
+    }
+  }
 
   if (error.code && BY_CODE[error.code]) {
     return BY_CODE[error.code];

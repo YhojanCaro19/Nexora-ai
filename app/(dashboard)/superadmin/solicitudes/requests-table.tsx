@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ClipboardList, CheckCircle2, ChevronLeft, UserCircle, Building2, MessageSquare } from "lucide-react";
+import { ClipboardList, CheckCircle2, ChevronLeft, UserCircle, Building2, MessageSquare, AlertTriangle } from "lucide-react";
 import { createAccountAction, rejectRequestAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,7 +24,16 @@ type ContactRequest = {
 
 type View = "chooser" | "pending" | "approved";
 
-export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
+export function RequestsTable({
+  requests,
+  phoneMatches = {},
+}: {
+  requests: ContactRequest[];
+  // Teléfono -> nombre del negocio donde ya está registrado. Solo se
+  // calcula para solicitudes pendientes (ver page.tsx) — es un aviso
+  // informativo para el superadmin, nunca bloquea la aprobación.
+  phoneMatches?: Record<string, string>;
+}) {
   const [view, setView] = useState<View>("chooser");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [industryByRequest, setIndustryByRequest] = useState<Record<string, string>>({});
@@ -149,6 +158,7 @@ export function RequestsTable({ requests }: { requests: ContactRequest[] }) {
             <RequestDetail
               request={selected}
               number={numberById.get(selected.id) ?? 0}
+              phoneMatch={selected.phone ? phoneMatches[selected.phone] : undefined}
               industryType={industryByRequest[selected.id] ?? ""}
               onIndustryChange={(value) =>
                 setIndustryByRequest((prev) => ({ ...prev, [selected.id]: value }))
@@ -307,6 +317,7 @@ function RequestCard({
 function RequestDetail({
   request,
   number,
+  phoneMatch,
   industryType,
   onIndustryChange,
   loading,
@@ -316,6 +327,7 @@ function RequestDetail({
 }: {
   request: ContactRequest;
   number: number;
+  phoneMatch?: string;
   industryType: string;
   onIndustryChange: (value: string) => void;
   loading: boolean;
@@ -389,6 +401,15 @@ function RequestDetail({
             <InfoRow label="Nombre" value={request.full_name} />
             <InfoRow label="Correo" value={request.email} />
             <InfoRow label="Teléfono" value={request.phone ? formatPhoneDisplay(request.phone) : "—"} />
+            {phoneMatch && (
+              <p
+                className="flex items-center justify-center gap-1.5 text-xs"
+                style={{ color: 'var(--nexora-alert)' }}
+              >
+                <AlertTriangle size={13} />
+                Este teléfono ya está registrado en &ldquo;{phoneMatch}&rdquo;
+              </p>
+            )}
           </div>
         </section>
 

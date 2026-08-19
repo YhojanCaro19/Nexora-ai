@@ -260,6 +260,60 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
   );
 }
 
+/**
+ * Para una lista de teléfonos (de solicitudes pendientes en Solicitudes),
+ * busca si cada uno ya está registrado en `business_members` de OTRO
+ * negocio y devuelve el nombre de ese negocio — es solo informativo para
+ * el superadmin, nunca bloquea nada: un mismo dueño real puede tener
+ * legítimamente varios negocios en AVENTHRA con el mismo teléfono, así que
+ * el criterio de aprobar o no lo decide una persona, no el código.
+ */
+export async function getPhoneBusinessMatches(
+  phones: (string | null | undefined)[]
+): Promise<Record<string, string>> {
+  const uniquePhones = [...new Set(phones.filter((p): p is string => !!p))];
+  if (uniquePhones.length === 0) return {};
+
+  const admin = createAdminClient();
+  const { data: members, error } = await admin
+    .from("business_members")
+    .select("phone, business_id")
+    .in("phone", uniquePhones);
+
+  if (error) {
+    console.error("[getPhoneBusinessMatches] error al leer business_members:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
+    return {};
+  }
+  if (!members || members.length === 0) return {};
+
+  const businessIds = [...new Set(members.map((m) => m.business_id))];
+  const { data: businesses, error: bizError } = await admin
+    .from("businesses")
+    .select("id, name")
+    .in("id", businessIds);
+
+  if (bizError || !businesses) {
+    console.error("[getPhoneBusinessMatches] error al leer businesses:", bizError);
+    return {};
+  }
+
+  const nameById = new Map(businesses.map((b) => [b.id, b.name]));
+  const matches: Record<string, string> = {};
+  for (const m of members) {
+    // Si el mismo teléfono ya matcheó con un negocio antes, se queda con
+    // el primero — el aviso es informativo, no necesita listar todos.
+    if (!m.phone || matches[m.phone]) continue;
+    const name = nameById.get(m.business_id);
+    if (name) matches[m.phone] = name;
+  }
+  return matches;
+}
+
 export async function rejectRequest(requestId: string) {
   const admin = createAdminClient();
 
