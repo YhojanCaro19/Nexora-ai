@@ -9,3 +9,11 @@ export async function getClientIp(): Promise<string> {
   if (forwarded) return forwarded.split(",")[0].trim();
   return h.get("x-real-ip") ?? "unknown";
 }
+
+// String crudo del header, sin parsear a "Safari en macOS" — un parser de
+// user-agent confiable es una dependencia nueva que no se justifica solo
+// para el log de "Sesiones activas" (ver loginEventService.ts).
+export async function getUserAgent(): Promise<string> {
+  const h = await headers();
+  return h.get("user-agent") ?? "unknown";
+}

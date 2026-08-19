@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
-import { getClientIp } from "@/lib/utils/request";
+import { getClientIp, getUserAgent } from "@/lib/utils/request";
+import { logLoginEvent } from "@/lib/services/loginEventService";
 
 const ROLE_PREFIX: Record<string, string> = {
   superadmin: "/superadmin",
@@ -13,42 +14,51 @@ const ROLE_PREFIX: Record<string, string> = {
   colaborador: "/colaborador",
 };
 
-async function resolveRole(
+async function resolveRoleAndBusiness(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
-): Promise<string | null> {
+): Promise<{ role: string | null; businessId: string | null }> {
   const { data: platformAdmin } = await supabase
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (platformAdmin) return "superadmin";
+  if (platformAdmin) return { role: "superadmin", businessId: null };
 
   const { data: membership } = await supabase
     .from("business_members")
-    .select("role")
+    .select("role, business_id")
     .eq("user_id", userId)
     .eq("is_active", true)
     .maybeSingle();
 
-  return membership?.role ?? null;
+  return { role: membership?.role ?? null, businessId: membership?.business_id ?? null };
 }
 
-async function redirectByRole(supabase: Awaited<ReturnType<typeof createClient>>) {
+// ip/userAgent se calculan en login() (antes de este redirect) y se pasan
+// acá porque headers() ya no es confiable de leer después de un redirect.
+async function redirectByRole(supabase: Awaited<ReturnType<typeof createClient>>, ip: string, userAgent: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
-  const role = await resolveRole(supabase, user.id);
+  const { role, businessId } = await resolveRoleAndBusiness(supabase, user.id);
+
+  // Log informativo de "Sesiones activas" (Perfil → Seguridad) — nunca
+  // debe impedir el login si falla, por eso va antes del redirect y
+  // logLoginEvent() ya atrapa sus propios errores internamente.
+  await logLoginEvent(user.id, businessId, ip, userAgent);
+
   const prefix = role ? ROLE_PREFIX[role] : undefined;
   redirect(prefix ?? "/login");
 }
 
 export async function login(formData: FormData) {
   const ip = await getClientIp();
+  const userAgent = await getUserAgent();
   const limit = checkRateLimit(`login:${ip}`, 10, 60 * 1000);
   if (!limit.allowed) {
     redirect(`/login?error=${encodeURIComponent(`Demasiados intentos. Espera ${limit.retryAfterSeconds}s y vuelve a intentarlo.`)}`);
@@ -69,7 +79,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath("/", "layout");
-  await redirectByRole(supabase);
+  await redirectByRole(supabase, ip, userAgent);
 }
 
 // NOTA: el registro público (signup) fue eliminado intencionalmente.

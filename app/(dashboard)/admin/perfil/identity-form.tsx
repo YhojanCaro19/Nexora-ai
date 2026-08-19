@@ -1,11 +1,10 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
-import { Camera, IdCard, User } from "lucide-react";
+import { Camera, ChevronLeft, ChevronRight, IdCard, User, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionPanel } from "@/components/ui/accordion";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { Avatar } from "@/components/shared/Avatar";
 import { AvatarCropper } from "@/components/shared/AvatarCropper";
@@ -24,13 +23,32 @@ const ROLE_LABELS: Record<string, string> = {
 // con lo que ve después en la card.
 const AVATAR_SIZE = 144;
 
-function InfoField({ label, value }: { label: string; value: string }) {
+// Patrón "tocar y entrar" — mismo mecanismo que catalogo-panel.tsx y
+// mi-agente-panel.tsx: tocar una fila reemplaza la lista por su vista
+// dedicada con un botón Volver, nunca un acordeón. El avatar de arriba
+// queda fuera de este switcher, es el encabezado fijo de la card.
+type SectionKey = "personal-data" | "account-info";
+type View = "list" | SectionKey;
+
+const SECTIONS: { key: SectionKey; label: string; icon: LucideIcon }[] = [
+  { key: "personal-data", label: "Datos personales", icon: User },
+  { key: "account-info", label: "Información de la cuenta", icon: IdCard },
+];
+
+// Fila de solo lectura para "Información de la cuenta" — lista vertical
+// label + valor en vez de la grilla de 2 columnas anterior, que se veía
+// desalineada porque el contenido (correo largo, negocio opcional) no
+// calzaba parejo entre columnas.
+function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="text-center">
-      <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <dt className="text-sm shrink-0" style={{ color: 'var(--nexora-ink-dim)' }}>
         {label}
       </dt>
-      <dd className="text-base font-semibold mt-0.5" style={{ color: 'var(--nexora-ink)' }}>
+      <dd
+        className={`min-w-0 truncate text-right text-sm font-medium${mono ? " font-mono-data" : ""}`}
+        style={{ color: 'var(--nexora-ink)' }}
+      >
         {value}
       </dd>
     </div>
@@ -43,6 +61,8 @@ function InfoField({ label, value }: { label: string; value: string }) {
 // AvatarCropper (no hay un "Guardar" separado para la foto), porque el
 // avatar no forma parte del formulario de nombre/teléfono.
 export function IdentityForm({ details }: { details: ProfileDetails }) {
+  const [view, setView] = useState<View>("list");
+
   const [avatarUrl, setAvatarUrl] = useState(details.avatarUrl);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
@@ -123,9 +143,10 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
 
   return (
     <div className="space-y-6">
-      {/* Foto: encabezado de la card, por fuera y por encima del
-          acordeón — a diferencia de las filas de abajo, no es información
-          que tenga sentido colapsar, es la identidad visual de la card. */}
+      {/* Foto: encabezado de la card, por fuera y por encima del switcher
+          de vistas de abajo — a diferencia de esas filas, no es algo que
+          tenga sentido entrar a ver aparte, es la identidad visual de la
+          card. */}
       <div className="flex flex-col items-center gap-3">
         <button
           type="button"
@@ -168,15 +189,43 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
         )}
       </div>
 
-      {/* Mismo patrón de fila colapsada que la card Seguridad — acá cada
-          fila es un grupo de datos en vez de una acción, pero el
-          mecanismo (Accordion de components/ui) es idéntico. */}
-      <Accordion>
-        <AccordionItem value="personal-data">
-          <AccordionTrigger icon={<User size={16} strokeWidth={1.75} />}>
-            Datos personales
-          </AccordionTrigger>
-          <AccordionPanel>
+      {/* Patrón "tocar y entrar" (mismo mecanismo que catalogo-panel.tsx y
+          mi-agente-panel.tsx): tocar una fila reemplaza la lista por su
+          vista dedicada con un botón Volver, nunca un acordeón. */}
+      {view === "list" ? (
+        <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+          {SECTIONS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setView(key)}
+              className="flex w-full items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-muted bg-card"
+            >
+              <Icon size={16} strokeWidth={1.75} style={{ color: 'var(--nexora-nova)' }} />
+              <span className="min-w-0 flex-1 text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+                {label}
+              </span>
+              <ChevronRight size={16} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <button
+            type="button"
+            onClick={() => setView("list")}
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
+            style={{ color: 'var(--nexora-ink-dim)' }}
+          >
+            <ChevronLeft size={16} />
+            Volver
+          </button>
+
+          <h3 className="text-center text-base font-semibold font-nexora" style={{ color: 'var(--nexora-ink)' }}>
+            {SECTIONS.find((s) => s.key === view)?.label}
+          </h3>
+
+          {view === "personal-data" && (
             <div className="space-y-4 max-w-xs mx-auto">
               {profileError && (
                 <p
@@ -202,10 +251,10 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
 
               {/* defaultValue lee el estado LOCAL actual (`phone`), no
                   `details.phone` — PhoneField es no-controlado (solo lee su
-                  valor inicial al montar) y el Accordion desmonta este panel
-                  al cerrarlo. Si leyera `details.phone` (el valor congelado
-                  de cuando cargó la página), cada vez que se cierra y se
-                  vuelve a abrir "Datos personales" se perdería lo escrito o
+                  valor inicial al montar) y volver a la lista desmonta esta
+                  vista. Si leyera `details.phone` (el valor congelado de
+                  cuando cargó la página), cada vez que se sale y se vuelve a
+                  entrar a "Datos personales" se perdería lo escrito o
                   incluso lo recién guardado, porque PhoneField se remonta
                   desde cero y pisa el estado real con el viejo. */}
               <PhoneField
@@ -230,30 +279,25 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
                 )}
               </div>
             </div>
-          </AccordionPanel>
-        </AccordionItem>
+          )}
 
-        <AccordionItem value="account-info">
-          <AccordionTrigger icon={<IdCard size={16} strokeWidth={1.75} />}>
-            Información de la cuenta
-          </AccordionTrigger>
-          <AccordionPanel>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-              <InfoField label="Correo" value={details.email ?? "—"} />
-              <InfoField label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
-              {details.businessName && <InfoField label="Negocio" value={details.businessName} />}
-              <InfoField
+          {view === "account-info" && (
+            <dl className="max-w-sm mx-auto overflow-hidden rounded-xl border border-border divide-y divide-border">
+              <InfoRow label="Correo" value={details.email ?? "—"} mono />
+              <InfoRow label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
+              {details.businessName && <InfoRow label="Negocio" value={details.businessName} />}
+              <InfoRow
                 label="Último acceso"
                 value={details.lastSignInAt ? formatShortDateTime(details.lastSignInAt) : "—"}
               />
-              <InfoField
+              <InfoRow
                 label="Miembro desde"
                 value={details.memberSince ? formatShortDateTime(details.memberSince) : "—"}
               />
             </dl>
-          </AccordionPanel>
-        </AccordionItem>
-      </Accordion>
+          )}
+        </div>
+      )}
 
       {pendingAvatarFile && (
         <AvatarCropper

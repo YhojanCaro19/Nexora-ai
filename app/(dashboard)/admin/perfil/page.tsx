@@ -1,19 +1,19 @@
 // app/(dashboard)/admin/perfil/page.tsx
-import { KeyRound, LogOut, Monitor } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getProfileDetails } from "@/lib/services/profileService";
+import { getRecentLoginEvents } from "@/lib/services/loginEventService";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionPanel } from "@/components/ui/accordion";
 import { IdentityForm } from "./identity-form";
-import { PasswordSection } from "./password-section";
-import { SignOutAllDevices } from "./sign-out-all-devices";
-import { ActiveSessionsPreview } from "./active-sessions-preview";
+import { SecurityPanel } from "./security-panel";
 
 export default async function PerfilPage() {
   const profile = await getSessionProfile();
   if (!profile) return null;
 
-  const details = await getProfileDetails(profile.userId, profile.businessId, profile.role, profile.fullName);
+  const [details, loginEvents] = await Promise.all([
+    getProfileDetails(profile.userId, profile.businessId, profile.role, profile.fullName),
+    getRecentLoginEvents(profile.userId),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -38,34 +38,7 @@ export default async function PerfilPage() {
             <CardDescription>Contraseña y sesiones activas de tu cuenta.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Accordion>
-              <AccordionItem value="password">
-                <AccordionTrigger icon={<KeyRound size={16} strokeWidth={1.75} />}>
-                  Cambiar contraseña
-                </AccordionTrigger>
-                <AccordionPanel>
-                  <PasswordSection />
-                </AccordionPanel>
-              </AccordionItem>
-
-              <AccordionItem value="sign-out-all">
-                <AccordionTrigger icon={<LogOut size={16} strokeWidth={1.75} />}>
-                  Cerrar sesión en todos los dispositivos
-                </AccordionTrigger>
-                <AccordionPanel>
-                  <SignOutAllDevices />
-                </AccordionPanel>
-              </AccordionItem>
-
-              <AccordionItem value="active-sessions">
-                <AccordionTrigger icon={<Monitor size={16} strokeWidth={1.75} />}>
-                  Sesiones activas
-                </AccordionTrigger>
-                <AccordionPanel>
-                  <ActiveSessionsPreview />
-                </AccordionPanel>
-              </AccordionItem>
-            </Accordion>
+            <SecurityPanel loginEvents={loginEvents} />
           </CardContent>
         </Card>
       </div>
