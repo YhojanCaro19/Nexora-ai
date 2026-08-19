@@ -454,14 +454,14 @@ export function MiAgentePanel({
                           value={faq.question}
                           onChange={(e) => updateFaq(index, "question", e.target.value)}
                           placeholder="Pregunta. Ej. ¿Hacen envíos?"
-                          className="h-8"
+                          className="h-8 min-w-0"
                         />
                         <Textarea
                           rows={1}
                           value={faq.answer}
                           onChange={(e) => updateFaq(index, "answer", e.target.value)}
                           placeholder="Respuesta que dará el agente"
-                          className="min-h-8"
+                          className="min-h-8 min-w-0 py-1"
                         />
                         <Button
                           type="button"
