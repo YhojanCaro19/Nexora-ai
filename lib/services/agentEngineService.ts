@@ -199,7 +199,7 @@ async function listActiveProducts(businessId: string): Promise<string> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("products")
-    .select("id, name, description, price, stock")
+    .select("id, name, description, price, stock, image_url")
     .eq("business_id", businessId)
     .eq("active", true)
     .order("created_at", { ascending: false })
