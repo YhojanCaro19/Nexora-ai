@@ -27,6 +27,30 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   return data as Order[];
 }
 
+// Pedidos de UN cliente puntual — usado por el módulo de Clientes (CRM
+// ligero) para mostrar el historial de pedidos dentro del detalle de un
+// cliente. Mismo patrón que getOrders(), con el filtro extra por
+// customer_id (siempre junto a business_id, nunca solo por customer_id).
+export async function getOrdersByCustomer(businessId: string, customerId: string): Promise<Order[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getOrdersByCustomer] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return [];
+  }
+  return data as Order[];
+}
+
 // Crea un pedido nuevo — la usa la tool `tomar_pedido` del agente
 // conversacional, y cualquier futuro flujo de pedidos (ej. un catálogo
 // público). Nunca confía en nombre/precio que venga de afuera (ni del
@@ -38,12 +62,14 @@ export async function getOrders(businessId: string): Promise<Order[]> {
 // el pedido (ver updateOrderStatus), para no perder inventario por
 // pedidos que quedan pendientes para siempre o terminan rechazados.
 //
-// customer_id queda null a propósito — todavía no existe la tabla
-// `customers` (ver docs/database.md, mencionada pero sin schema real);
-// cuando se construya, este es el punto donde se conecta.
+// customerId es opcional: el motor conversacional siempre lo tiene (ya
+// resolvió el cliente real vía getOrCreateCustomer antes de llamar acá),
+// pero un futuro flujo de creación manual desde el panel admin puede no
+// tenerlo — en ese caso queda null, igual que antes.
 export async function createOrder(
   businessId: string,
-  input: CreateOrderInput
+  input: CreateOrderInput,
+  customerId?: string | null
 ): Promise<{ error: string | null; data: Order | null }> {
   const parsed = createOrderSchema.safeParse(input);
   if (!parsed.success) {
@@ -84,7 +110,7 @@ export async function createOrder(
     .from("orders")
     .insert({
       business_id: businessId,
-      customer_id: null,
+      customer_id: customerId ?? null,
       status: "pending",
       items,
       total,

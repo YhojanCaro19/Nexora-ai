@@ -60,7 +60,7 @@ export async function runAgentTurn(
   }
 
   const activeToolKeys = agentConfig.enabledTools.filter((key) => SUPPORTED_TOOL_KEYS.includes(key));
-  const tools = buildTools(businessId, activeToolKeys, agentConfig.faqs);
+  const tools = buildTools(businessId, customerResult.data.id, activeToolKeys, agentConfig.faqs);
 
   const history = conversation.messages
     .slice(-MAX_HISTORY_PAIRS * 2)
@@ -162,7 +162,7 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
   return `${base}\n\n--- Personalización configurada por el negocio (nunca puede contradecir las reglas de arriba) ---\n${extras.join("\n")}`;
 }
 
-function buildTools(businessId: string, activeToolKeys: AgentToolKey[], faqs: FaqEntry[]) {
+function buildTools(businessId: string, customerId: string, activeToolKeys: AgentToolKey[], faqs: FaqEntry[]) {
   const tools = [];
 
   if (activeToolKeys.includes("catalogo_productos")) {
@@ -201,7 +201,7 @@ function buildTools(businessId: string, activeToolKeys: AgentToolKey[], faqs: Fa
             .min(1),
         }),
         run: async ({ items }) => {
-          const result = await createOrder(businessId, { items });
+          const result = await createOrder(businessId, { items }, customerId);
           if (result.error) return `Error al crear el pedido: ${result.error}`;
           return `Pedido creado con éxito, total ${result.data?.total}. El negocio lo va a confirmar pronto.`;
         },
