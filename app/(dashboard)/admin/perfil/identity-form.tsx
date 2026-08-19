@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
-import { Camera } from "lucide-react";
+import { Camera, IdCard, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionPanel } from "@/components/ui/accordion";
 import { PhoneField } from "@/components/shared/PhoneField";
+import { Avatar } from "@/components/shared/Avatar";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { updateOwnProfileAction, uploadAvatarAction } from "./actions";
 import type { ProfileDetails } from "@/lib/services/profileService";
@@ -15,14 +17,6 @@ const ROLE_LABELS: Record<string, string> = {
   colaborador: "Colaborador",
   superadmin: "Superadmin",
 };
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  const first = parts[0]?.[0] ?? "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "";
-  return (first + last).toUpperCase();
-}
 
 function InfoField({ label, value }: { label: string; value: string }) {
   return (
@@ -64,9 +58,9 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
     setAvatarError(null);
     // Solo un filtro de UX — la validación real, contra el contenido de
     // verdad del archivo, pasa en el server (mismo pipeline que Catálogo
-    // y el logo del negocio).
-    if (file.type !== "image/jpeg" && file.type !== "image/webp") {
-      setAvatarError("La foto debe ser JPG o WebP");
+    // y el logo del negocio). Solo JPG a propósito (pedido explícito).
+    if (file.type !== "image/jpeg") {
+      setAvatarError("La foto debe ser JPG");
       return;
     }
 
@@ -97,39 +91,34 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Foto: encabezado de la card, por fuera y por encima del
+          acordeón — a diferencia de las filas de abajo, no es información
+          que tenga sentido colapsar, es la identidad visual de la card. */}
       <div className="flex flex-col items-center gap-3">
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={avatarUploading}
-          className="group relative w-24 h-24 rounded-full overflow-hidden border flex items-center justify-center transition-colors"
-          style={{ borderColor: 'var(--nexora-line)', background: 'var(--nexora-secondary)' }}
+          className="group relative block shrink-0 rounded-full overflow-hidden transition-opacity"
         >
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, mismo criterio que el logo del negocio
-            <img src={avatarUrl} alt="Foto de perfil" className="absolute inset-0 w-full h-full object-cover" />
-          ) : (
-            <span className="font-nexora text-xl" style={{ color: 'var(--nexora-ink)' }}>
-              {getInitials(details.fullName)}
-            </span>
-          )}
+          <Avatar url={avatarUrl} name={details.fullName} size={144} />
           <div
             className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity"
             style={{ opacity: avatarUploading ? 1 : undefined }}
           >
-            <Camera size={18} strokeWidth={1.75} color="#fff" />
+            <Camera size={26} strokeWidth={1.75} color="#fff" />
           </div>
         </button>
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/webp"
+          accept="image/jpeg"
           onChange={handleAvatarChange}
           className="hidden"
         />
         <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-          {avatarUploading ? "Subiendo foto..." : "JPG o WebP, máximo 3MB"}
+          {avatarUploading ? "Subiendo foto..." : "JPG, máximo 3MB"}
         </p>
         {avatarError && (
           <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>
@@ -138,67 +127,84 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
         )}
       </div>
 
-      <div className="space-y-4 max-w-xs mx-auto">
-        {profileError && (
-          <p
-            className="rounded-lg border p-3 text-sm text-center"
-            style={{ borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--nexora-alert)' }}
-          >
-            {profileError}
-          </p>
-        )}
+      {/* Mismo patrón de fila colapsada que la card Seguridad — acá cada
+          fila es un grupo de datos en vez de una acción, pero el
+          mecanismo (Accordion de components/ui) es idéntico. */}
+      <Accordion>
+        <AccordionItem value="personal-data">
+          <AccordionTrigger icon={<User size={16} strokeWidth={1.75} />}>
+            Datos personales
+          </AccordionTrigger>
+          <AccordionPanel>
+            <div className="space-y-4 max-w-xs mx-auto">
+              {profileError && (
+                <p
+                  className="rounded-lg border p-3 text-sm text-center"
+                  style={{ borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--nexora-alert)' }}
+                >
+                  {profileError}
+                </p>
+              )}
 
-        <div className="space-y-1.5">
-          <Label htmlFor="fullName" className="block text-center">Nombre</Label>
-          <Input
-            id="fullName"
-            value={fullName}
-            onChange={(e) => {
-              setFullName(e.target.value);
-              setProfileSaved(false);
-            }}
-            className="text-center"
-          />
-        </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="fullName" className="block text-center">Nombre</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => {
+                    setFullName(e.target.value);
+                    setProfileSaved(false);
+                  }}
+                  className="text-center"
+                />
+              </div>
 
-        <PhoneField
-          label="Teléfono"
-          defaultValue={details.phone ?? undefined}
-          onChange={(value) => {
-            setPhone(value);
-            setProfileSaved(false);
-          }}
-        />
+              <PhoneField
+                label="Teléfono"
+                defaultValue={details.phone ?? undefined}
+                onChange={(value) => {
+                  setPhone(value);
+                  setProfileSaved(false);
+                }}
+              />
 
-        <div className="flex flex-col items-center gap-2 pt-1">
-          <Button
-            type="button"
-            disabled={profileSaving || !hasChanges || fullName.trim().length < 2}
-            onClick={handleSaveProfile}
-          >
-            {profileSaving ? "Guardando..." : "Guardar cambios"}
-          </Button>
-          {profileSaved && (
-            <span className="text-xs" style={{ color: 'var(--nexora-signal)' }}>Guardado</span>
-          )}
-        </div>
-      </div>
+              <div className="flex flex-col items-center gap-2 pt-1">
+                <Button
+                  type="button"
+                  disabled={profileSaving || !hasChanges || fullName.trim().length < 2}
+                  onClick={handleSaveProfile}
+                >
+                  {profileSaving ? "Guardando..." : "Guardar cambios"}
+                </Button>
+                {profileSaved && (
+                  <span className="text-xs" style={{ color: 'var(--nexora-signal)' }}>Guardado</span>
+                )}
+              </div>
+            </div>
+          </AccordionPanel>
+        </AccordionItem>
 
-      <div className="pt-6 border-t" style={{ borderColor: 'var(--nexora-line)' }}>
-        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-          <InfoField label="Correo" value={details.email ?? "—"} />
-          <InfoField label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
-          {details.businessName && <InfoField label="Negocio" value={details.businessName} />}
-          <InfoField
-            label="Último acceso"
-            value={details.lastSignInAt ? formatShortDateTime(details.lastSignInAt) : "—"}
-          />
-          <InfoField
-            label="Miembro desde"
-            value={details.memberSince ? formatShortDateTime(details.memberSince) : "—"}
-          />
-        </dl>
-      </div>
+        <AccordionItem value="account-info">
+          <AccordionTrigger icon={<IdCard size={16} strokeWidth={1.75} />}>
+            Información de la cuenta
+          </AccordionTrigger>
+          <AccordionPanel>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <InfoField label="Correo" value={details.email ?? "—"} />
+              <InfoField label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
+              {details.businessName && <InfoField label="Negocio" value={details.businessName} />}
+              <InfoField
+                label="Último acceso"
+                value={details.lastSignInAt ? formatShortDateTime(details.lastSignInAt) : "—"}
+              />
+              <InfoField
+                label="Miembro desde"
+                value={details.memberSince ? formatShortDateTime(details.memberSince) : "—"}
+              />
+            </dl>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

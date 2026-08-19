@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CardTitle, CardDescription } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
 import { signOutAllDevicesAction } from "./actions";
 
 // Mismo patrón de confirmación en dos pasos que
@@ -32,12 +32,9 @@ export function SignOutAllDevices() {
 
   return (
     <div className="space-y-4 flex flex-col items-center text-center">
-      <div>
-        <CardTitle>Cerrar sesión en todos los dispositivos</CardTitle>
-        <CardDescription>
-          Revoca todas las sesiones activas de tu cuenta, incluida esta. Tendrás que volver a iniciar sesión.
-        </CardDescription>
-      </div>
+      <CardDescription>
+        Revoca todas las sesiones activas de tu cuenta, incluida esta. Tendrás que volver a iniciar sesión.
+      </CardDescription>
 
       {error && (
         <p

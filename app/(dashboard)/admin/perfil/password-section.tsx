@@ -5,7 +5,7 @@ import { requestPasswordOtpAction, verifyPasswordOtpAction, updateOwnPasswordAct
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CardTitle, CardDescription } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
 import { PasswordField, isStrongPassword } from "@/components/auth/PasswordField";
 import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 
@@ -58,12 +58,9 @@ export function PasswordSection() {
 
   return (
     <div className="space-y-4 flex flex-col items-center text-center">
-      <div>
-        <CardTitle>Cambiar contraseña</CardTitle>
-        <CardDescription>
-          Por seguridad, para cambiar tu contraseña te pediremos un código que te llegará al correo electrónico.
-        </CardDescription>
-      </div>
+      <CardDescription>
+        Por seguridad, para cambiar tu contraseña te pediremos un código que te llegará al correo electrónico.
+      </CardDescription>
 
       <div className="space-y-4 flex flex-col items-center text-center w-full">
         {error && (
