@@ -63,14 +63,14 @@ export function ProductsTable({
             <Search
               size={14}
               strokeWidth={1.75}
-              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2"
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
               style={{ color: 'var(--nexora-ink-dim)' }}
             />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar producto..."
-              className="pl-8"
+              className="pl-9"
             />
           </div>
         )}
