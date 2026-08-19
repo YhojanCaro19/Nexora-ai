@@ -58,6 +58,30 @@ export async function getOrCreateConversation(
   return { error: null, data: created as Conversation };
 }
 
+// Todas las conversaciones de un cliente puntual — un cliente puede tener
+// un hilo por canal (test, whatsapp futuro), así que esto trae todos los
+// hilos, no solo uno. Usado por el módulo de Clientes (CRM ligero) para
+// mostrar el historial de conversación dentro del detalle de un cliente.
+export async function getConversationsForCustomer(businessId: string, customerId: string): Promise<Conversation[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("*")
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("[getConversationsForCustomer] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return [];
+  }
+  return data as Conversation[];
+}
+
 // Agrega el turno del usuario y la respuesta del agente al hilo — se
 // reescribe el array completo en vez de un append atómico en SQL porque,
 // para el volumen del canal de prueba interno, es más simple y no hay

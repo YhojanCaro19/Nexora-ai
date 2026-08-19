@@ -25,7 +25,10 @@ const STATUS_COLOR: Record<string, string> = {
   rejected: "var(--nexora-alert)",
 };
 
-function StatusDot({ status }: { status: string }) {
+// Exportado a propósito: el detalle de cliente en Clientes (CRM ligero)
+// reutiliza este mismo indicador de estado para su historial de pedidos
+// en vez de duplicar el mapa de colores.
+export function StatusDot({ status }: { status: string }) {
   const color = STATUS_COLOR[status] ?? 'var(--nexora-ink-dim)';
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color }}>

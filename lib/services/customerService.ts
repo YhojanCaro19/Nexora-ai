@@ -7,6 +7,10 @@
 // futuro (WhatsApp, canal de prueba interno...) y son personas/hilos
 // distintos para el agente.
 import { createClient } from "@/lib/supabase/server";
+import { getOrdersByCustomer } from "@/lib/services/orderService";
+import { getConversationsForCustomer } from "@/lib/services/conversationService";
+import type { Order } from "@/lib/types/order";
+import type { Conversation } from "@/lib/services/conversationService";
 
 export interface Customer {
   id: string;
@@ -57,4 +61,56 @@ export async function getOrCreateCustomer(
     return { error: "No se pudo crear el cliente", data: null };
   }
   return { error: null, data: created as Customer };
+}
+
+// Lista los clientes del negocio para el módulo de Clientes (CRM ligero) —
+// mismo patrón que getOrders() en orderService.ts.
+export async function getCustomersForBusiness(businessId: string): Promise<Customer[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("*")
+    .eq("business_id", businessId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("[getCustomersForBusiness] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return [];
+  }
+  return data as Customer[];
+}
+
+export interface CustomerDetail {
+  customer: Customer | null;
+  orders: Order[];
+  conversations: Conversation[];
+}
+
+// Vista de detalle combinada para la pantalla de un cliente en el CRM —
+// una sola llamada en vez de que la página arme 3 fetches propios (mismo
+// criterio que getAdminDashboardStats() en dashboardService.ts). El id de
+// cliente SIEMPRE se acota a businessId acá, nunca se confía en que el id
+// que llega desde la ruta pertenezca de verdad a este negocio.
+export async function getCustomerDetail(businessId: string, customerId: string): Promise<CustomerDetail> {
+  const supabase = await createClient();
+
+  const [{ data: customer, error: customerError }, orders, conversations] = await Promise.all([
+    supabase.from("customers").select("*").eq("id", customerId).eq("business_id", businessId).maybeSingle(),
+    getOrdersByCustomer(businessId, customerId),
+    getConversationsForCustomer(businessId, customerId),
+  ]);
+
+  if (customerError) {
+    console.error("[getCustomerDetail] error buscando cliente:", customerError);
+  }
+
+  return {
+    customer: (customer as Customer | null) ?? null,
+    orders,
+    conversations,
+  };
 }

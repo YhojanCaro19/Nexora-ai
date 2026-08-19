@@ -7,6 +7,7 @@ import {
   Settings,
   Package,
   Users,
+  Contact,
   FileBarChart,
   UserCircle,
   ShoppingBag,
@@ -42,6 +43,7 @@ export const ADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
       { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
+      { label: 'Clientes', href: '/admin/clientes', icon: Contact },
       { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },
     ],
   },
