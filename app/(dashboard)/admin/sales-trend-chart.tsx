@@ -29,11 +29,7 @@ export function SalesTrendChart({
           {formatCurrency(todayRevenue, countryIso2)}
         </p>
       </div>
-      <p className="text-xs mb-6" style={{ color: 'var(--nexora-ink-dim)' }}>
-        Cuánto vendiste cada día — la barra de hoy va resaltada.
-      </p>
-
-      <div className="flex items-end justify-between gap-2 sm:gap-3 h-40">
+      <div className="flex items-end justify-between gap-2 sm:gap-3 h-40 mt-6">
         {points.map((p, i) => {
           const isToday = i === points.length - 1;
           const heightPct = (p.revenue / max) * 100;

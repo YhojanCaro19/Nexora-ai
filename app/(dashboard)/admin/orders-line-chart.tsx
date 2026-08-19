@@ -41,11 +41,8 @@ export function OrdersLineChart({ points }: { points: DailyTrendPoint[] }) {
 
   return (
     <div className="rounded-2xl border p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
-      <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
+      <p className="text-xs uppercase tracking-wide mb-5" style={{ color: 'var(--nexora-ink-dim)' }}>
         Pedidos de la semana
-      </p>
-      <p className="text-xs mb-5 mt-1" style={{ color: 'var(--nexora-ink-dim)' }}>
-        Cuántos pedidos recibiste cada día — hoy va resaltado.
       </p>
 
       {/* Números arriba de cada punto, en las mismas columnas que la curva. */}
