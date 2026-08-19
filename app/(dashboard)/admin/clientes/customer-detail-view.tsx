@@ -36,9 +36,11 @@ function itemsSummary(order: Order): string {
 export function CustomerDetailView({
   detail,
   countryIso2,
+  onBack,
 }: {
   detail: CustomerDetail;
   countryIso2: string | null;
+  onBack: () => void;
 }) {
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
 
@@ -56,6 +58,15 @@ export function CustomerDetailView({
 
   return (
     <div className="space-y-8">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
+        style={{ color: 'var(--nexora-ink-dim)' }}
+      >
+        <ChevronLeft size={16} />
+        Volver
+      </button>
+
       <div className="text-center space-y-1">
         <h2 className="font-nexora text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
           {customer.name ?? "Sin nombre"}

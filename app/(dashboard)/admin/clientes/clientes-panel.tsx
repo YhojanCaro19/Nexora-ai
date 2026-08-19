@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { CustomerDetailView } from "./customer-detail-view";
 import { getCustomerDetailAction } from "./actions";
 import { channelLabel } from "./channel-labels";
@@ -67,30 +66,38 @@ export function ClientesPanel({
   }
 
   if (selected) {
-    return (
-      <div className="space-y-4">
-        <button
-          onClick={closeCustomer}
-          className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
-          style={{ color: 'var(--nexora-ink-dim)' }}
-        >
-          <ChevronLeft size={16} />
-          Volver
-        </button>
-
-        {loading && (
-          <p className="text-sm text-center py-10" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Cargando cliente...
-          </p>
-        )}
-        {error && (
+    // El botón Volver vive DENTRO de CustomerDetailView, no acá — así
+    // solo hay uno a la vez: vuelve a la lista cuando se ve el detalle
+    // del cliente, o a ese detalle cuando se ve el chat de una
+    // conversación (antes había uno acá y otro adentro al mismo tiempo).
+    if (loading) {
+      return (
+        <p className="text-sm text-center py-10" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Cargando cliente...
+        </p>
+      );
+    }
+    if (error) {
+      return (
+        <div className="space-y-4">
+          <button
+            onClick={closeCustomer}
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
+            style={{ color: 'var(--nexora-ink-dim)' }}
+          >
+            <ChevronLeft size={16} />
+            Volver
+          </button>
           <p className="text-sm text-center" style={{ color: 'var(--nexora-alert)' }}>
             {error}
           </p>
-        )}
-        {detail && <CustomerDetailView detail={detail} countryIso2={countryIso2} />}
-      </div>
-    );
+        </div>
+      );
+    }
+    if (detail) {
+      return <CustomerDetailView detail={detail} countryIso2={countryIso2} onBack={closeCustomer} />;
+    }
+    return null;
   }
 
   return (
@@ -104,19 +111,24 @@ export function ClientesPanel({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Ícono e input como hermanos en flex con gap — ver misma nota
+            en catalogo/products-table.tsx. */}
         {customers.length > 0 && (
-          <div className="relative max-w-sm mx-auto">
+          <div
+            className="flex items-center gap-2 max-w-sm mx-auto h-8 rounded-lg border border-input bg-transparent px-2.5"
+          >
             <Search
               size={14}
               strokeWidth={1.75}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+              className="shrink-0 pointer-events-none"
               style={{ color: 'var(--nexora-ink-dim)' }}
             />
-            <Input
+            <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar por nombre o teléfono..."
-              className="pl-9"
+              className="flex-1 min-w-0 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              style={{ color: 'var(--nexora-ink)' }}
             />
           </div>
         )}
