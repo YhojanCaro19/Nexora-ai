@@ -1,19 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { PackagePlus, LayoutGrid, ChevronLeft } from "lucide-react";
+import { PackagePlus, LayoutGrid, ChevronLeft, UploadCloud } from "lucide-react";
 import { ProductForm } from "./product-form";
 import { ProductsTable } from "./products-table";
+import { BulkImport } from "./bulk-import";
 import type { Product } from "@/lib/services/productService";
 
-type View = "chooser" | "new" | "list";
+type View = "chooser" | "new" | "list" | "import";
 
 export function CatalogoPanel({
   products,
   countryIso2,
+  industryType,
 }: {
   products: Product[];
   countryIso2: string | null;
+  industryType: string | null;
 }) {
   const [view, setView] = useState<View>("chooser");
 
@@ -33,6 +36,12 @@ export function CatalogoPanel({
           accent="var(--nexora-nova)"
           onClick={() => setView("list")}
         />
+        <ChooserButton
+          icon={UploadCloud}
+          label="Importar catálogo (CSV)"
+          accent="var(--nexora-nova)"
+          onClick={() => setView("import")}
+        />
       </div>
     );
   }
@@ -48,11 +57,11 @@ export function CatalogoPanel({
         Volver
       </button>
 
-      {view === "new" ? (
-        <ProductForm onDone={() => setView("list")} />
-      ) : (
-        <ProductsTable products={products} countryIso2={countryIso2} />
+      {view === "new" && <ProductForm onDone={() => setView("list")} industryType={industryType} />}
+      {view === "list" && (
+        <ProductsTable products={products} countryIso2={countryIso2} industryType={industryType} />
       )}
+      {view === "import" && <BulkImport onDone={() => setView("list")} />}
     </div>
   );
 }

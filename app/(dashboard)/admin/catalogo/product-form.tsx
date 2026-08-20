@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
+import { getCategoryOptions, OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
 
@@ -27,9 +29,11 @@ function formatThousands(raw: string): string {
 export function ProductForm({
   editingProduct,
   onDone,
+  industryType,
 }: {
   editingProduct?: Product | null;
   onDone?: () => void;
+  industryType: string | null;
 }) {
   const isEditing = !!editingProduct;
   const [form, setForm] = useState(
@@ -44,6 +48,20 @@ export function ProductForm({
         }
       : EMPTY_FORM
   );
+
+  // Categoría: lista sugerida por industria + "Otra" como escape hatch a
+  // texto libre. Si el producto ya tenía una categoría que NO está en la
+  // lista sugerida (dato viejo, o cambió de industria), se trata como
+  // "Otra" con ese texto — nunca se pierde el dato ni se fuerza a encajar
+  // en una opción que no aplica.
+  const categoryOptions = getCategoryOptions(industryType);
+  const existingCategory = editingProduct?.category ?? "";
+  const matchesOption = existingCategory && categoryOptions.includes(existingCategory);
+  const [categorySelect, setCategorySelect] = useState(
+    existingCategory ? (matchesOption ? existingCategory : OTHER_CATEGORY_OPTION) : ""
+  );
+  const [categoryOther, setCategoryOther] = useState(matchesOption ? "" : existingCategory);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(editingProduct?.image_url ?? null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +97,7 @@ export function ProductForm({
       price: Number(form.price.replace(/,/g, "")),
       stock: form.stock === "" ? null : Number(form.stock),
       lowStockThreshold: form.lowStockThreshold === "" ? null : Number(form.lowStockThreshold),
+      category: categorySelect === OTHER_CATEGORY_OPTION ? categoryOther.trim() || undefined : categorySelect || undefined,
     };
 
     const result = isEditing
@@ -180,6 +199,32 @@ export function ProductForm({
                 onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="block text-center">Categoría (opcional)</Label>
+            <Select
+              value={categorySelect}
+              onValueChange={(v) => setCategorySelect(v ?? "")}
+            >
+              <SelectTrigger className="w-full h-10 text-sm">
+                <SelectValue placeholder="Sin categoría" />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {categorySelect === OTHER_CATEGORY_OPTION && (
+              <Input
+                value={categoryOther}
+                onChange={(e) => setCategoryOther(e.target.value)}
+                placeholder="Escribe la categoría"
+                maxLength={60}
+                className="mt-1.5"
+              />
+            )}
           </div>
 
           <div className="space-y-2">

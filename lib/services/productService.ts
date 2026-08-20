@@ -12,6 +12,7 @@ export interface Product {
   price: number;
   stock: number | null;
   low_stock_threshold: number | null;
+  category: string | null;
   active: boolean;
   image_url: string | null;
   created_at: string;
@@ -50,7 +51,7 @@ export async function createProduct(businessId: string, input: ProductInput, ima
   // principio, sin un segundo update. Si Voyage falla, embedding queda
   // null y el producto se crea igual (no es un error fatal — puede
   // regenerarse editando el producto más tarde).
-  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null);
+  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null, parsed.data.category || null);
   const embedding = await generateEmbedding(embeddingText);
 
   const supabase = await createClient();
@@ -63,6 +64,7 @@ export async function createProduct(businessId: string, input: ProductInput, ima
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
       low_stock_threshold: parsed.data.lowStockThreshold ?? null,
+      category: parsed.data.category || null,
       embedding,
     })
     .select()
@@ -112,7 +114,7 @@ export async function updateProduct(
   // ya había (sigue siendo válido para búsqueda aunque quede un poco
   // desactualizado) en vez de perder la búsqueda por completo por una
   // falla transitoria de la API.
-  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null);
+  const embeddingText = buildProductEmbeddingText(parsed.data.name, parsed.data.description || null, parsed.data.category || null);
   const embedding = await generateEmbedding(embeddingText);
 
   const supabase = await createClient();
@@ -128,6 +130,7 @@ export async function updateProduct(
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
       low_stock_threshold: parsed.data.lowStockThreshold ?? null,
+      category: parsed.data.category || null,
       // Solo se pisa image_url si de verdad llegó una foto nueva — no se
       // borra la que ya tenía el producto solo por editar otros campos.
       ...(imageUrl ? { image_url: imageUrl } : {}),

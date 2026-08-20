@@ -14,6 +14,7 @@ export const productSchema = z.object({
   // sentido entre un taller que vende tornillos y una joyería que vende
   // anillos. null/undefined -> se usa DEFAULT_LOW_STOCK_THRESHOLD.
   lowStockThreshold: z.number().int().min(1, "El umbral debe ser al menos 1").nullable().optional(),
+  category: z.string().max(60).optional(),
 });
 
 export const DEFAULT_LOW_STOCK_THRESHOLD = 5;

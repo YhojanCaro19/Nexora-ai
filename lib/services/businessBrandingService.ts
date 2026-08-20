@@ -45,6 +45,20 @@ export async function getBusinessCountryIso2(businessId: string): Promise<string
   return data?.country_iso2 ?? null;
 }
 
+// Usado por Catálogo para saber qué lista de categorías sugerir en el
+// formulario de producto (ver lib/config/productCategories.ts) — cada
+// industria tiene las suyas, no tiene sentido mostrarle "Anillos/Aretes"
+// a un taller mecánico.
+export async function getBusinessIndustryType(businessId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("businesses")
+    .select("industry_type")
+    .eq("id", businessId)
+    .maybeSingle();
+  return data?.industry_type ?? null;
+}
+
 export async function getBusinessBranding(businessId: string): Promise<BusinessBranding> {
   // Lectura sí va por el cliente normal — ya hay policy de SELECT para
   // cualquier miembro del negocio sobre `businesses`.

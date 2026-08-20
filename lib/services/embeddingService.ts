@@ -57,6 +57,7 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
 // Texto que se embebe por producto — nombre + descripción es lo que
 // representa "de qué se trata" para búsqueda semántica; precio/stock no
 // aportan significado al embedding, por eso no se incluyen acá.
-export function buildProductEmbeddingText(name: string, description: string | null): string {
-  return description ? `${name}. ${description}` : name;
+export function buildProductEmbeddingText(name: string, description: string | null, category?: string | null): string {
+  const parts = [name, description, category].filter((p): p is string => !!p);
+  return parts.join(". ");
 }

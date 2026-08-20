@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, AlertTriangle } from "lucide-react";
+import { Search, AlertTriangle, Download } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,25 +17,62 @@ import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
 import { formatCurrency } from "@/lib/utils/currency";
 import { DEFAULT_LOW_STOCK_THRESHOLD } from "@/lib/validators/productSchema";
+import { toCsv, downloadCsv } from "@/lib/utils/csv";
 
 export function ProductsTable({
   products,
   countryIso2,
+  industryType,
 }: {
   products: Product[];
   countryIso2: string | null;
+  industryType: string | null;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const editing = products.find((p) => p.id === editingId) ?? null;
 
+  // Solo las categorías que de verdad tienen al menos un producto —
+  // mostrar chips de categorías vacías sería ruido, no ayuda a filtrar.
+  const usedCategories = useMemo(
+    () => [...new Set(products.map((p) => p.category).filter((c): c is string => !!c))].sort(),
+    [products]
+  );
+
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter((p) => p.name.toLowerCase().includes(q));
-  }, [products, query]);
+    return products.filter((p) => {
+      if (categoryFilter && p.category !== categoryFilter) return false;
+      if (!q) return true;
+      return p.name.toLowerCase().includes(q) || (p.category?.toLowerCase().includes(q) ?? false);
+    });
+  }, [products, query, categoryFilter]);
+
+  // Mismas columnas que espera el importador (BulkImport) — así el CSV
+  // exportado se puede editar y volver a importar tal cual, sin tener que
+  // adivinar el formato.
+  function handleExportCsv() {
+    const rows = filteredProducts.map((p) => ({
+      nombre: p.name,
+      descripcion: p.description ?? "",
+      precio: p.price,
+      stock: p.stock ?? "",
+      categoria: p.category ?? "",
+      umbral_stock_bajo: p.low_stock_threshold ?? "",
+    }));
+    const csv = toCsv(rows, [
+      { key: "nombre", label: "nombre" },
+      { key: "descripcion", label: "descripcion" },
+      { key: "precio", label: "precio" },
+      { key: "stock", label: "stock" },
+      { key: "categoria", label: "categoria" },
+      { key: "umbral_stock_bajo", label: "umbral_stock_bajo" },
+    ]);
+    downloadCsv("catalogo", csv);
+  }
 
   async function handleToggle(product: Product) {
     setTogglingId(product.id);
@@ -44,7 +81,7 @@ export function ProductsTable({
   }
 
   if (editing) {
-    return <ProductForm editingProduct={editing} onDone={() => setEditingId(null)} />;
+    return <ProductForm editingProduct={editing} onDone={() => setEditingId(null)} industryType={industryType} />;
   }
 
   return (
@@ -81,10 +118,50 @@ export function ProductsTable({
             />
           </div>
         )}
+        {usedCategories.length > 0 && (
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter(null)}
+              className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+              style={
+                categoryFilter === null
+                  ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
+                  : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
+              }
+            >
+              Todas
+            </button>
+            {usedCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(cat)}
+                className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+                style={
+                  categoryFilter === cat
+                    ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
+                    : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
+                }
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+        {products.length > 0 && (
+          <div className="flex justify-center">
+            <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+              <Download size={14} strokeWidth={1.75} />
+              Exportar CSV
+            </Button>
+          </div>
+        )}
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Categoría</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Estado</TableHead>
@@ -97,6 +174,7 @@ export function ProductsTable({
                 <TableCell className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
                   {p.name}
                 </TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{p.category ?? "—"}</TableCell>
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatCurrency(p.price, countryIso2)}</TableCell>
                 <TableCell>
                   {p.stock !== null && p.stock < (p.low_stock_threshold ?? DEFAULT_LOW_STOCK_THRESHOLD) ? (
@@ -143,14 +221,14 @@ export function ProductsTable({
             ))}
             {products.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                <TableCell colSpan={6} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
                   No hay productos todavía.
                 </TableCell>
               </TableRow>
             )}
             {products.length > 0 && filteredProducts.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                <TableCell colSpan={6} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
                   Ningún producto coincide con &quot;{query}&quot;.
                 </TableCell>
               </TableRow>
