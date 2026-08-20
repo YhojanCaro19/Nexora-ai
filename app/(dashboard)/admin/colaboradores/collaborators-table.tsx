@@ -23,6 +23,7 @@ import { ASSIGNABLE_MODULES } from "@/lib/constants/nav-items";
 import { OTP_CODE_LENGTH } from "@/lib/constants/otp";
 import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
+import { formatShortDateTime } from "@/lib/utils/date";
 
 const MODULE_LABELS: Record<string, string> = Object.fromEntries(
   ASSIGNABLE_MODULES.map((m) => [m.key, m.label])
@@ -238,6 +239,7 @@ export function CollaboratorsTable({
               <TableHead>Correo</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Módulos</TableHead>
+              <TableHead>Última conexión</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -252,6 +254,9 @@ export function CollaboratorsTable({
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.phone ? formatPhoneDisplay(c.phone) : "—"}</TableCell>
                 <TableCell>
                   <ModulePills permissions={c.permissions} />
+                </TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {c.lastSignInAt ? formatShortDateTime(c.lastSignInAt) : "Nunca ha entrado"}
                 </TableCell>
                 <TableCell>
                   <StatusBadge active={c.is_active} />
@@ -278,7 +283,7 @@ export function CollaboratorsTable({
             ))}
             {collaborators.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                <TableCell colSpan={7} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
                   No hay colaboradores todavía.
                 </TableCell>
               </TableRow>

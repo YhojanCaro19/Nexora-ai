@@ -25,6 +25,12 @@ export interface Order {
   rejected_at: string | null;
   created_at: string;
   updated_at: string;
+  // Opcionales a propósito: solo getOrders() los trae (join con
+  // customers), createOrder()/rejectOrder() devuelven la fila cruda del
+  // insert/update sin ese join — no todo lugar que maneja un Order tiene
+  // por qué conocer al cliente.
+  customer_name?: string | null;
+  customer_phone?: string | null;
 }
 
 // Ajustar si en Supabase hay un CHECK distinto en orders.status.

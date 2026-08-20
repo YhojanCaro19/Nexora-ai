@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/businessBrandingService";
 import { businessBrandingSchema } from "@/lib/validators/businessBrandingSchema";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
+import { getSalesSummaryForRange } from "@/lib/services/reportService";
 
 // Personalizar el PDF es exclusivo del admin (como Reportes en general) —
 // nunca asignable a un colaborador, por eso no usa requireModuleAccess.
@@ -67,4 +68,10 @@ export async function uploadBusinessLogoAction(file: File) {
   const result = await uploadBusinessLogo(businessId, file);
   revalidatePath("/admin/reportes");
   return result;
+}
+
+export async function getSalesRangeSummaryAction(days: number) {
+  const businessId = await requireAdminBusinessId();
+  if (!businessId) return null;
+  return getSalesSummaryForRange(businessId, days);
 }

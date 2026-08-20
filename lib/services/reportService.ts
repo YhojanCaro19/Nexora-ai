@@ -124,6 +124,76 @@ export async function getDailySalesSummary(
   };
 }
 
+export interface RangeSalesSummary {
+  days: number;
+  orderCount: number;
+  totalRevenue: number;
+  // Ranking de más vendidos del período completo, no solo de un día —
+  // mismo cálculo que getDailySalesSummary().items pero sumado sobre
+  // varios días en vez de uno.
+  items: { name: string; quantity: number; subtotal: number }[];
+}
+
+// Comparativa por período (Reportes → dentro del propio módulo, no solo
+// en Inicio): suma ventas/pedidos/ranking de los últimos `days` días,
+// contados en la zona horaria local del negocio — mismo criterio de
+// "medianoche local" que el resto de reportService.ts.
+export async function getSalesSummaryForRange(businessId: string, days: number): Promise<RangeSalesSummary | null> {
+  const supabase = await createClient();
+
+  const { data: business, error: businessError } = await supabase
+    .from("businesses")
+    .select("country_iso2")
+    .eq("id", businessId)
+    .maybeSingle();
+
+  if (businessError || !business) {
+    console.error("[getSalesSummaryForRange] negocio no encontrado:", businessError);
+    return null;
+  }
+
+  const timezone = getTimezoneForCountry(business.country_iso2);
+  const now = new Date();
+  const todayStart = startOfDayInTimezone(timezone, now);
+  const rangeStart = new Date(todayStart.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+  const rangeEnd = endOfDayInTimezone(timezone, now);
+
+  const { data: orders, error } = await supabase
+    .from("orders")
+    .select("*")
+    .eq("business_id", businessId)
+    .gte("created_at", rangeStart.toISOString())
+    .lt("created_at", rangeEnd.toISOString())
+    .neq("status", "rejected");
+
+  if (error) {
+    console.error("[getSalesSummaryForRange] error leyendo pedidos:", error);
+  }
+
+  const safeOrders = (orders as Order[] | null) ?? [];
+  const itemsByName = new Map<string, { quantity: number; subtotal: number }>();
+  let totalRevenue = 0;
+
+  for (const order of safeOrders) {
+    totalRevenue += Number(order.total) || 0;
+    for (const item of (order.items as OrderItem[]) ?? []) {
+      const existing = itemsByName.get(item.name) ?? { quantity: 0, subtotal: 0 };
+      existing.quantity += item.quantity;
+      existing.subtotal += item.quantity * item.unit_price;
+      itemsByName.set(item.name, existing);
+    }
+  }
+
+  return {
+    days,
+    orderCount: safeOrders.length,
+    totalRevenue,
+    items: Array.from(itemsByName.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.subtotal - a.subtotal),
+  };
+}
+
 export interface DailyTrendPoint {
   label: string;
   date: string;

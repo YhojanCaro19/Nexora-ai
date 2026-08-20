@@ -28,6 +28,23 @@ const STATUS_COLOR: Record<string, string> = {
 // Exportado a propósito: el detalle de cliente en Clientes (CRM ligero)
 // reutiliza este mismo indicador de estado para su historial de pedidos
 // en vez de duplicar el mapa de colores.
+type DateFilter = "all" | "today" | "7d" | "30d";
+
+const DATE_FILTERS: { key: DateFilter; label: string }[] = [
+  { key: "all", label: "Todos" },
+  { key: "today", label: "Hoy" },
+  { key: "7d", label: "Últimos 7 días" },
+  { key: "30d", label: "Este mes" },
+];
+
+function matchesDateFilter(createdAt: string, filter: DateFilter): boolean {
+  if (filter === "all") return true;
+  const createdMs = new Date(createdAt).getTime();
+  const now = Date.now();
+  const days = filter === "today" ? 1 : filter === "7d" ? 7 : 30;
+  return now - createdMs <= days * 24 * 60 * 60 * 1000;
+}
+
 export function StatusDot({ status }: { status: string }) {
   const color = STATUS_COLOR[status] ?? 'var(--nexora-ink-dim)';
   return (
@@ -63,21 +80,27 @@ export function OrdersTable({
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const selected = orders.find((o) => o.id === selectedId) ?? null;
 
-  // Sin nombre de cliente disponible en el pedido hoy (Order.customer_id
-  // no trae el nombre, ver lib/types/order.ts) — se busca por lo que SÍ
-  // hay: el número de pedido (el mismo "#N" que se ve en la tarjeta) y los
-  // productos dentro de items.
-  const filteredOrders = useMemo(() => {
+  // Busca por número de pedido, producto Y ahora también por nombre/teléfono
+  // del cliente (getOrders() ya trae ese dato con un join a customers).
+  const searchedOrders = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return orders;
     return orders.filter((o) => {
       const number = orderNumbers.get(o.id);
       if (number !== undefined && String(number).includes(q)) return true;
+      if (o.customer_name?.toLowerCase().includes(q)) return true;
+      if (o.customer_phone?.toLowerCase().includes(q)) return true;
       return o.items.some((item) => item.name.toLowerCase().includes(q));
     });
   }, [orders, orderNumbers, query]);
+
+  const filteredOrders = useMemo(
+    () => searchedOrders.filter((o) => matchesDateFilter(o.created_at, dateFilter)),
+    [searchedOrders, dateFilter]
+  );
 
   function openDetail(id: string) {
     setSelectedId(id);
@@ -132,9 +155,27 @@ export function OrdersTable({
             />
           </div>
 
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            {DATE_FILTERS.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setDateFilter(f.key)}
+                className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
+                style={
+                  dateFilter === f.key
+                    ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
+                    : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
+                }
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           {filteredOrders.length === 0 ? (
             <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-              Ningún pedido coincide con &quot;{query}&quot;.
+              {query ? `Ningún pedido coincide con "${query}".` : "Ningún pedido coincide con este filtro de fecha."}
             </p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -184,6 +225,11 @@ function OrderCard({
       <span className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
         {formatCurrency(order.total, countryIso2)}
       </span>
+      {order.customer_name && (
+        <span className="text-[11px] truncate max-w-full px-1" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {order.customer_name}
+        </span>
+      )}
       <StatusDot status={order.status} />
     </button>
   );
@@ -296,6 +342,8 @@ function OrderDetailView({
             </h3>
           </div>
           <div className="space-y-5">
+            <InfoRow label="Cliente" value={order.customer_name ?? "Sin identificar"} />
+            {order.customer_phone && <InfoRow label="Teléfono" value={order.customer_phone} />}
             <InfoRow label="Fecha" value={formatShortDateTime(order.created_at)} />
             <div>
               <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>

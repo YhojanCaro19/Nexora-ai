@@ -12,7 +12,7 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("*")
+    .select("*, customers(name, phone)")
     .eq("business_id", businessId)
     .order("created_at", { ascending: false });
 
@@ -24,7 +24,20 @@ export async function getOrders(businessId: string): Promise<Order[]> {
     });
     return [];
   }
-  return data as Order[];
+
+  // Aplana el join — el resto del código (búsqueda, tarjetas, detalle)
+  // trabaja con customer_name/customer_phone planos, no con un objeto
+  // `customers` anidado.
+  return (data ?? []).map((row) => {
+    const { customers, ...order } = row as Order & {
+      customers: { name: string | null; phone: string | null } | null;
+    };
+    return {
+      ...order,
+      customer_name: customers?.name ?? null,
+      customer_phone: customers?.phone ?? null,
+    };
+  });
 }
 
 // Pedidos de UN cliente puntual — usado por el módulo de Clientes (CRM

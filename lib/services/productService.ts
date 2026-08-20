@@ -11,6 +11,7 @@ export interface Product {
   description: string | null;
   price: number;
   stock: number | null;
+  low_stock_threshold: number | null;
   active: boolean;
   image_url: string | null;
   created_at: string;
@@ -61,6 +62,7 @@ export async function createProduct(businessId: string, input: ProductInput, ima
       description: parsed.data.description || null,
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
+      low_stock_threshold: parsed.data.lowStockThreshold ?? null,
       embedding,
     })
     .select()
@@ -125,6 +127,7 @@ export async function updateProduct(
       description: parsed.data.description || null,
       price: parsed.data.price,
       stock: parsed.data.stock ?? null,
+      low_stock_threshold: parsed.data.lowStockThreshold ?? null,
       // Solo se pisa image_url si de verdad llegó una foto nueva — no se
       // borra la que ya tenía el producto solo por editar otros campos.
       ...(imageUrl ? { image_url: imageUrl } : {}),

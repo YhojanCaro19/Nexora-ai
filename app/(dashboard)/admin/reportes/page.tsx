@@ -1,6 +1,6 @@
 // app/(dashboard)/admin/reportes/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { getBusinessBranding } from "@/lib/services/businessBrandingService";
+import { getBusinessBranding, getBusinessCountryIso2 } from "@/lib/services/businessBrandingService";
 import { getReportDownloadHistory } from "@/lib/services/reportHistoryService";
 import { ReportesPanel } from "./reportes-panel";
 
@@ -20,13 +20,14 @@ export default async function ReportesPage() {
         twitter: null,
       };
   const history = profile?.businessId ? await getReportDownloadHistory(profile.businessId) : [];
+  const countryIso2 = profile?.businessId ? await getBusinessCountryIso2(profile.businessId) : null;
 
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Reportes
       </h1>
-      <ReportesPanel branding={branding} history={history} />
+      <ReportesPanel branding={branding} history={history} countryIso2={countryIso2} />
     </div>
   );
 }

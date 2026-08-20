@@ -213,6 +213,7 @@ export type CollaboratorListItem = {
   email: string;
   permissions: string[];
   is_active: boolean;
+  lastSignInAt: string | null;
 };
 
 /**
@@ -252,6 +253,10 @@ export async function getCollaborators(businessId: string): Promise<Collaborator
         permissions: (m.permissions as string[]) ?? [],
         is_active: m.is_active,
         email: data?.user?.email ?? "—",
+        // Ya se estaba pidiendo este usuario a la Admin API para el correo —
+        // last_sign_in_at viene gratis en la misma llamada, no hace falta
+        // una consulta aparte a user_login_events por colaborador.
+        lastSignInAt: data?.user?.last_sign_in_at ?? null,
       };
     })
   );

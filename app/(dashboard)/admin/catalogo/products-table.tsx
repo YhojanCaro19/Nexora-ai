@@ -16,9 +16,7 @@ import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
 import { formatCurrency } from "@/lib/utils/currency";
-
-/** Debajo de este umbral, el stock se resalta como bajo. `null` sigue significando "sin control de stock". */
-const LOW_STOCK_THRESHOLD = 5;
+import { DEFAULT_LOW_STOCK_THRESHOLD } from "@/lib/validators/productSchema";
 
 export function ProductsTable({
   products,
@@ -101,7 +99,7 @@ export function ProductsTable({
                 </TableCell>
                 <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatCurrency(p.price, countryIso2)}</TableCell>
                 <TableCell>
-                  {p.stock !== null && p.stock < LOW_STOCK_THRESHOLD ? (
+                  {p.stock !== null && p.stock < (p.low_stock_threshold ?? DEFAULT_LOW_STOCK_THRESHOLD) ? (
                     <span
                       className="inline-flex items-center gap-1.5 font-medium"
                       style={{ color: 'var(--nexora-alert)' }}

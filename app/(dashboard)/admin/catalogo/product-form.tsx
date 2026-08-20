@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
 
-const EMPTY_FORM = { name: "", description: "", price: "", stock: "" };
+const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
 
 // "100" -> "100", "1000" -> "1,000", "10000000" -> "10,000,000" — separador
 // de miles mientras se escribe. Solo dígitos: se descarta cualquier otra
@@ -39,6 +39,8 @@ export function ProductForm({
           description: editingProduct.description ?? "",
           price: formatThousands(String(editingProduct.price)),
           stock: editingProduct.stock === null ? "" : String(editingProduct.stock),
+          lowStockThreshold:
+            editingProduct.low_stock_threshold === null ? "" : String(editingProduct.low_stock_threshold),
         }
       : EMPTY_FORM
   );
@@ -76,6 +78,7 @@ export function ProductForm({
       description: form.description || undefined,
       price: Number(form.price.replace(/,/g, "")),
       stock: form.stock === "" ? null : Number(form.stock),
+      lowStockThreshold: form.lowStockThreshold === "" ? null : Number(form.lowStockThreshold),
     };
 
     const result = isEditing
@@ -161,6 +164,20 @@ export function ProductForm({
                 step="1"
                 value={form.stock}
                 onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="low-stock-threshold" className="block text-center">
+                Aviso de stock bajo (opcional)
+              </Label>
+              <Input
+                id="low-stock-threshold"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="5"
+                value={form.lowStockThreshold}
+                onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
               />
             </div>
           </div>

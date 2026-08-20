@@ -2,28 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Palette, History, Download, ChevronLeft } from "lucide-react";
+import { Palette, History, Download, ChevronLeft, TrendingUp } from "lucide-react";
 import { CustomizePdfForm } from "./customize-pdf-form";
 import { ReportHistoryList } from "./report-history-list";
+import { SalesComparison } from "./sales-comparison";
 import type { BusinessBranding } from "@/lib/services/businessBrandingService";
 import type { ReportDownloadRecord } from "@/lib/services/reportHistoryService";
 
-type View = "chooser" | "customize" | "history";
+type View = "chooser" | "customize" | "history" | "comparison";
 
 export function ReportesPanel({
   branding,
   history,
+  countryIso2,
 }: {
   branding: BusinessBranding;
   history: ReportDownloadRecord[];
+  countryIso2: string | null;
 }) {
   const [view, setView] = useState<View>("chooser");
 
   if (view === "chooser") {
     return (
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-10">
+      <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 py-10">
         <ChooserButton icon={Palette} label="Personalizar PDF" onClick={() => setView("customize")} />
         <DownloadReportButton />
+        <ChooserButton icon={TrendingUp} label="Comparativa por período" onClick={() => setView("comparison")} />
         <ChooserButton icon={History} label="Historial de reportes" onClick={() => setView("history")} />
       </div>
     );
@@ -40,7 +44,9 @@ export function ReportesPanel({
         Volver
       </button>
 
-      {view === "customize" ? <CustomizePdfForm branding={branding} /> : <ReportHistoryList history={history} />}
+      {view === "customize" && <CustomizePdfForm branding={branding} />}
+      {view === "history" && <ReportHistoryList history={history} />}
+      {view === "comparison" && <SalesComparison countryIso2={countryIso2} />}
     </div>
   );
 }
