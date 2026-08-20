@@ -1,7 +1,10 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { generateTempPassword } from "@/lib/services/passwordService";
 import { translateError } from "@/lib/errors/translate";
-import { getToolKeysForIndustry } from "@/lib/services/agentTemplateService";
+import { getIndustryTemplate } from "@/lib/services/agentTemplateService";
+import { getAgentUsageByBusiness } from "@/lib/services/agentUsageService";
+import { AGENT_TOOLS, sanitizeToolKeys } from "@/lib/config/agentTools";
+import { logPlatformAdminAction } from "@/lib/services/auditLogService";
 
 export async function isCurrentUserPlatformAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -133,13 +136,24 @@ export async function createAccountFromRequest(
     return { error: translateError(memberError), data: null };
   }
 
-  // El agente arranca con las herramientas por defecto de esa industria —
-  // esto tampoco se estaba creando antes (el negocio quedaba sin ninguna
-  // fila en agent_configs, ni siquiera vacía).
-  const defaultTools = await getToolKeysForIndustry(industryType);
+  // El agente arranca con la plantilla COMPLETA de esa industria — no solo
+  // las herramientas (como era antes), también saludo, tono, mensajes y
+  // FAQs base, así el admin nuevo no ve el agente en blanco la primera vez
+  // que entra a Mi Agente.
+  const template = await getIndustryTemplate(industryType);
   const { error: agentError } = await admin.from("agent_configs").insert({
     business_id: business.id,
-    enabled_tools: defaultTools,
+    enabled_tools: template.toolKeys,
+    personality: template.personality,
+    greeting_message: template.greetingMessage,
+    escalation_message: template.escalationMessage,
+    fallback_message: template.fallbackMessage,
+    after_hours_message: template.afterHoursMessage,
+    farewell_message: template.farewellMessage,
+    faqs: template.faqs,
+    response_length: template.responseLength,
+    use_emojis: template.useEmojis,
+    restrictions: template.restrictions,
   });
 
   if (agentError) {
@@ -158,6 +172,8 @@ export async function createAccountFromRequest(
     .from("contact_requests")
     .update({ status: "approved" })
     .eq("id", requestId);
+
+  await logPlatformAdminAction(createdBy, "request_approved", business.id, business.name);
 
   return {
     error: null,
@@ -179,30 +195,63 @@ export async function createAccountFromRequest(
  * si algo falla a mitad de camino, no queda nada borrado a medias. Borrar
  * las cuentas de Auth es un paso aparte porque eso no se puede hacer
  * desde SQL — solo con la Admin API.
+ *
+ * Decisión explícita del negocio: ya NO existe forma de eliminar un
+ * negocio desde el panel — se reemplazó por habilitar/inhabilitar
+ * (toggleBusinessActive, más abajo). Se quitó por completo, no se dejó
+ * como acción de último recurso.
  */
-export async function deleteBusiness(businessId: string): Promise<{ error: string | null }> {
+export async function toggleBusinessActive(
+  businessId: string,
+  isActive: boolean,
+  actingAdminUserId: string
+): Promise<{ error: string | null }> {
   const admin = createAdminClient();
+  const { error } = await admin.from("businesses").update({ is_active: isActive }).eq("id", businessId);
 
-  const { data: memberUserIds, error: rpcError } = await admin.rpc("delete_business_cascade", {
-    target_business_id: businessId,
-  });
-
-  if (rpcError) {
-    console.error("[deleteBusiness] error en la cascada de borrado:", rpcError);
-    return { error: translateError(rpcError) };
+  if (error) {
+    console.error("[toggleBusinessActive] error:", error);
+    return { error: translateError(error) };
   }
 
-  for (const userId of (memberUserIds as string[] | null) ?? []) {
-    const { error } = await admin.auth.admin.deleteUser(userId);
-    if (error) {
-      // Los datos del negocio ya se borraron correctamente en la
-      // transacción de arriba — esto es un residuo de Auth a limpiar a
-      // mano si llega a pasar, no se revierte lo ya borrado.
-      console.error(`[deleteBusiness] no se pudo borrar el usuario de Auth ${userId}:`, error);
-    }
-  }
-
+  await logPlatformAdminAction(actingAdminUserId, isActive ? "business_enabled" : "business_disabled", businessId);
   return { error: null };
+}
+
+export interface BusinessAgentSummary {
+  agentName: string;
+  personality: string;
+  greetingMessage: string;
+  enabledToolLabels: string[];
+}
+
+// Cargado aparte del listado de negocios (no dentro de getBusinesses) —
+// solo hace falta cuando el superadmin abre el detalle de un negocio
+// puntual, no en cada fila de la lista.
+export async function getBusinessAgentSummary(businessId: string): Promise<BusinessAgentSummary | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("agent_configs")
+    .select("name, personality, greeting_message, enabled_tools")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) console.error("[getBusinessAgentSummary] error:", error);
+    return null;
+  }
+
+  const toolKeys = sanitizeToolKeys(data.enabled_tools);
+  const enabledToolLabels: string[] = toolKeys
+    .map((key) => AGENT_TOOLS.find((t) => t.key === key)?.label)
+    .filter((label): label is (typeof AGENT_TOOLS)[number]["label"] => !!label);
+
+  return {
+    agentName: data.name || "Sin nombre configurado",
+    personality: data.personality || "Sin personalidad configurada",
+    greetingMessage: data.greeting_message || "Sin mensaje de bienvenida configurado",
+    enabledToolLabels,
+  };
 }
 
 export interface BusinessWithOwner {
@@ -211,9 +260,14 @@ export interface BusinessWithOwner {
   industry_type: string;
   created_at: string;
   owner_id: string;
+  is_active: boolean;
   ownerName: string | null;
   ownerEmail: string | null;
   ownerPhone: string | null;
+  orderCount: number;
+  customerCount: number;
+  agentTokens: number;
+  lastActivityAt: string | null;
 }
 
 export async function getBusinesses(): Promise<BusinessWithOwner[]> {
@@ -221,7 +275,7 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
   const admin = createAdminClient();
   const { data: businesses, error } = await admin
     .from("businesses")
-    .select("id, name, industry_type, created_at, owner_id")
+    .select("id, name, industry_type, created_at, owner_id, is_active")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -235,12 +289,22 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
   }
   if (!businesses) return [];
 
+  // Consumo del agente ya viene agregado por negocio en una sola consulta
+  // (agentUsageService.ts) — se reutiliza acá en vez de volver a sumar
+  // tokens por negocio uno por uno.
+  const usageByBusiness = new Map(
+    (await getAgentUsageByBusiness()).map((u) => [u.businessId, u])
+  );
+
   // Datos del dueño: full_name/phone viven en business_members, el correo
   // solo existe en Auth (no se duplica en ninguna tabla), así que hace
-  // falta una llamada aparte a la Admin API por cada negocio.
+  // falta una llamada aparte a la Admin API por cada negocio. Los conteos
+  // de pedidos/clientes y la última actividad sí son específicos de cada
+  // negocio, no hay forma de traerlos en una sola consulta agregada como
+  // el consumo del agente.
   return Promise.all(
     businesses.map(async (b) => {
-      const [{ data: member }, { data: authUser }] = await Promise.all([
+      const [{ data: member }, { data: authUser }, ordersResult, { count: customerCount }] = await Promise.all([
         admin
           .from("business_members")
           .select("full_name, phone")
@@ -248,13 +312,26 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
           .eq("user_id", b.owner_id)
           .maybeSingle(),
         admin.auth.admin.getUserById(b.owner_id),
+        admin
+          .from("orders")
+          .select("created_at", { count: "exact" })
+          .eq("business_id", b.id)
+          .order("created_at", { ascending: false })
+          .limit(1),
+        admin.from("customers").select("id", { count: "exact", head: true }).eq("business_id", b.id),
       ]);
+
+      const usage = usageByBusiness.get(b.id);
 
       return {
         ...b,
         ownerName: member?.full_name ?? null,
         ownerEmail: authUser.user?.email ?? null,
         ownerPhone: member?.phone ?? null,
+        orderCount: ordersResult.count ?? 0,
+        customerCount: customerCount ?? 0,
+        agentTokens: usage?.totalTokens ?? 0,
+        lastActivityAt: ordersResult.data?.[0]?.created_at ?? null,
       };
     })
   );
@@ -314,8 +391,14 @@ export async function getPhoneBusinessMatches(
   return matches;
 }
 
-export async function rejectRequest(requestId: string) {
+export async function rejectRequest(requestId: string, actingAdminUserId: string) {
   const admin = createAdminClient();
+
+  const { data: request } = await admin
+    .from("contact_requests")
+    .select("full_name, business_name")
+    .eq("id", requestId)
+    .maybeSingle();
 
   const { error } = await admin
     .from("contact_requests")
@@ -325,5 +408,12 @@ export async function rejectRequest(requestId: string) {
   if (error) {
     return { error: translateError(error) };
   }
+
+  await logPlatformAdminAction(
+    actingAdminUserId,
+    "request_rejected",
+    null,
+    request?.business_name ?? request?.full_name ?? null
+  );
   return { error: null };
 }

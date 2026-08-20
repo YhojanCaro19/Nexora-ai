@@ -33,7 +33,15 @@ export async function rejectRequestAction(requestId: string) {
     return { error: "No autorizado" };
   }
 
-  const result = await rejectRequest(requestId);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "No autorizado" };
+  }
+
+  const result = await rejectRequest(requestId, user.id);
   revalidatePath("/superadmin/solicitudes");
   return result;
 }

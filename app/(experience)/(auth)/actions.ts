@@ -17,23 +17,32 @@ const ROLE_PREFIX: Record<string, string> = {
 async function resolveRoleAndBusiness(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
-): Promise<{ role: string | null; businessId: string | null }> {
+): Promise<{ role: string | null; businessId: string | null; businessInactive: boolean }> {
   const { data: platformAdmin } = await supabase
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (platformAdmin) return { role: "superadmin", businessId: null };
+  if (platformAdmin) return { role: "superadmin", businessId: null, businessInactive: false };
 
   const { data: membership } = await supabase
     .from("business_members")
-    .select("role, business_id")
+    .select("role, business_id, businesses(is_active)")
     .eq("user_id", userId)
     .eq("is_active", true)
     .maybeSingle();
 
-  return { role: membership?.role ?? null, businessId: membership?.business_id ?? null };
+  if (!membership) return { role: null, businessId: null, businessInactive: false };
+
+  // Negocio inhabilitado por el superadmin (ej. falta de pago) bloquea a
+  // todos sus miembros — mismo criterio que getSessionProfile() en
+  // lib/auth/get-session.ts, pero acá además se le da al usuario un
+  // mensaje específico en vez de un redirect silencioso a /login.
+  const businessActive = (membership.businesses as unknown as { is_active: boolean } | null)?.is_active ?? true;
+  if (!businessActive) return { role: null, businessId: membership.business_id, businessInactive: true };
+
+  return { role: membership.role, businessId: membership.business_id, businessInactive: false };
 }
 
 // ip/userAgent se calculan en login() (antes de este redirect) y se pasan
@@ -45,7 +54,14 @@ async function redirectByRole(supabase: Awaited<ReturnType<typeof createClient>>
 
   if (!user) redirect("/login");
 
-  const { role, businessId } = await resolveRoleAndBusiness(supabase, user.id);
+  const { role, businessId, businessInactive } = await resolveRoleAndBusiness(supabase, user.id);
+
+  if (businessInactive) {
+    await supabase.auth.signOut();
+    redirect(
+      `/login?error=${encodeURIComponent("Este negocio está inhabilitado. Contacta al equipo de AVENTHRA para más información.")}`
+    );
+  }
 
   // Log informativo de "Sesiones activas" (Perfil → Seguridad) — nunca
   // debe impedir el login si falla, por eso va antes del redirect y
