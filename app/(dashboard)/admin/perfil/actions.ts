@@ -183,18 +183,16 @@ export async function deleteAvatarAction() {
   return result;
 }
 
-// Cierra todas las sesiones del usuario actual (todos los dispositivos),
-// nunca de otro usuario — profile.userId sale de getSessionProfile(), no
-// de un parámetro. Además de revocar globalmente, cierra la sesión local
-// de este mismo request (igual que logout() en (experience)/(auth)/actions.ts)
-// para que el navegador actual quede deslogueado de inmediato: el access
-// token ya emitido es un JWT de corta duración que seguiría "viéndose"
-// válido hasta su expiración natural si solo se revocara el refresh token.
+// Cierra todas las sesiones del usuario actual (todos los dispositivos) —
+// signOutAllSessions() ya usa scope "global" en el cliente de sesión, que
+// revoca todos los refresh tokens de esta cuenta Y limpia la cookie local
+// de inmediato en un solo llamado (ver el comentario en profileService.ts
+// sobre por qué NO se puede hacer esto por user_id vía la Admin API).
 export async function signOutAllDevicesAction() {
   const profile = await getSessionProfile();
   if (!profile) return { error: "No autorizado" };
 
-  const result = await signOutAllSessions(profile.userId);
+  const result = await signOutAllSessions();
   if (result.error) return result;
 
   // Antes del redirect: redirect() corta la ejecución del server action
@@ -205,8 +203,6 @@ export async function signOutAllDevicesAction() {
     await logProfileSecurityEvent(profile.userId, profile.businessId, "signed_out_all_devices");
   }
 
-  const supabase = await createClient();
-  await supabase.auth.signOut();
   revalidatePath("/", "layout");
   redirect("/login");
 }

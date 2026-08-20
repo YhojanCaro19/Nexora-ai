@@ -89,11 +89,19 @@ export async function getProfileDetails(
 // dashboard (Sidebar), que envuelve TODAS las páginas — traer ahí el
 // resto de columnas y el segundo roundtrip a `businesses` en cada
 // navegación sería trabajo repetido sin uso; eso solo hace falta una vez,
-// en la pantalla de Perfil. Superadmin no tiene business_id, así que
-// nunca tiene avatar propio — cae al fallback de iniciales.
+// en la pantalla de Perfil. businessId null ya no significa "sin avatar
+// posible" — significa "buscar en platform_admins en vez de
+// business_members", desde que el superadmin también tiene foto propia.
 export async function getAvatarUrl(userId: string, businessId: string | null): Promise<string | null> {
-  if (!businessId) return null;
   const supabase = await createClient();
+  if (!businessId) {
+    const { data } = await supabase
+      .from("platform_admins")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return data?.avatar_url ?? null;
+  }
   const { data } = await supabase
     .from("business_members")
     .select("avatar_url")
@@ -210,9 +218,19 @@ export async function updateOwnProfile(
 // llama — el userId siempre viene de getSessionProfile() en el server
 // action, nunca de un parámetro externo, para que esto no pueda usarse
 // para cerrar la sesión de otra persona.
-export async function signOutAllSessions(userId: string): Promise<{ error: string | null }> {
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.signOut(userId, "global");
+// BUG real que tenía esto antes: admin.auth.admin.signOut(jwt, scope)
+// espera un JWT como primer parámetro (el token de UNA sesión a revocar),
+// no un user_id — pasarle un UUID producía exactamente el error que vimos
+// ("token contains an invalid number of segments"). No existe una forma
+// de revocar por user_id vía la Admin API; lo correcto es que el propio
+// usuario cierre sesión con alcance "global" en su cliente de sesión —
+// eso SÍ revoca todos los refresh tokens de esa cuenta en todos los
+// dispositivos, no solo el de este navegador, y de paso limpia la cookie
+// local de inmediato (sin esto, el access token ya emitido seguiría
+// "viéndose" válido hasta su expiración natural).
+export async function signOutAllSessions(): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signOut({ scope: "global" });
 
   if (error) {
     console.error("[signOutAllSessions] error:", {
@@ -263,6 +281,151 @@ export async function uploadAvatar(
   }
 
   return { error: null, url };
+}
+
+// --------------------------------------------------------------------
+// Perfil de SUPERADMIN — mismo patrón que arriba, pero contra
+// `platform_admins` en vez de `business_members`, porque un superadmin no
+// tiene fila en business_members (vive fuera del esquema multi-tenant, ver
+// docs/database.md). Se agregaron las mismas columnas editables
+// (full_name, phone, avatar_url + *_changed_at) a platform_admins para
+// que el patrón sea idéntico, no un caso especial.
+export async function getPlatformAdminProfileDetails(
+  userId: string,
+  fallbackFullName: string
+): Promise<ProfileDetails> {
+  const supabase = await createClient();
+  const [{ data: auth }, { data: admin }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("platform_admins")
+      .select("full_name, phone, avatar_url, created_at, full_name_changed_at, phone_changed_at")
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+
+  return {
+    fullName: admin?.full_name ?? fallbackFullName,
+    email: auth.user?.email ?? null,
+    phone: admin?.phone ?? null,
+    role: "superadmin",
+    businessName: null,
+    avatarUrl: admin?.avatar_url ?? null,
+    lastSignInAt: auth.user?.last_sign_in_at ?? null,
+    memberSince: admin?.created_at ?? null,
+    fullNameChangeAvailableAt: cooldownAvailableAt(admin?.full_name_changed_at ?? null),
+    phoneChangeAvailableAt: cooldownAvailableAt(admin?.phone_changed_at ?? null),
+  };
+}
+
+export async function updateOwnPlatformAdminProfile(
+  userId: string,
+  input: { fullName: string; phone: string }
+): Promise<UpdateOwnProfileResult> {
+  const supabase = await createClient();
+  const { data: current, error: readError } = await supabase
+    .from("platform_admins")
+    .select("full_name, phone, full_name_changed_at, phone_changed_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (readError || !current) {
+    console.error("[updateOwnPlatformAdminProfile] error leyendo la fila actual:", { readError, userId });
+    return { error: "No se pudo actualizar tu perfil, intenta de nuevo." };
+  }
+
+  const nextPhone = input.phone || null;
+  const nameChanged = input.fullName !== current.full_name;
+  const phoneChanged = nextPhone !== current.phone;
+
+  if (nameChanged) {
+    const availableAt = cooldownAvailableAt(current.full_name_changed_at);
+    if (availableAt) {
+      return { error: `Podrás cambiar tu nombre de nuevo el ${formatShortDate(availableAt)}.`, field: "fullName" };
+    }
+  }
+  if (phoneChanged) {
+    const availableAt = cooldownAvailableAt(current.phone_changed_at);
+    if (availableAt) {
+      return { error: `Podrás cambiar tu teléfono de nuevo el ${formatShortDate(availableAt)}.`, field: "phone" };
+    }
+  }
+
+  const nowIso = new Date().toISOString();
+  const updatePayload: {
+    full_name: string;
+    phone: string | null;
+    full_name_changed_at?: string;
+    phone_changed_at?: string;
+  } = { full_name: input.fullName, phone: nextPhone };
+  if (nameChanged) updatePayload.full_name_changed_at = nowIso;
+  if (phoneChanged) updatePayload.phone_changed_at = nowIso;
+
+  const admin = createAdminClient();
+  const { error, data } = await admin
+    .from("platform_admins")
+    .update(updatePayload)
+    .eq("user_id", userId)
+    .select("user_id");
+
+  if (error) {
+    console.error("[updateOwnPlatformAdminProfile] error:", { message: error.message, code: error.code });
+    return { error: translateError(error) };
+  }
+  if (!data || data.length === 0) {
+    console.error("[updateOwnPlatformAdminProfile] no matcheó ninguna fila:", { userId });
+    return { error: "No se pudo actualizar tu perfil, intenta de nuevo." };
+  }
+  return { error: null };
+}
+
+export async function uploadPlatformAdminAvatar(
+  userId: string,
+  file: File
+): Promise<{ error: string | null; url: string | null }> {
+  const { error, buffer } = await sanitizeImageUpload(file, { maxDimension: 400, maxBytes: 3 * 1024 * 1024 });
+  if (error || !buffer) return { error, url: null };
+
+  const admin = createAdminClient();
+  // Namespace "platform" en vez de un business_id, que un superadmin no
+  // tiene — mismo bucket (user-avatars), path determinístico igual que
+  // uploadAvatar().
+  const path = `platform/${userId}/avatar.jpg`;
+
+  const { error: uploadError } = await admin.storage
+    .from("user-avatars")
+    .upload(path, buffer, { contentType: "image/jpeg", upsert: true });
+  if (uploadError) {
+    console.error("[uploadPlatformAdminAvatar] error de storage:", uploadError);
+    return { error: "No se pudo subir la foto, intenta de nuevo", url: null };
+  }
+
+  const { data } = admin.storage.from("user-avatars").getPublicUrl(path);
+  const url = `${data.publicUrl}?v=${Date.now()}`;
+
+  const { error: dbError } = await admin.from("platform_admins").update({ avatar_url: url }).eq("user_id", userId);
+  if (dbError) {
+    console.error("[uploadPlatformAdminAvatar] error al guardar avatar_url:", dbError);
+    return { error: translateError(dbError), url: null };
+  }
+  return { error: null, url };
+}
+
+export async function deletePlatformAdminAvatar(userId: string): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const path = `platform/${userId}/avatar.jpg`;
+
+  const { error: storageError } = await admin.storage.from("user-avatars").remove([path]);
+  if (storageError) {
+    console.error("[deletePlatformAdminAvatar] error borrando de storage:", storageError);
+  }
+
+  const { error } = await admin.from("platform_admins").update({ avatar_url: null }).eq("user_id", userId);
+  if (error) {
+    console.error("[deletePlatformAdminAvatar] error:", error);
+    return { error: translateError(error) };
+  }
+  return { error: null };
 }
 
 // Borra la foto — mismo path determinístico que uploadAvatar(), así que

@@ -4,13 +4,15 @@ import {
   Building2,
   ClipboardList,
   Bot,
-  Settings,
   Package,
   Users,
   Contact,
   FileBarChart,
   UserCircle,
   ShoppingBag,
+  Zap,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 export type NavItem = { label: string; href: string; icon: LucideIcon };
@@ -22,13 +24,16 @@ export const SUPERADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Negocios', href: '/superadmin/negocios', icon: Building2 },
       { label: 'Solicitudes', href: '/superadmin/solicitudes', icon: ClipboardList },
+      { label: 'Reportes', href: '/superadmin/reportes', icon: FileBarChart },
     ],
   },
   {
     label: 'Sistema',
     items: [
       { label: 'Agentes', href: '/superadmin/agentes', icon: Bot },
-      { label: 'Configuración', href: '/superadmin/configuracion', icon: Settings },
+      { label: 'Consumo', href: '/superadmin/consumo', icon: Zap },
+      { label: 'Auditoría', href: '/superadmin/auditoria', icon: ShieldCheck },
+      { label: 'Perfil', href: '/superadmin/perfil', icon: UserCircle },
     ],
   },
 ];
@@ -45,6 +50,7 @@ export const ADMIN_NAV: NavGroup[] = [
       { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
       { label: 'Clientes', href: '/admin/clientes', icon: Contact },
       { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },
+      { label: 'Marketing IA', href: '/admin/marketing', icon: Sparkles },
     ],
   },
   {
@@ -64,8 +70,9 @@ export const ADMIN_NAV: NavGroup[] = [
  * que era un link roto). Ahora se arma según los módulos que el admin le
  * asignó de verdad.
  *
- * "Mi Perfil" se quitó del todo por ahora — esa página no existe aún para
- * colaborador (queda pendiente, no confundir con que ya funciona).
+ * "Perfil" sí es fijo, igual que "Inicio" — es dato personal de la propia
+ * cuenta, no un módulo operativo del negocio que el admin tenga que
+ * asignar (ver app/(dashboard)/colaborador/perfil/page.tsx).
  */
 export function getColaboradorNav(permissions: string[]): NavGroup[] {
   const items: NavItem[] = [{ label: 'Inicio', href: '/colaborador', icon: LayoutDashboard }];
@@ -76,6 +83,8 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
   if (permissions.includes('catalogo')) {
     items.push({ label: 'Catálogo', href: '/colaborador/catalogo', icon: Package });
   }
+
+  items.push({ label: 'Perfil', href: '/colaborador/perfil', icon: UserCircle });
 
   return [{ label: 'Principal', items }];
 }
