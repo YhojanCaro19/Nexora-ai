@@ -8,6 +8,16 @@ const ROLE_PREFIX: Record<string, string> = {
   colaborador: '/colaborador',
 };
 
+// Cierre de sesión por inactividad (60 minutos, para los 3 roles) —
+// ventana móvil: cada request a una ruta del dashboard "toca" la cookie y
+// reinicia el conteo, así que se mide inactividad real, no tiempo total
+// conectado. Vive acá (no en una tabla ni en el JWT) porque proxy.ts ya es
+// el único lugar que corre en CADA navegación del dashboard y sí puede
+// escribir cookies desde un Server Component/ruta — a diferencia de
+// getSessionProfile() (lib/auth/get-session.ts), que solo puede leerlas.
+const INACTIVITY_COOKIE = 'aventhra_last_activity';
+const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
+
 async function resolveRole(
   supabase: ReturnType<typeof createServerClient>,
   userId: string
@@ -59,12 +69,39 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL('/login', request.url));
 
+  // Inactividad: si la cookie ya existía y pasaron más de 60 minutos desde
+  // la última vez que se tocó, se cierra la sesión de verdad (revoca el
+  // refresh token, no solo se borra la cookie) antes de redirigir — igual
+  // de real que "Cerrar sesión en todos los dispositivos" en Perfil, solo
+  // que disparado automáticamente en vez de por el usuario.
+  const lastActivityRaw = request.cookies.get(INACTIVITY_COOKIE)?.value;
+  const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : null;
+  if (lastActivity && Date.now() - lastActivity > INACTIVITY_TIMEOUT_MS) {
+    await supabase.auth.signOut({ scope: 'global' });
+    const redirectResponse = NextResponse.redirect(
+      new URL(`/login?error=${encodeURIComponent('Tu sesión expiró por inactividad. Vuelve a iniciar sesión.')}`, request.url)
+    );
+    redirectResponse.cookies.delete(INACTIVITY_COOKIE);
+    return redirectResponse;
+  }
+
   const role = await resolveRole(supabase, user.id);
   const ownPrefix = role ? ROLE_PREFIX[role] : undefined;
 
   if (!ownPrefix || !pathname.startsWith(ownPrefix)) {
     return NextResponse.redirect(new URL(ownPrefix ?? '/login', request.url));
   }
+
+  // "Toca" la cookie en cada request válido — reinicia la ventana de 60
+  // minutos. httpOnly: no debe ser legible ni manipulable desde JS del
+  // navegador, es una señal de control de sesión, no un dato de UI.
+  response.cookies.set(INACTIVITY_COOKIE, String(Date.now()), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: INACTIVITY_TIMEOUT_MS / 1000,
+  });
 
   return response;
 }
