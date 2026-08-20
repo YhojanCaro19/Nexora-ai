@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, Package, Receipt, AlertTriangle, Search } from "lucide-react";
+import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import {
 import { formatShortDateTime } from "@/lib/utils/date";
 import { formatCurrency } from "@/lib/utils/currency";
 import { InfoRow } from "@/components/dashboard/shared/InfoRow";
+import { toCsv, downloadCsv } from "@/lib/utils/csv";
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "var(--nexora-nova)",
@@ -102,6 +103,33 @@ export function OrdersTable({
     [searchedOrders, dateFilter]
   );
 
+  // Exporta exactamente lo que se está viendo (respeta búsqueda + filtro
+  // de fecha ya aplicados) — "exporta lo que tengo en pantalla", no todo
+  // el historial sin importar el filtro.
+  function handleExportCsv() {
+    const rows = filteredOrders.map((o) => ({
+      numero: orderNumbers.get(o.id) ?? "",
+      cliente: o.customer_name ?? "Sin identificar",
+      telefono: o.customer_phone ?? "",
+      estado: ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status,
+      productos: o.items.map((item) => `${item.quantity}x ${item.name}`).join(" | "),
+      total: o.total,
+      gestionado_por: o.updated_by_name ?? "",
+      fecha: formatShortDateTime(o.created_at),
+    }));
+    const csv = toCsv(rows, [
+      { key: "numero", label: "Número de pedido" },
+      { key: "cliente", label: "Cliente" },
+      { key: "telefono", label: "Teléfono" },
+      { key: "estado", label: "Estado" },
+      { key: "productos", label: "Productos" },
+      { key: "total", label: "Total" },
+      { key: "gestionado_por", label: "Gestionado por" },
+      { key: "fecha", label: "Fecha" },
+    ]);
+    downloadCsv(`pedidos-${title.toLowerCase().replace(/\s+/g, "-")}`, csv);
+  }
+
   function openDetail(id: string) {
     setSelectedId(id);
     onDetailChange?.(true);
@@ -171,6 +199,19 @@ export function OrdersTable({
                 {f.label}
               </button>
             ))}
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={filteredOrders.length === 0}
+              onClick={handleExportCsv}
+            >
+              <Download size={14} strokeWidth={1.75} />
+              Exportar CSV
+            </Button>
           </div>
 
           {filteredOrders.length === 0 ? (
@@ -345,6 +386,12 @@ function OrderDetailView({
             <InfoRow label="Cliente" value={order.customer_name ?? "Sin identificar"} />
             {order.customer_phone && <InfoRow label="Teléfono" value={order.customer_phone} />}
             <InfoRow label="Fecha" value={formatShortDateTime(order.created_at)} />
+            {order.updated_by_name && (
+              <InfoRow
+                label={status === "rejected" ? "Rechazado por" : "Gestionado por"}
+                value={order.updated_by_name}
+              />
+            )}
             <div>
               <dt className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
                 Comprobante

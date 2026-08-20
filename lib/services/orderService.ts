@@ -10,11 +10,18 @@ export { ORDER_STATUSES, ORDER_STATUS_LABELS, ALLOWED_STATUS_TRANSITIONS } from 
 
 export async function getOrders(businessId: string): Promise<Order[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, customers(name, phone)")
-    .eq("business_id", businessId)
-    .order("created_at", { ascending: false });
+  const [{ data, error }, { data: members }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*, customers(name, phone)")
+      .eq("business_id", businessId)
+      .order("created_at", { ascending: false }),
+    // orders.updated_by/rejected_by referencian auth.users, no
+    // business_members — no hay FK directa que Postgrest pueda embeder
+    // sola, así que se resuelve el nombre a mano con este mapa (una sola
+    // consulta para todo el negocio, no una por pedido).
+    supabase.from("business_members").select("user_id, full_name").eq("business_id", businessId),
+  ]);
 
   if (error) {
     console.error("[getOrders] error:", {
@@ -24,6 +31,8 @@ export async function getOrders(businessId: string): Promise<Order[]> {
     });
     return [];
   }
+
+  const nameByUserId = new Map((members ?? []).map((m) => [m.user_id, m.full_name]));
 
   // Aplana el join — el resto del código (búsqueda, tarjetas, detalle)
   // trabaja con customer_name/customer_phone planos, no con un objeto
@@ -36,6 +45,7 @@ export async function getOrders(businessId: string): Promise<Order[]> {
       ...order,
       customer_name: customers?.name ?? null,
       customer_phone: customers?.phone ?? null,
+      updated_by_name: order.updated_by ? nameByUserId.get(order.updated_by) ?? null : null,
     };
   });
 }
@@ -185,7 +195,12 @@ export async function createOrder(
 // el pedido en la base de datos ahora mismo, no contra lo que mande el
 // cliente, porque un botón viejo en pantalla (o alguien llamando la
 // action directo) no debe poder saltarse la regla.
-export async function updateOrderStatus(orderId: string, businessId: string, status: OrderStatus) {
+export async function updateOrderStatus(
+  orderId: string,
+  businessId: string,
+  status: OrderStatus,
+  updatedByUserId: string
+) {
   const supabase = await createClient();
 
   const { data: current, error: findError } = await supabase
@@ -208,7 +223,7 @@ export async function updateOrderStatus(orderId: string, businessId: string, sta
 
   const { error } = await supabase
     .from("orders")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, updated_by: updatedByUserId, updated_at: new Date().toISOString() })
     .eq("id", orderId)
     .eq("business_id", businessId);
 
@@ -272,6 +287,10 @@ export async function rejectOrder(
       rejection_reason: trimmedReason,
       rejected_by: rejectedByUserId,
       rejected_at: new Date().toISOString(),
+      // Rechazar también es "gestionar" el pedido — se guarda en ambas
+      // columnas para que "quién lo gestionó" sea consistente sin
+      // importar si el pedido terminó avanzando o rechazado.
+      updated_by: rejectedByUserId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", orderId)

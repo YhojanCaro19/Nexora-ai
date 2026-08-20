@@ -16,11 +16,12 @@ function revalidatePedidos() {
 
 export async function updateOrderStatusAction(orderId: string, status: OrderStatus) {
   const businessId = await requireModuleAccess("pedidos");
-  if (!businessId) {
+  const profile = await getSessionProfile();
+  if (!businessId || !profile) {
     return { error: "No autorizado" };
   }
 
-  const result = await updateOrderStatus(orderId, businessId, status);
+  const result = await updateOrderStatus(orderId, businessId, status, profile.userId);
   revalidatePedidos();
   return result;
 }

@@ -23,14 +23,22 @@ export interface Order {
   rejection_reason: string | null;
   rejected_by: string | null;
   rejected_at: string | null;
+  // Quién hizo el último cambio de estado (confirmar/enviar/recoger o
+  // rechazar) — a diferencia de rejected_by, que solo cubre el rechazo,
+  // esto queda seteado sin importar cómo terminó el pedido.
+  updated_by: string | null;
   created_at: string;
   updated_at: string;
   // Opcionales a propósito: solo getOrders() los trae (join con
-  // customers), createOrder()/rejectOrder() devuelven la fila cruda del
-  // insert/update sin ese join — no todo lugar que maneja un Order tiene
-  // por qué conocer al cliente.
+  // customers/business_members), createOrder()/rejectOrder() devuelven la
+  // fila cruda del insert/update sin esos joins — no todo lugar que
+  // maneja un Order tiene por qué conocer al cliente o a quién lo gestionó.
   customer_name?: string | null;
   customer_phone?: string | null;
+  // Cubre tanto "quién lo gestionó" como "quién lo rechazó" — rejectOrder()
+  // guarda el mismo user_id en updated_by, así que un solo campo alcanza,
+  // sin duplicar el mismo nombre en dos propiedades distintas.
+  updated_by_name?: string | null;
 }
 
 // Ajustar si en Supabase hay un CHECK distinto en orders.status.

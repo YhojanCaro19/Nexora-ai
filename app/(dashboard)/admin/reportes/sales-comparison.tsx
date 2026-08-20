@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { getSalesRangeSummaryAction } from "./actions";
 import type { RangeSalesSummary } from "@/lib/services/reportService";
 import { formatCurrency } from "@/lib/utils/currency";
+import { toCsv, downloadCsv } from "@/lib/utils/csv";
 
 const RANGES = [
   { days: 7, label: "Últimos 7 días" },
@@ -22,6 +25,26 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
   useEffect(() => {
     getSalesRangeSummaryAction(days).then(setSummary);
   }, [days]);
+
+  // Exporta el ranking COMPLETO del período, no solo el top 10 que se ve
+  // en pantalla — la vista se recorta por espacio, el CSV no tiene por
+  // qué recortarse igual.
+  function handleExportCsv() {
+    if (!summary) return;
+    const rows = summary.items.map((item, i) => ({
+      puesto: i + 1,
+      producto: item.name,
+      cantidad: item.quantity,
+      subtotal: item.subtotal,
+    }));
+    const csv = toCsv(rows, [
+      { key: "puesto", label: "Puesto" },
+      { key: "producto", label: "Producto" },
+      { key: "cantidad", label: "Cantidad vendida" },
+      { key: "subtotal", label: "Subtotal" },
+    ]);
+    downloadCsv(`reporte-mas-vendidos-${summary.days}-dias`, csv);
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -74,6 +97,14 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
             <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
               {summary.items.length > 0 ? "Más vendidos del período" : "Sin ventas registradas en este período."}
             </p>
+            {summary.items.length > 0 && (
+              <div className="flex justify-center">
+                <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+                  <Download size={14} strokeWidth={1.75} />
+                  Exportar CSV
+                </Button>
+              </div>
+            )}
             {summary.items.length > 0 && (
               <div className="rounded-2xl border divide-y" style={{ borderColor: 'var(--nexora-line)' }}>
                 {summary.items.slice(0, 10).map((item, i) => (
