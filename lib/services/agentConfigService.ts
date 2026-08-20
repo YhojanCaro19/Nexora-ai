@@ -21,7 +21,7 @@ export interface FaqEntry {
 // Nunca confiar en jsonb crudo de la base sin pasar por acá — filtra
 // cualquier fila que no tenga la forma esperada (dato viejo, edición a
 // mano) y descarta pares con pregunta o respuesta vacía.
-function sanitizeFaqs(value: unknown): FaqEntry[] {
+export function sanitizeFaqs(value: unknown): FaqEntry[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter((v): v is { question: unknown; answer: unknown } => typeof v === "object" && v !== null)
