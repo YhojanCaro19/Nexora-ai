@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 import { PhoneField } from "@/components/shared/PhoneField";
+import { industryTypes } from "@/lib/validators/businessSchema";
 
 export default async function ContactPage({
   searchParams,
@@ -100,6 +101,36 @@ export default async function ContactPage({
                 </div>
 
                 <PhoneField />
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="industry_type"
+                    className="text-xs tracking-wide text-white/60 text-center"
+                  >
+                    Tipo de negocio
+                  </Label>
+
+                  {/* <select> nativo a propósito (no el Select del design
+                      system) — este formulario envía por FormData vía
+                      action={submitContactRequest}, un <select> nativo
+                      llega solo con `name`, sin cablear un input oculto
+                      aparte para que el componente controlado lo refleje. */}
+                  <select
+                    id="industry_type"
+                    name="industry_type"
+                    defaultValue=""
+                    className="h-10 w-full rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white focus-visible:ring-2 focus-visible:ring-[#4CC2E8]/40 focus-visible:outline-none"
+                  >
+                    <option value="" disabled className="bg-black">
+                      Selecciona el tipo de negocio
+                    </option>
+                    {industryTypes.map((it) => (
+                      <option key={it.value} value={it.value} className="bg-black">
+                        {it.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <div className="space-y-2">
                   <Label

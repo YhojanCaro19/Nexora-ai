@@ -20,6 +20,10 @@ type ContactRequest = {
   message: string | null;
   status: string;
   created_at: string;
+  // Elegido por quien pidió el acceso en /contacto — precarga el select
+  // de abajo, pero el superadmin lo puede corregir si el solicitante se
+  // equivocó (nunca se aprueba a ciegas sin poder ajustarlo).
+  industry_type: string | null;
 };
 
 type View = "chooser" | "pending" | "approved";
@@ -36,7 +40,12 @@ export function RequestsTable({
 }) {
   const [view, setView] = useState<View>("chooser");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [industryByRequest, setIndustryByRequest] = useState<Record<string, string>>({});
+  // Precargado con lo que cada solicitante eligió en /contacto — el
+  // superadmin lo ve ya seleccionado, no en blanco, y lo puede cambiar
+  // antes de aprobar si no corresponde.
+  const [industryByRequest, setIndustryByRequest] = useState<Record<string, string>>(() =>
+    Object.fromEntries(requests.filter((r) => r.industry_type).map((r) => [r.id, r.industry_type as string]))
+  );
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
   const [rejected, setRejected] = useState(false);

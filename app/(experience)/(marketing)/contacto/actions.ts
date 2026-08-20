@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isValidPhone } from "@/lib/utils/phone";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 import { getClientIp } from "@/lib/utils/request";
+import { industryTypes } from "@/lib/validators/businessSchema";
 
 const contactSchema = z.object({
   full_name: z.string().min(2, "El nombre es muy corto"),
@@ -30,6 +31,15 @@ const contactSchema = z.object({
     .optional()
     .transform((v) => (v ? v : undefined)),
   message: z.string().optional(),
+  // Elegido por quien pide acceso, no inventado por el superadmin al
+  // aprobar — el superadmin sigue pudiendo corregirlo en Solicitudes si
+  // el solicitante se equivocó, esto solo lo precarga.
+  industry_type: z
+    .string()
+    .optional()
+    .refine((v) => !v || industryTypes.some((it) => it.value === v), {
+      message: "Tipo de negocio inválido",
+    }),
 });
 
 export async function submitContactRequest(formData: FormData) {
@@ -48,6 +58,7 @@ export async function submitContactRequest(formData: FormData) {
     phone: formData.get("phone"),
     country_iso2: formData.get("phone_country"),
     message: formData.get("message"),
+    industry_type: formData.get("industry_type"),
   });
 
   if (!parsed.success) {

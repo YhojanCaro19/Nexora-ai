@@ -37,6 +37,10 @@ export interface ProfileDetails {
   phone: string | null;
   role: string;
   businessName: string | null;
+  // Valor crudo (ej. "jewelry") — la pantalla resuelve el label en
+  // español (industryTypes en businessSchema.ts), mismo criterio que
+  // businesses-panel.tsx en superadmin.
+  industryType: string | null;
   avatarUrl: string | null;
   lastSignInAt: string | null;
   memberSince: string | null;
@@ -66,7 +70,7 @@ export async function getProfileDetails(
           .maybeSingle()
       : Promise.resolve({ data: null }),
     businessId
-      ? supabase.from("businesses").select("name").eq("id", businessId).maybeSingle()
+      ? supabase.from("businesses").select("name, industry_type").eq("id", businessId).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -76,6 +80,7 @@ export async function getProfileDetails(
     phone: memberResult.data?.phone ?? null,
     role,
     businessName: businessResult.data?.name ?? null,
+    industryType: businessResult.data?.industry_type ?? null,
     avatarUrl: memberResult.data?.avatar_url ?? null,
     lastSignInAt: auth.user?.last_sign_in_at ?? null,
     memberSince: memberResult.data?.created_at ?? null,
@@ -310,6 +315,7 @@ export async function getPlatformAdminProfileDetails(
     phone: admin?.phone ?? null,
     role: "superadmin",
     businessName: null,
+    industryType: null,
     avatarUrl: admin?.avatar_url ?? null,
     lastSignInAt: auth.user?.last_sign_in_at ?? null,
     memberSince: admin?.created_at ?? null,

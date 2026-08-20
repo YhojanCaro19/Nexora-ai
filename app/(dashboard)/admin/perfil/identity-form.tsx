@@ -11,12 +11,15 @@ import { AvatarCropper } from "@/components/shared/AvatarCropper";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { updateOwnProfileAction, uploadAvatarAction, deleteAvatarAction } from "./actions";
 import type { ProfileDetails } from "@/lib/services/profileService";
+import { industryTypes } from "@/lib/validators/businessSchema";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   colaborador: "Colaborador",
   superadmin: "Superadmin",
 };
+
+const industryLabel = (value: string) => industryTypes.find((it) => it.value === value)?.label ?? value;
 
 // Mismo tamaño para el avatar mostrado y para el círculo de recorte del
 // editor — así lo que el usuario ajusta en AvatarCropper corresponde 1:1
@@ -286,6 +289,7 @@ export function IdentityForm({ details }: { details: ProfileDetails }) {
               <InfoRow label="Correo" value={details.email ?? "—"} mono />
               <InfoRow label="Rol" value={ROLE_LABELS[details.role] ?? details.role} />
               {details.businessName && <InfoRow label="Negocio" value={details.businessName} />}
+              {details.industryType && <InfoRow label="Tipo de negocio" value={industryLabel(details.industryType)} />}
               <InfoRow
                 label="Último acceso"
                 value={details.lastSignInAt ? formatShortDateTime(details.lastSignInAt) : "—"}

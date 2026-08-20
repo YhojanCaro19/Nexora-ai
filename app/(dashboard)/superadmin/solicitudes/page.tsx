@@ -8,7 +8,7 @@ export default async function SolicitudesPage() {
 
   const { data: requests, error } = await supabase
     .from("contact_requests")
-    .select("id, full_name, business_name, email, phone, message, status, created_at")
+    .select("id, full_name, business_name, email, phone, message, status, created_at, industry_type")
     .order("created_at", { ascending: false });
 
   if (error) {
