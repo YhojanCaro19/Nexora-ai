@@ -110,3 +110,47 @@ export async function logAutoReportSend(
     console.error("[logAutoReportSend] error:", error);
   }
 }
+
+export interface AutoReportLogEntry {
+  id: string;
+  businessId: string;
+  businessName: string;
+  reportDate: string;
+  sentTo: string;
+  status: "sent" | "failed";
+  errorMessage: string | null;
+  sentAt: string;
+}
+
+// Vista de superadmin (Plataforma → Reportes): historial de envíos
+// automáticos de TODOS los negocios, no solo el propio — a diferencia de
+// getReportDownloadHistory/wasAutoReportSentToday, que son por negocio.
+// Va con service role a propósito: `report_email_log` solo tiene policy
+// de SELECT para is_business_admin(business_id) (ve su propio negocio),
+// y el superadmin no es miembro de ningún negocio — la ruta ya está
+// protegida en el layout (`profile.role !== 'superadmin' -> redirect`),
+// así que no hace falta una policy nueva para este caso.
+export async function getAutoReportSendLog(limit = 200): Promise<AutoReportLogEntry[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("report_email_log")
+    .select("id, business_id, report_date, sent_to, status, error_message, sent_at, businesses(name)")
+    .order("sent_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("[getAutoReportSendLog] error:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    businessId: row.business_id,
+    businessName: (row.businesses as unknown as { name: string } | null)?.name ?? "Negocio eliminado",
+    reportDate: row.report_date,
+    sentTo: row.sent_to,
+    status: row.status as "sent" | "failed",
+    errorMessage: row.error_message,
+    sentAt: row.sent_at,
+  }));
+}
