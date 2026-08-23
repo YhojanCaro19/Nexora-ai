@@ -24,15 +24,40 @@ export default async function ContactPage({
   const params = await searchParams;
 
   return (
-    <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
+    <div
+      // Vuelto a items-center (pedido explícito: "la idea es que quede
+      // centrado") — la corrección anterior (items-start) partía de un
+      // diagnóstico equivocado: con items-center + padding explícito, un
+      // flex container de una sola columna SIEMPRE respeta como mínimo el
+      // padding-top/bottom sin importar si el contenido es más alto que el
+      // viewport — cuando el contenido + padding excede min-h-screen, el
+      // contenedor crece exactamente a esa altura y el centrado dentro de
+      // esa área ya no tiene slack de sobra, así que el hijo queda pegado
+      // a los bordes del padding, ni un pixel menos. El problema real no
+      // era el centrado, era que pt-20 (80px, solo pensado para la barra
+      // delgada del navbar) se quedaba corto: el wordmark 3D persistente
+      // (MobileWordmarkScene, montado en Experience.tsx en TODA página)
+      // ocupa más alto en pantalla que esa barra — con pt-20 la card
+      // arrancaba pegada arriba y tapaba el wordmark (visto en captura
+      // real). pt-40 le da margen real de sobra debajo del wordmark.
+      //
+      // pb-[6.5rem+safe-area] cubre la altura real de la barra inferior
+      // fija de Navbar.tsx (3 botones) — mismo criterio que ya usa el
+      // propio Navbar.tsx en su pb-[max(1rem,env(safe-area-inset-bottom))].
+      className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
+    >
       <FocusGlowCard className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
-        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+        {/* Mismo mecanismo de card.tsx (data-[size=sm]) para achicar el
+            padding interno solo en mobile, sin tocar el primitivo — bajado
+            de spacing(3) a spacing(2) en mobile (pedido explícito: "haz la
+            card de contactanos más pequeña"), md+ sigue en spacing(4). */}
+        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(2)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-normal text-white">
+            <CardTitle className="text-lg md:text-2xl font-normal text-white">
               Hablemos sobre tu negocio
             </CardTitle>
 
-            <CardDescription className="leading-relaxed text-white/45">
+            <CardDescription className="text-sm leading-snug md:leading-relaxed text-white/45">
               Cuéntanos sobre tu negocio y te contactaremos para activar tu
               cuenta en <span className="text-white">AVENTHRA</span>.
             </CardDescription>
@@ -45,14 +70,14 @@ export default async function ContactPage({
                 contacto contigo.
               </p>
             ) : (
-              <form action={submitContactRequest} className="space-y-3">
+              <form action={submitContactRequest} className="space-y-1.5 md:space-y-3">
                 {params.error && (
                   <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
                     {params.error}
                   </p>
                 )}
 
-                <div className="space-y-2">
+                <div className="space-y-0.5 md:space-y-2">
                   <Label
                     htmlFor="full_name"
                     className="text-xs tracking-wide text-white/60 text-center"
@@ -68,7 +93,7 @@ export default async function ContactPage({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-0.5 md:space-y-2">
                   <Label
                     htmlFor="business_name"
                     className="text-xs tracking-wide text-white/60 text-center"
@@ -83,7 +108,7 @@ export default async function ContactPage({
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-0.5 md:space-y-2">
                   <Label
                     htmlFor="email"
                     className="text-xs tracking-wide text-white/60 text-center"
@@ -102,7 +127,7 @@ export default async function ContactPage({
 
                 <PhoneField />
 
-                <div className="space-y-2">
+                <div className="space-y-0.5 md:space-y-2">
                   <Label
                     htmlFor="industry_type"
                     className="text-xs tracking-wide text-white/60 text-center"
@@ -132,7 +157,7 @@ export default async function ContactPage({
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-0.5 md:space-y-2">
                   <Label
                     htmlFor="message"
                     className="text-xs tracking-wide text-white/60 text-center"
@@ -143,14 +168,14 @@ export default async function ContactPage({
                   <Textarea
                     id="message"
                     name="message"
-                    rows={4}
+                    rows={3}
                     className="border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
                   />
                 </div>
 
                 <Button
                   type="submit"
-                  className="h-11 w-full bg-[#4CC2E8] font-medium text-black hover:bg-[#4CC2E8]/90"
+                  className="h-10 md:h-11 w-full bg-[#4CC2E8] font-medium text-black hover:bg-[#4CC2E8]/90"
                 >
                   Enviar solicitud
                 </Button>

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { Menu, X, Users, MessageCircle, LogIn } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Menu, Users, MessageCircle, LogIn } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
@@ -18,14 +18,27 @@ const navItems = [
   },
 ];
 
+// Los mismos 2 links de arriba + "Iniciar sesión" (que en desktop vive
+// aparte, como botón propio) unificados en un solo arreglo — el menú
+// mobile/tablet los muestra a los 3 en una sola fila, en este orden fijo
+// de izquierda a derecha. Mismos íconos que ya usa el aside de escritorio
+// (Users/MessageCircle/LogIn), no se inventó ninguno nuevo.
+const mobileMenuItems = [
+  { label: "Sobre nosotros", href: "/sobre-nosotros", icon: Users },
+  { label: "Contáctanos", href: "/contacto", icon: MessageCircle },
+  { label: "Iniciar sesión", href: "/login", icon: LogIn },
+];
+
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
-      {/* DESKTOP */}
+      {/* DESKTOP — mismo corte lg (1024px) que useViewportTier() en
+          core/hooks/useQuality.ts, que es quien decide si se monta el
+          robot 3D o la intro cinemática. Deben moverse juntos. */}
 
-      <aside className="hidden md:flex fixed left-0 top-0 h-screen w-[260px] z-50 flex-col px-10 py-10">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-[260px] z-50 flex-col px-10 py-10">
 
         {/* Logo */}
         <Link href="/" className="block">
@@ -82,66 +95,118 @@ export const Navbar = () => {
 
       </aside>
 
-      {/* MOBILE */}
+      {/* MOBILE + TABLET (comparten el mismo navbar por debajo de lg) */}
 
-      <nav className="md:hidden fixed top-0 left-0 right-0 z-50">
+      <nav className="lg:hidden fixed top-0 left-0 right-0 z-50">
 
-        <div className="flex justify-between items-center px-6 py-5">
+        {/* Grid de 3 columnas (1fr auto 1fr) en vez de justify-between:
+            así el logo queda REALMENTE centrado en la barra (columna del
+            medio), y el botón hamburguesa cae en la columna derecha con
+            justify-self-end — al ser del mismo ancho (1fr) que la columna
+            izquierda (vacía, solo de balance), termina en el mismo pixel
+            donde ya estaba con justify-between (pegado al borde derecho).
+            El botón se queda EXACTO donde está — solo cambió a dónde abre
+            el panel (ver bottom sheet más abajo), no su propia posición. */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center px-6 py-5">
 
-          <Link href="/">
-            <span className="aventhra-logo text-white tracking-[0.18em] text-lg">
-              AVENTHRA
-            </span>
-          </Link>
+          <div aria-hidden />
 
-          <button onClick={() => setIsOpen(!isOpen)}>
-            {isOpen ? (
-              <X className="text-white" size={22} />
-            ) : (
-              <Menu className="text-white" size={22} />
-            )}
+          {/* El wordmark "AVENTHRA" de esta barra YA NO es texto CSS — es
+              el modelo 3D real (aventhra-wordmark-cables.glb) que vive en
+              MobileSceneContainer.tsx, montado como fondo persistente en
+              Experience.tsx y encuadrado para asentarse cerca de este
+              mismo lugar en pantalla (EXPERIENCE_CONFIG.mobileWordmark.
+              restPosition). Acá solo queda un tap-target invisible del
+              mismo tamaño aproximado, para no perder el "tocar el logo
+              para ir al inicio" ni la accesibilidad (el modelo 3D no es
+              un <a>, no se puede tabular/leer con lector de pantalla). */}
+          <Link
+            href="/"
+            aria-label="AVENTHRA — inicio"
+            className="justify-self-center block h-9 w-28"
+          />
+
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="justify-self-end"
+            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+          >
+            {/* Siempre el ícono de hamburguesa, abierto o cerrado — pedido
+                explícito del usuario (antes cambiaba a X al abrir). */}
+            <Menu className="text-white" size={22} />
           </button>
 
         </div>
 
-        <motion.div
-          initial={false}
-          animate={{
-            height: isOpen ? "auto" : 0,
-            opacity: isOpen ? 1 : 0,
-          }}
-          transition={{
-            duration: .4,
-          }}
-          className="overflow-hidden bg-[#08090D]/90 backdrop-blur-xl"
-        >
-
-          <div className="flex flex-col gap-6 px-6 py-6">
-
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className="text-white/70"
-              >
-                {item.label}
-              </Link>
-            ))}
-
-            <Link
-              href="/login"
-              onClick={() => setIsOpen(false)}
-              className="inline-flex w-fit rounded-full border border-white/15 px-5 py-2 text-white/80"
-            >
-              Iniciar sesión
-            </Link>
-
-          </div>
-
-        </motion.div>
-
       </nav>
+
+      {/* Panel del menú — REHECHO tras feedback: descartado el bottom
+          sheet que crecía verticalmente (y:"100%"→0, con backdrop) —
+          ese movimiento de "todo el panel deslizándose" no gustó. En su
+          lugar: una fila horizontal fija abajo (como una tab bar), con
+          los 3 items en orden fijo izquierda→derecha (Sobre nosotros |
+          Contáctanos | Iniciar sesión), ícono arriba + texto chico abajo
+          en vez de texto grande. Sin backdrop de pantalla completa: al
+          ser una barra angosta y no una hoja que tapa contenido, no hace
+          falta oscurecer todo detrás (se cierra con el mismo botón —
+          siempre ícono de hamburguesa, no cambia a X — o tocando un link).
+          Entrada: la barra en sí solo hace fundido (sin desplazamiento
+          vertical, para no repetir justo lo que no gustó) — el
+          movimiento real vive en cada item por separado, apareciendo en
+          su lugar (fade + scale) en cascada izquierda→derecha
+          (staggerChildren), mismo lenguaje que ya se usaba. */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="menu-bar"
+            // Sin fondo propio a propósito — el usuario lo pidió transparente
+            // para que se vea el fondo de estrellas persistente (Deep-
+            // SpaceStars, vía MobileSceneContainer/MobileWordmarkScene)
+            // por debajo, no solo en los huecos entre items. Tampoco borde
+            // superior (se pidió quitar esa línea también).
+            className="lg:hidden fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+
+            <motion.div
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+              }}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+            >
+
+              {mobileMenuItems.map((item) => {
+                const Icon = item.icon;
+
+                return (
+                  <motion.div
+                    key={item.label}
+                    variants={{ hidden: { opacity: 0, scale: 0.6 }, visible: { opacity: 1, scale: 1 } }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="flex justify-center"
+                  >
+                    <Link
+                      href={item.href}
+                      className="flex flex-col items-center gap-1.5 px-4 py-1 text-white/70 transition-colors hover:text-white"
+                    >
+                      <Icon size={20} strokeWidth={1.5} />
+                      <span className="text-[11px] font-light tracking-wide">{item.label}</span>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+
+            </motion.div>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <style jsx global>{`
         .aventhra-logo {

@@ -23,3 +23,11 @@ export const clamp = (val: number, min: number, max: number) => {
  * @param t Progreso lineal (0 a 1).
  */
 export const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+
+/**
+ * Ease-in cúbico: arranca lento y ACELERA hasta 1 — lo opuesto de
+ * easeOutCubic. Sirve para movimientos que "se lanzan" (ganan velocidad
+ * hacia el final) en vez de frenar al llegar.
+ * @param t Progreso lineal (0 a 1).
+ */
+export const easeInCubic = (t: number) => t * t * t;

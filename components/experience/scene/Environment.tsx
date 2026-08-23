@@ -5,57 +5,18 @@ import { useThree, useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useQuality } from '../providers/QualityProvider';
+import { DeepSpaceStars } from './entities/shared/DeepSpaceStars';
 
 // ============================================
 // 1. FONDO DE ESTRELLAS (Sutiles, con deriva lenta)
 // ============================================
-// Fija, NO depende del nivel de calidad automático — antes se veía bien
-// mientras el robot bajaba y casi desaparecía al flotar, porque el ajuste
-// de FPS (QualityProvider) bajaba de nivel justo cuando arrancaba la
-// animación del rig y con eso caía la cantidad de estrellas. El fondo no
-// debería depender de eso.
-const STAR_COUNT = 20000;
-
-function DeepSpaceStars() {
-  const pointsRef = useRef<THREE.Points>(null);
-  const starCount = STAR_COUNT;
-
-  const geometry = useMemo(() => {
-    const positions = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount; i++) {
-      const r = 30 + Math.random() * 40;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos((Math.random() * 2) - 1);
-      positions[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
-      positions[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * r;
-      positions[i * 3 + 2] = Math.cos(phi) * r;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    return geo;
-  }, [starCount]);
-
-  const material = useMemo(
-    () =>
-      new THREE.PointsMaterial({
-        color: '#a0b4ff',
-        size: 0.15,
-        transparent: true,
-        opacity: 0.6,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-      }),
-    []
-  );
-
-  useFrame(() => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += 0.0001;
-    }
-  });
-
-  return <points ref={pointsRef} geometry={geometry} material={material} />;
-}
+// Extraído a entities/shared/DeepSpaceStars.tsx — MobileWordmarkScene.tsx
+// (la escena 3D mobile/tablet) lo reutiliza tal cual con más densidad, en
+// vez de duplicar esta generación de estrellas. Acá NO depende del nivel
+// de calidad automático — antes se veía bien mientras el robot bajaba y
+// casi desaparecía al flotar, porque el ajuste de FPS (QualityProvider)
+// bajaba de nivel justo cuando arrancaba la animación del rig y con eso
+// caía la cantidad de estrellas. El fondo no debería depender de eso.
 
 // ============================================
 // 2. LUZ AMBIENTAL CINEMATOGRÁFICA (Mi toque personal)

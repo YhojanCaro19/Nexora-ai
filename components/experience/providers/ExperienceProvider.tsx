@@ -1,16 +1,33 @@
 // components/experience/providers/ExperienceProvider.tsx
 'use client';
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { useExperienceDirector } from '@/core/director/ExperienceDirector';
-import { ExperienceState } from '@/types/experience.type';
+import { ExperiencePhase, ExperienceState, MobileIntroPhase } from '@/types/experience.type';
 
 type ExperienceContextValue = {
-  state: ExperienceState;
+  state: ExperienceState & {
+    // 🎬 Estado de la escena 3D mobile/tablet (MobileWordmarkScene.tsx),
+    // expuesto acá (en vez de quedar como useState local, como estaba
+    // antes) para que Experience.tsx pueda leerlo DESDE AFUERA del
+    // <Canvas> y decidir cuándo revelar <main>/<Navbar/> — no hace falta
+    // un context nuevo: ExperienceProvider ya envuelve exactamente el
+    // árbol que lo necesita (MobileSceneContainer + main + Navbar, ver
+    // Experience.tsx), y react-three-fiber reenvía el context a través
+    // del límite del Canvas (mismo mecanismo que ya usa QualityProvider
+    // ahí adentro). Se mantiene como una clave aparte de `phase`/`progress`
+    // de arriba a propósito: son dos FSM independientes (esa es la del
+    // robot/reveal de desktop, con su propia duración fija de 1.8s vía
+    // ExperienceDirector) — mezclarlas en un solo enum hubiera forzado
+    // semánticas que no corresponden entre sí.
+    mobileIntro: { phase: MobileIntroPhase };
+  };
   actions: {
-    setPhase: (phase: any) => void;
+    setPhase: (phase: ExperiencePhase) => void;
     setProgress: (progress: number) => void;
     onModelLoaded: () => void;
+    setMobileIntroPhase: (phase: MobileIntroPhase) => void;
   };
 };
 
@@ -31,8 +48,22 @@ interface ExperienceProviderProps {
 export const ExperienceProvider = ({ children }: ExperienceProviderProps) => {
   const { state, actions } = useExperienceDirector();
 
+  // Bajo reduced motion arranca directo en 'settled' — mismo criterio que
+  // ya usaba el useState local que reemplaza esto (y que MobileIntro.tsx,
+  // ya descartado, hacía del lado CSS): nunca se monta el pop de aparición
+  // ni la subida del wordmark.
+  const prefersReducedMotion = useReducedMotion();
+  const [mobileIntroPhase, setMobileIntroPhase] = useState<MobileIntroPhase>(() =>
+    prefersReducedMotion ? 'settled' : 'appear'
+  );
+
   return (
-    <ExperienceContext.Provider value={{ state, actions }}>
+    <ExperienceContext.Provider
+      value={{
+        state: { ...state, mobileIntro: { phase: mobileIntroPhase } },
+        actions: { ...actions, setMobileIntroPhase },
+      }}
+    >
       {children}
     </ExperienceContext.Provider>
   );

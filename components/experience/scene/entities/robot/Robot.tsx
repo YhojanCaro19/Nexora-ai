@@ -9,15 +9,13 @@ import {
   Box3,
   Vector3,
   Quaternion,
-  Mesh,
-  MeshStandardMaterial,
-  Color,
   Bone,
   LoopPingPong,
 } from 'three';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
 import { easeOutCubic } from '@/lib/math';
+import { applyBodyMaterial } from '@/components/experience/scene/entities/shared/applyBodyMaterial';
 
 // Huesos que se posan durante el descenso y se "abren" a su posición normal
 // en sincronía con la soltada de cables. Solo cabeza/cuello — el bind pose
@@ -72,15 +70,13 @@ export const Robot = forwardRef<Group, RobotProps>(({ arrived, releaseProgressRe
 
   useEffect(() => {
     if (scene) {
-      scene.traverse((child) => {
-        if (child instanceof Mesh && child.material instanceof MeshStandardMaterial) {
-          child.material.color = new Color(EXPERIENCE_CONFIG.robot.bodyColor);
-          child.material.metalness = EXPERIENCE_CONFIG.robot.bodyMetalness;
-          child.material.roughness = EXPERIENCE_CONFIG.robot.bodyRoughness;
-          // Sin emissive: el material queda exactamente como estaba. El
-          // detalle cyan va solo por iluminación (rim light + halo en
-          // Lighting.tsx), no aclarando el propio material del cuerpo.
-        }
+      // Sin emissive: el material queda exactamente como estaba. El
+      // detalle cyan va solo por iluminación (rim light + halo en
+      // Lighting.tsx), no aclarando el propio material del cuerpo.
+      applyBodyMaterial(scene, {
+        color: EXPERIENCE_CONFIG.robot.bodyColor,
+        metalness: EXPERIENCE_CONFIG.robot.bodyMetalness,
+        roughness: EXPERIENCE_CONFIG.robot.bodyRoughness,
       });
 
       poseBonesRef.current = POSE_BONES.map(({ name, axis, angle }) => {

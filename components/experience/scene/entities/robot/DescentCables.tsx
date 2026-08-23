@@ -6,6 +6,7 @@ import { useFrame } from '@react-three/fiber';
 import { Mesh, MeshStandardMaterial, Vector3, Color } from 'three';
 import { createSparkOverlayMaterial } from '@/components/experience/scene/cables/CablePulseShader';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
+import { useQuality } from '@/components/experience/providers/QualityProvider';
 
 // Puntos de anclaje en el robot (offsets locales, ya en tamaño final
 // renderizado — hombros, nuca y espalda media), medidos a ojo sobre el
@@ -42,6 +43,16 @@ export const DescentCables = ({
   currentYRef,
   releaseProgressRef,
 }: DescentCablesProps) => {
+  // En niveles bajos (Low) no se monta el material de destellos shader por
+  // cable — se ve el cable base igual, solo sin el "chispeo" animado. Esto
+  // es puramente de arranque (config.cableShaders no cambia en vivo salvo
+  // que el ajuste por FPS baje el nivel mientras el robot sigue bajando,
+  // caso ya cubierto: cablesMounted desmonta este componente entero poco
+  // después de "arrived", así que no hay parpadeo de material a mitad de
+  // una spark ya visible).
+  const { config } = useQuality();
+  const cableShadersEnabled = config.cableShaders;
+
   const baseMeshRefs = useRef<(Mesh | null)[]>([]);
   const sparkMeshRefs = useRef<(Mesh | null)[]>([]);
 
@@ -63,7 +74,12 @@ export const DescentCables = ({
   );
 
   // Capa 2: destellos — encima del cable, invisible salvo cuando "chispea".
-  const sparkMaterials = useMemo(() => ANCHOR_OFFSETS.map(() => createSparkOverlayMaterial('#eaffff')), []);
+  // Se omite por completo en niveles con cableShaders=false (Medium/Low):
+  // ni se crea el ShaderMaterial ni se monta el mesh que lo usa.
+  const sparkMaterials = useMemo(
+    () => (cableShadersEnabled ? ANCHOR_OFFSETS.map(() => createSparkOverlayMaterial('#eaffff')) : []),
+    [cableShadersEnabled]
+  );
 
   // Puntos superiores: fijos en el mundo, por encima del punto de partida.
   const topPoints = useMemo(
@@ -88,10 +104,14 @@ export const DescentCables = ({
 
     ANCHOR_OFFSETS.forEach((offset, i) => {
       const baseMesh = baseMeshRefs.current[i];
-      const sparkMesh = sparkMeshRefs.current[i];
       const baseMaterial = baseMaterials[i];
+      if (!baseMesh || !baseMaterial) return;
+
+      // Capa de destellos: solo existe (ref, material) cuando
+      // cableShadersEnabled — en Low/Medium estos son undefined/null y el
+      // cable base sigue actualizándose igual, solo sin "chispeo".
+      const sparkMesh = sparkMeshRefs.current[i];
       const sparkMaterial = sparkMaterials[i];
-      if (!baseMesh || !sparkMesh || !baseMaterial || !sparkMaterial) return;
 
       // Rotación en eje Y no toca la componente Y, así que rotated.y === offset.y.
       const rotated = offset.clone().applyAxisAngle(Y_AXIS, rotationY);
@@ -108,15 +128,18 @@ export const DescentCables = ({
 
       // El cilindro crece por defecto a lo largo de su eje Y local, por eso
       // orientamos contra Y_AXIS (no X) y escalamos en Y (no en X).
-      [baseMesh, sparkMesh].forEach((mesh) => {
+      const meshesToUpdate = sparkMesh ? [baseMesh, sparkMesh] : [baseMesh];
+      meshesToUpdate.forEach((mesh) => {
         mesh.position.copy(mid);
         mesh.quaternion.setFromUnitVectors(Y_AXIS, direction);
         mesh.scale.set(1, Math.max(length, 0.0001), 1);
       });
 
       baseMaterial.opacity = 1 - release;
-      sparkMaterial.uniforms.uTime.value = state.clock.getElapsedTime();
-      sparkMaterial.uniforms.uFade.value = 1 - release;
+      if (sparkMaterial) {
+        sparkMaterial.uniforms.uTime.value = state.clock.getElapsedTime();
+        sparkMaterial.uniforms.uFade.value = 1 - release;
+      }
     });
   });
 
@@ -132,14 +155,16 @@ export const DescentCables = ({
           >
             <cylinderGeometry args={[0.01, 0.01, 1, 8]} />
           </mesh>
-          <mesh
-            ref={(el) => {
-              sparkMeshRefs.current[i] = el;
-            }}
-            material={sparkMaterials[i]}
-          >
-            <cylinderGeometry args={[0.013, 0.013, 1, 8]} />
-          </mesh>
+          {cableShadersEnabled && (
+            <mesh
+              ref={(el) => {
+                sparkMeshRefs.current[i] = el;
+              }}
+              material={sparkMaterials[i]}
+            >
+              <cylinderGeometry args={[0.013, 0.013, 1, 8]} />
+            </mesh>
+          )}
         </group>
       ))}
     </>

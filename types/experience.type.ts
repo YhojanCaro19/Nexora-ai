@@ -15,6 +15,18 @@ export interface ExperienceState {
   isInteractive: boolean;
 }
 
-export type ExperienceAction = 
+export type ExperienceAction =
   | { type: 'SET_PHASE'; payload: ExperiencePhase }
   | { type: 'SET_PROGRESS'; payload: number };
+
+// Fases de la escena 3D mobile/tablet (MobileWordmarkScene.tsx) — un FSM
+// aparte del de arriba (ExperiencePhase es específico del robot/reveal de
+// desktop, con su propia duración fija de 1.8s vía ExperienceDirector).
+// 'appear': el wordmark completo aparece de golpe (pop de escala) centrado
+// en pantalla, ya con chispas. 'rise': sube desde ahí a su lugar final.
+// 'settled': fase final e indefinida — todo quieto salvo la flotación
+// senoidal (igual que el robot) y chispas ocasionales. Vive en
+// ExperienceProvider (mobileIntro.phase) en vez de un useState local
+// dentro de MobileWordmarkScene para que Experience.tsx pueda leerla desde
+// afuera del <Canvas> y decidir cuándo revelar <main>/<Navbar/>.
+export type MobileIntroPhase = 'appear' | 'rise' | 'settled';

@@ -1,15 +1,36 @@
 // components/experience/providers/QualityProvider.tsx
 'use client';
 
-import React, { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
 
 type QualityLevel = 'Ultra' | 'High' | 'Medium' | 'Low';
+
+// Fijo en 'Ultra' siempre, sin auto-ajuste por FPS ni por tier de
+// viewport — pedido explícito del usuario ("no bajes la calidad, dejalo
+// siempre en ultra") tras varias rondas persiguiendo un bug de color/
+// brillo en el wordmark mobile que resultó venir de acá, no de sus luces:
+// el nivel arrancaba distinto según el tier (mobile→'Low', con
+// bloomEnabled=false) y encima el auto-ajuste de FPS lo cambiaba en vivo
+// (pensado para el robot de desktop, pero cualquier cambio a mitad de la
+// intro del wordmark se leía como un salto real de brillo/color — el
+// mismo look "Ultra" que al usuario le gustó del primer frame).
+//
+// Se quita el sistema de niveles dinámico por completo: mismo `config`
+// (bloom, dpr, cableShaders, shadows) para TODA la app, TODO el tiempo,
+// sin excepción — decisión consciente del usuario, no un descuido. Si
+// algún dispositivo real de gama baja sufre de rendimiento por esto, es
+// el trade-off que pidió explícitamente; ya no hay ningún mecanismo que
+// lo compense solo.
+const level: QualityLevel = 'Ultra';
+const config = EXPERIENCE_CONFIG.performance.qualityLevels[level];
 
 type QualityContextValue = {
   level: QualityLevel;
   config: typeof EXPERIENCE_CONFIG.performance.qualityLevels[QualityLevel];
 };
+
+const QUALITY_CONTEXT_VALUE: QualityContextValue = { level, config };
 
 const QualityContext = createContext<QualityContextValue | undefined>(undefined);
 
@@ -26,61 +47,8 @@ interface QualityProviderProps {
 }
 
 export const QualityProvider = ({ children }: QualityProviderProps) => {
-  const [level, setLevel] = useState<QualityLevel>('Ultra');
-  const frameCountRef = useRef(0);
-  const lastTimeRef = useRef(performance.now());
-  
-  // CORRECCIÓN AQUÍ: Agregamos null como valor inicial.
-  // Esto arregla el error "Expected 1 arguments, but got 0."
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const checkFPS = () => {
-      const now = performance.now();
-      frameCountRef.current += 1;
-
-      // Revisamos cada 1 segundo (1000ms)
-      if (now - lastTimeRef.current >= 1000) {
-        const fps = frameCountRef.current;
-        
-        // Reiniciamos los contadores para el siguiente segundo
-        frameCountRef.current = 0;
-        lastTimeRef.current = now;
-
-        const threshold = EXPERIENCE_CONFIG.performance.fpsThreshold;
-        const levels: QualityLevel[] = ['Ultra', 'High', 'Medium', 'Low'];
-        const currentIndex = levels.indexOf(level);
-
-        // Si los FPS caen por debajo del umbral, bajamos la calidad
-        if (fps < threshold && currentIndex < levels.length - 1) {
-          setLevel(levels[currentIndex + 1]);
-        } 
-        // Si los FPS suben con creces, subimos la calidad (para ser amables con el hardware bueno)
-        else if (fps > threshold * 1.5 && currentIndex > 0) {
-          setLevel(levels[currentIndex - 1]);
-        }
-      }
-      
-      // Programamos la siguiente comprobación en 200ms
-      timeoutRef.current = setTimeout(checkFPS, 200);
-    };
-
-    // Iniciamos el ciclo de chequeo
-    timeoutRef.current = setTimeout(checkFPS, 200);
-
-    return () => {
-      // Limpiamos el timeout al desmontar el componente
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [level]);
-
-  const config = EXPERIENCE_CONFIG.performance.qualityLevels[level];
-
   return (
-    <QualityContext.Provider value={{ level, config }}>
+    <QualityContext.Provider value={QUALITY_CONTEXT_VALUE}>
       {children}
     </QualityContext.Provider>
   );

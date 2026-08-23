@@ -174,3 +174,42 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nexora-accordion-panel { transition: none; }
 }
+
+/* Chispas tipo shader — aproximación 2D/CSS del mismo lenguaje visual que
+   components/experience/scene/cables/CablePulseShader.tsx (destellos
+   blanco-cian cortos, cada uno con su propia fase, sin sincronizar), para
+   usarse donde NO hay <Canvas> de R3F montado. Ver
+   components/experience/effects/SparkOverlay.tsx: cada .spark-dot recibe
+   su propia animation-duration/animation-delay por inline style (así no
+   están todas en fase), la keyframe de acá solo define la FORMA del
+   flash — breve, cerca del final de cada ciclo propio, no un parpadeo
+   continuo tipo neón. */
+@keyframes spark-flash {
+  0%, 92% { opacity: 0; transform: scale(0.5); }
+  95% { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 0; transform: scale(0.7); }
+}
+.spark-dot {
+  opacity: 0;
+  animation-name: spark-flash;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .spark-dot { animation: none; opacity: 0; }
+}
+
+/* Fade-in del contenido normal (<main>/<Navbar/>) tras la intro 3D mobile
+   (components/experience/Experience.tsx) — arranca en opacity 0 y se
+   revela recién cuando MobileWordmarkScene llega a fase 'settled' (ver
+   mobileIntro.phase en ExperienceProvider.tsx); Tailwind pone el valor
+   real (opacity-0/opacity-100), esta clase solo aporta la transición.
+   Bajo reduced motion la fase ya nace en 'settled' (nada que animar, el
+   contenido aparece de una), pero la transición igual se apaga acá por
+   las dudas — mismo criterio que el resto de animaciones del proyecto. */
+.nexora-intro-reveal {
+  transition: opacity 700ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexora-intro-reveal { transition: none; }
+}
