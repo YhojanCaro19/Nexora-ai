@@ -249,14 +249,24 @@ function OrderCard({
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const awaitingReview = order.status === "pending" && !!order.payment_proof_url;
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-4 text-center transition-all duration-300 hover:scale-105"
+      className="relative aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl border p-4 text-center transition-all duration-300 hover:scale-105"
       style={{ borderColor: hovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)' }}
     >
+      {awaitingReview && (
+        <span
+          className="absolute top-2 right-2 flex items-center justify-center rounded-full p-1"
+          style={{ background: 'color-mix(in oklch, var(--nexora-nova) 18%, transparent)' }}
+          title="Comprobante esperando revisión"
+        >
+          <Receipt size={11} strokeWidth={2} style={{ color: 'var(--nexora-nova)' }} />
+        </span>
+      )}
       <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
         Pedido
       </span>

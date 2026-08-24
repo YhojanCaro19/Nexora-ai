@@ -19,23 +19,56 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CustomerDetailView } from "./customer-detail-view";
+import { TagChip } from "./tag-chip";
 import { getCustomerDetailAction } from "./actions";
 import { channelLabel } from "./channel-labels";
 import type { Customer, CustomerDetail } from "@/lib/services/customerService";
+import type { Tag } from "@/lib/services/tagService";
 import { formatShortDate } from "@/lib/utils/date";
+
+// Cuántos chips de etiqueta se muestran por fila antes de resumir el
+// resto en un "+N" — es solo un vistazo rápido acá, el detalle completo
+// (y la edición de etiquetas) vive a un toque de distancia.
+const MAX_TAGS_PREVIEW = 2;
+
+function CustomerTagsPreview({ tags }: { tags: Tag[] }) {
+  if (tags.length === 0) {
+    return <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>—</span>;
+  }
+  const shown = tags.slice(0, MAX_TAGS_PREVIEW);
+  const rest = tags.length - shown.length;
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {shown.map((tag) => (
+        <TagChip key={tag.id} tag={tag} />
+      ))}
+      {rest > 0 && (
+        <span className="text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+          +{rest}
+        </span>
+      )}
+    </div>
+  );
+}
 
 export function ClientesPanel({
   customers,
   countryIso2,
+  tagsByCustomer,
 }: {
   customers: Customer[];
   countryIso2: string | null;
+  // Llega como pares [customerId, Tag[]] desde page.tsx (un Map no
+  // serializa limpio de Server a Client Component) — se reconstruye acá.
+  tagsByCustomer: Array<[string, Tag[]]>;
 }) {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const tagsMap = useMemo(() => new Map(tagsByCustomer), [tagsByCustomer]);
 
   const filteredCustomers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -132,46 +165,100 @@ export function ClientesPanel({
             />
           </div>
         )}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Canal</TableHead>
-              <TableHead>Registrado</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredCustomers.map((c) => (
-              <TableRow key={c.id} onClick={() => openCustomer(c)} className="cursor-pointer">
-                <TableCell className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
-                  {c.name ?? "Sin nombre"}
-                </TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.phone}</TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{channelLabel(c.channel)}</TableCell>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatShortDate(c.created_at)}</TableCell>
-                <TableCell>
-                  <ChevronRight size={16} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
-                </TableCell>
-              </TableRow>
-            ))}
-            {customers.length === 0 && (
+        {/* >= md: tabla completa, sin cambios. */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  No hay clientes todavía.
-                </TableCell>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Canal</TableHead>
+                <TableHead>Etiquetas</TableHead>
+                <TableHead>Registrado</TableHead>
+                <TableHead></TableHead>
               </TableRow>
-            )}
-            {customers.length > 0 && filteredCustomers.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  Ningún cliente coincide con &quot;{query}&quot;.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredCustomers.map((c) => (
+                <TableRow key={c.id} onClick={() => openCustomer(c)} className="cursor-pointer">
+                  <TableCell className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
+                    {c.name ?? "Sin nombre"}
+                  </TableCell>
+                  <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{c.phone}</TableCell>
+                  <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{channelLabel(c.channel)}</TableCell>
+                  <TableCell>
+                    <CustomerTagsPreview tags={tagsMap.get(c.id) ?? []} />
+                  </TableCell>
+                  <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>{formatShortDate(c.created_at)}</TableCell>
+                  <TableCell>
+                    <ChevronRight size={16} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
+                  </TableCell>
+                </TableRow>
+              ))}
+              {customers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                    No hay clientes todavía.
+                  </TableCell>
+                </TableRow>
+              )}
+              {customers.length > 0 && filteredCustomers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                    Ningún cliente coincide con &quot;{query}&quot;.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* < md: mismas filas, como tarjetas apiladas — mismo onClick que
+            abre el detalle (openCustomer), sin duplicar esa lógica. Solo lo
+            esencial en la tarjeta (nombre, teléfono, canal + fecha); el
+            resto ya vive en el detalle a un toque de distancia. */}
+        <div className="flex flex-col gap-3 md:hidden">
+          {filteredCustomers.map((c) => (
+            <Card
+              key={c.id}
+              onClick={() => openCustomer(c)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") openCustomer(c);
+              }}
+              className="cursor-pointer transition-colors hover:bg-white/[0.04]"
+            >
+              <CardContent className="flex items-center justify-between gap-3">
+                <div className="min-w-0 flex flex-col gap-1.5">
+                  <span className="font-medium truncate" style={{ color: 'var(--nexora-ink)' }}>
+                    {c.name ?? "Sin nombre"}
+                  </span>
+                  <span className="text-xs truncate" style={{ color: 'var(--nexora-ink-dim)' }}>
+                    {c.phone} · {channelLabel(c.channel)} · {formatShortDate(c.created_at)}
+                  </span>
+                  <CustomerTagsPreview tags={tagsMap.get(c.id) ?? []} />
+                </div>
+                <ChevronRight
+                  size={16}
+                  strokeWidth={1.75}
+                  className="shrink-0"
+                  style={{ color: 'var(--nexora-ink-dim)' }}
+                />
+              </CardContent>
+            </Card>
+          ))}
+          {customers.length === 0 && (
+            <p className="text-center text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+              No hay clientes todavía.
+            </p>
+          )}
+          {customers.length > 0 && filteredCustomers.length === 0 && (
+            <p className="text-center text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Ningún cliente coincide con &quot;{query}&quot;.
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -9,8 +9,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getOrdersByCustomer } from "@/lib/services/orderService";
 import { getConversationsForCustomer } from "@/lib/services/conversationService";
+import { getNotesForCustomer } from "@/lib/services/customerNoteService";
+import { getTagsForCustomer } from "@/lib/services/tagService";
+import { getTasksForCustomer } from "@/lib/services/customerTaskService";
 import type { Order } from "@/lib/types/order";
 import type { Conversation } from "@/lib/services/conversationService";
+import type { CustomerNote } from "@/lib/services/customerNoteService";
+import type { Tag } from "@/lib/services/tagService";
+import type { CustomerTask } from "@/lib/services/customerTaskService";
 
 export interface Customer {
   id: string;
@@ -88,20 +94,26 @@ export interface CustomerDetail {
   customer: Customer | null;
   orders: Order[];
   conversations: Conversation[];
+  notes: CustomerNote[];
+  tags: Tag[];
+  tasks: CustomerTask[];
 }
 
 // Vista de detalle combinada para la pantalla de un cliente en el CRM —
-// una sola llamada en vez de que la página arme 3 fetches propios (mismo
+// una sola llamada en vez de que la página arme 6 fetches propios (mismo
 // criterio que getAdminDashboardStats() en dashboardService.ts). El id de
 // cliente SIEMPRE se acota a businessId acá, nunca se confía en que el id
 // que llega desde la ruta pertenezca de verdad a este negocio.
 export async function getCustomerDetail(businessId: string, customerId: string): Promise<CustomerDetail> {
   const supabase = await createClient();
 
-  const [{ data: customer, error: customerError }, orders, conversations] = await Promise.all([
+  const [{ data: customer, error: customerError }, orders, conversations, notes, tags, tasks] = await Promise.all([
     supabase.from("customers").select("*").eq("id", customerId).eq("business_id", businessId).maybeSingle(),
     getOrdersByCustomer(businessId, customerId),
     getConversationsForCustomer(businessId, customerId),
+    getNotesForCustomer(businessId, customerId),
+    getTagsForCustomer(businessId, customerId),
+    getTasksForCustomer(businessId, customerId),
   ]);
 
   if (customerError) {
@@ -112,5 +124,8 @@ export async function getCustomerDetail(businessId: string, customerId: string):
     customer: (customer as Customer | null) ?? null,
     orders,
     conversations,
+    notes,
+    tags,
+    tasks,
   };
 }
