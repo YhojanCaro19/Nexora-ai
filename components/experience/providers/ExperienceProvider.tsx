@@ -51,10 +51,15 @@ export const ExperienceProvider = ({ children }: ExperienceProviderProps) => {
   // Bajo reduced motion arranca directo en 'settled' — mismo criterio que
   // ya usaba el useState local que reemplaza esto (y que MobileIntro.tsx,
   // ya descartado, hacía del lado CSS): nunca se monta el pop de aparición
-  // ni la subida del wordmark.
+  // ni la subida del wordmark, ni tampoco la intro 2D previa (MobileText-
+  // Intro en Experience.tsx) — bajo reduced motion no hay intro de ningún
+  // tipo, aparece asentado de una. Sin reduced motion arranca en 'pending'
+  // (no 'appear' directo): MobileTextIntro corre su propia secuencia 2D
+  // primero y recién al terminar llama a setMobileIntroPhase('appear') —
+  // ver el comentario en MobileIntroPhase (types/experience.type.ts).
   const prefersReducedMotion = useReducedMotion();
   const [mobileIntroPhase, setMobileIntroPhase] = useState<MobileIntroPhase>(() =>
-    prefersReducedMotion ? 'settled' : 'appear'
+    prefersReducedMotion ? 'settled' : 'pending'
   );
 
   return (

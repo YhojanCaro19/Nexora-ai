@@ -22,6 +22,11 @@ export type ExperienceAction =
 // Fases de la escena 3D mobile/tablet (MobileWordmarkScene.tsx) — un FSM
 // aparte del de arriba (ExperiencePhase es específico del robot/reveal de
 // desktop, con su propia duración fija de 1.8s vía ExperienceDirector).
+// 'pending': el wordmark 3D todavía NO arrancó — mientras tanto corre una
+// intro 2D previa, toda en HTML (MobileTextIntro en Experience.tsx: el
+// texto "AVENTHRA" aparece/desvanece, luego "Tu empleado virtual" aparece/
+// desvanece), heredando el mismo look que el logo de desktop. El wordmark
+// 3D queda oculto (scale 0) durante esta fase — ver MobileWordmarkScene.tsx.
 // 'appear': el wordmark completo aparece de golpe (pop de escala) centrado
 // en pantalla, ya con chispas. 'rise': sube desde ahí a su lugar final.
 // 'settled': fase final e indefinida — todo quieto salvo la flotación
@@ -29,4 +34,4 @@ export type ExperienceAction =
 // ExperienceProvider (mobileIntro.phase) en vez de un useState local
 // dentro de MobileWordmarkScene para que Experience.tsx pueda leerla desde
 // afuera del <Canvas> y decidir cuándo revelar <main>/<Navbar/>.
-export type MobileIntroPhase = 'appear' | 'rise' | 'settled';
+export type MobileIntroPhase = 'pending' | 'appear' | 'rise' | 'settled';

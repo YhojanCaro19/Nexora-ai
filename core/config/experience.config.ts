@@ -146,11 +146,18 @@ export const EXPERIENCE_CONFIG = {
       popDuration: 0.28,
       // Tiempo extra quieto en el centro, después del pop, antes de
       // arrancar a subir — para que el usuario alcance a registrar que
-      // apareció ahí, no que "nace ya subiendo".
-      holdDuration: 0.45,
+      // apareció ahí, no que "nace ya subiendo". Ahora es cuando se
+      // muestra "Tu empleado virtual" debajo (ver MobileIntroCaption en
+      // Experience.tsx) — se probó con vibración acá ("como que vibre")
+      // pero combinado con ese texto "no convence", revertido a quieto.
+      // Recorrido: 0.45 → 1.1 ("haz que dure más el aventhra ahí quieto")
+      // → 1.6 ("haz que la intro dure un poco más").
+      holdDuration: 1.6,
     },
-    // Cuánto tarda el wordmark en subir desde el centro hasta restPosition.
-    riseDuration: 0.9,
+    // Cuánto tarda el wordmark en subir desde el centro hasta restPosition
+    // — "se mueva demasiado rápido para arriba" (antes 0.9s, un ascenso
+    // visible; ahora casi un salto instantáneo).
+    riseDuration: 0.18,
     // El fondo de estrellas de esta escena YA NO tiene su propio
     // count/radio acá — hereda tal cual los radios de DeepSpaceStars que
     // usa desktop (30–70, ver Environment.tsx) con +15% de densidad; ver

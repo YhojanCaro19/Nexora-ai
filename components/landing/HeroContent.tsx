@@ -24,7 +24,11 @@ export const HeroContent = () => {
           </span>
         </h1>
 
-        <p className="mt-5 max-w-md text-white/40 text-sm md:text-base font-light leading-relaxed">
+        {/* text-white/70 solo en mobile (md: vuelve a /40) — pedido
+            explícito: "es un poco complejo leerla" en la versión mobile,
+            el 40% de opacidad original quedaba muy tenue en pantallas
+            chicas. Desktop no se tocó, ahí no hubo queja. */}
+        <p className="mt-5 max-w-md text-white/70 md:text-white/40 text-sm md:text-base font-light leading-relaxed">
           AVENTHRA es el empleado inteligente que atiende a tus clientes, impulsa tus ventas y automatiza tu negocio, las 24 horas del día. Tú decides las reglas; él se encarga del resto.
         </p>
 

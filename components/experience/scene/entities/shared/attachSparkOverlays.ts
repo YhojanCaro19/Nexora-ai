@@ -16,7 +16,7 @@
 // posiciones ni geometría, el GLB ya la tiene.
 'use client';
 
-import { Group, Mesh, ShaderMaterial } from 'three';
+import { Group, Mesh, ShaderMaterial, Vector3 } from 'three';
 import { createSparkOverlayMaterial } from '@/components/experience/scene/cables/CablePulseShader';
 
 // case-insensitive: cubre "*_chip", "*_chip_back", "*_light_ring_*",
@@ -53,9 +53,45 @@ export function attachSparkOverlays(root: Group, hotColor = '#eaffff'): SparkOve
 
     const overlay = child.clone();
     const material = createSparkOverlayMaterial(hotColor);
+    // uPulseSpeed/uIgniteThreshold YA NO se fijan acá — pasaron a ser
+    // dinámicos por fase (mucha intensidad en 'appear'/'rise', bajan en
+    // 'settled', ver WordmarkModel.tsx y las constantes SPARK_INTENSITY
+    // ahí). Este archivo solo crea el material con los defaults de
+    // createSparkOverlayMaterial (1.0 / 0.975, los del robot) — quien
+    // llama decide si los pisa.
     overlay.material = material;
     overlay.name = `${child.name}__spark`;
     overlay.userData.isSparkOverlay = true;
+    // El robot NO pasa por esta función (arma sus propios destellos a
+    // mano en DescentCables.tsx, con su propia geometría) — este scale
+    // solo afecta al wordmark, que sí llama a attachSparkOverlays(). Los
+    // nodos "*_chip" del GLB son piezas de detalle pensadas para un
+    // modelo a escala completa; en el wordmark, escalado a ~0.1 de su
+    // tamaño natural, el destello quedaba tan chico que era imperceptible.
+    //
+    // 🐛→✅ El primer intento (mesh.scale.multiplyScalar(N) sin más) se
+    // veía "horrible... no sale directamente del título, sale como
+    // alrededor" — feedback real correcto: three.js escala una malla
+    // alrededor de su ORIGEN LOCAL, no de su centro visual. Si el pivote
+    // de la pieza (definido por el artista en el GLB) no está exactamente
+    // en el centro de su geometría, agrandarla la corre hacia un lado en
+    // vez de crecer desde el mismo lugar — se "explota" lejos de la letra.
+    // Fix: calcular el centro real de la geometría (bounding box, en el
+    // espacio local de la malla) y compensar la posición para que el
+    // punto que se ve crecer sea ESE centro, no el origen del pivote.
+    const SPARK_SCALE = 8;
+    overlay.geometry.computeBoundingBox();
+    const localCenter = new Vector3();
+    overlay.geometry.boundingBox?.getCenter(localCenter);
+    // Cuánto se desplaza ese centro al escalar alrededor del origen local
+    // — en el espacio LOCAL de la malla (antes de su propia rotación).
+    const centerShiftLocal = localCenter.clone().multiplyScalar(SPARK_SCALE - 1);
+    // La `position` de la malla vive en el espacio de su padre, así que el
+    // desplazamiento hay que rotarlo con la orientación de la malla antes
+    // de restarlo (escala uniforme, así que rotación y escala conmutan).
+    centerShiftLocal.applyQuaternion(overlay.quaternion);
+    overlay.position.sub(centerShiftLocal);
+    overlay.scale.multiplyScalar(SPARK_SCALE);
 
     child.userData.hasSparkOverlay = true;
     child.parent?.add(overlay);

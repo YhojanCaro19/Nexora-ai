@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -47,20 +46,16 @@ export default async function ContactPage({
       className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
     >
       <FocusGlowCard className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
-        {/* Mismo mecanismo de card.tsx (data-[size=sm]) para achicar el
-            padding interno solo en mobile, sin tocar el primitivo — bajado
-            de spacing(3) a spacing(2) en mobile (pedido explícito: "haz la
-            card de contactanos más pequeña"), md+ sigue en spacing(4). */}
-        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(2)] md:[--card-spacing:--spacing(4)]">
+        {/* Mismo mecanismo de card.tsx (data-[size=sm]) para el padding
+            interno solo en mobile, sin tocar el primitivo. spacing(2) se
+            sentía "pegado" al borde → spacing(3) (spacing(3.5) se probó y
+            se revirtió, spacing(3) fue el que se quedó). md+ sigue en
+            spacing(4), sin cambios ahí. */}
+        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
             <CardTitle className="text-lg md:text-2xl font-normal text-white">
               Hablemos sobre tu negocio
             </CardTitle>
-
-            <CardDescription className="text-sm leading-snug md:leading-relaxed text-white/45">
-              Cuéntanos sobre tu negocio y te contactaremos para activar tu
-              cuenta en <span className="text-white">AVENTHRA</span>.
-            </CardDescription>
           </CardHeader>
 
           <CardContent>

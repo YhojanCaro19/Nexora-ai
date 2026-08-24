@@ -15,6 +15,12 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
       // Multiplicador de opacidad global (1 = normal, 0 = invisible).
       // Lo usan los cables de descenso para desvanecerse al soltarse.
       uFade: { value: 1.0 },
+      // Umbral de "qué tan seguido enciende" una celda (0.975 = solo ~2.5%
+      // de las veces, el valor que ya usaba el robot) — configurable para
+      // que attachSparkOverlays.ts pueda subirle la frecuencia SOLO al
+      // wordmark sin tocar este default ni el robot (DescentCables.tsx no
+      // lo toca, se queda en 0.975 de siempre).
+      uIgniteThreshold: { value: 0.975 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -28,6 +34,7 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
       uniform float uTime;
       uniform float uPulseSpeed;
       uniform float uFade;
+      uniform float uIgniteThreshold;
 
       varying vec2 vUv;
 
@@ -53,11 +60,13 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
         float seed = cellId + localStep * 131.0;
 
         float chance = hash(seed);
-        // Umbral alto: pocas celdas encendidas a la vez. Con la densidad
-        // anterior (12% de 160 celdas) casi siempre había alguna chispa en
-        // cada franja del cable, así que se veía como si TODO el cable
-        // cambiara de color a la vez en vez de chispazos sueltos.
-        float ignites = step(0.975, chance);
+        // Umbral configurable (uIgniteThreshold, default 0.975 = pocas
+        // celdas encendidas a la vez — con la densidad anterior, 12% de
+        // 160 celdas, casi siempre había alguna chispa en cada franja del
+        // cable, así que se veía como si TODO el cable cambiara de color a
+        // la vez en vez de chispazos sueltos). El wordmark lo baja para
+        // que se sientan mucho más seguidas (ver attachSparkOverlays.ts).
+        float ignites = step(uIgniteThreshold, chance);
 
         // Dentro del ciclo que le tocó a esta celda, el destello es un pulso
         // CORTO (sube y baja rápido) en vez de quedar prendido el ciclo

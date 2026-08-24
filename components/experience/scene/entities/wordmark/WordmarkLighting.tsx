@@ -59,8 +59,9 @@ import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
 // entre 'appear' (centro) y 'settled' (arriba), cámara fija. No se puede
 // eliminar del todo sin aplanar el material más de lo que al usuario le
 // gustó, así que se ataca por los dos lados: material menos sensible +
-// menos intensidad en las luces que más generan ese pico puntual.
-const WORDMARK_KEY_RIM_INTENSITY_SCALE = 0.45;
+// menos intensidad en las luces que más generan ese pico puntual. Otro
+// -5% sobre ese valor ("baja un 5% los brillos"): 0.45 → 0.4275.
+const WORDMARK_KEY_RIM_INTENSITY_SCALE = 0.4275;
 
 /** Ambient + 3 directional lights — world space, fijas, no dependen de
  * la fase/posición/escala del wordmark. Se monta como hermana del
@@ -97,12 +98,11 @@ export function WordmarkAmbientLighting() {
 // Color + intensity de los 2 pointLight de halo — únicas fuentes de
 // verdad para MobileWordmarkScene.tsx (que es quien las posiciona cuadro
 // a cuadro, ver el comentario de arriba). Mismo color que Lighting.tsx
-// (#4CC2E8/#A78BFA); intensity ya bajada dos veces sobre feedback real
+// (#4CC2E8/#A78BFA); intensity ya bajada varias veces sobre feedback real
 // ("todo teñido" → ~40-45% del original; "demasiado brillante" → otro
-// ~25% sobre eso) — si after el fix de posición de este archivo el
-// usuario TODAVÍA ve variación o exceso de brillo, el problema ya no es
-// un número de intensity, hay que revisar de nuevo el mecanismo.
+// ~25% sobre eso; "baja un 5% los brillos" → otro -5%: cyan 1.5→1.425,
+// violet 0.6→0.57).
 export const WORDMARK_HALO_LIGHTS = {
-  cyan: { color: '#4CC2E8', intensity: 1.5, distance: 1.4, offset: [0, 0.15, -0.5] as const },
-  violet: { color: '#A78BFA', intensity: 0.6, distance: 1, offset: [-0.35, 0, -0.4] as const },
+  cyan: { color: '#4CC2E8', intensity: 1.425, distance: 1.4, offset: [0, 0.15, -0.5] as const },
+  violet: { color: '#A78BFA', intensity: 0.57, distance: 1, offset: [-0.35, 0, -0.4] as const },
 };

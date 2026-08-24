@@ -37,11 +37,30 @@ import {
 import { applyBodyMaterial } from '@/components/experience/scene/entities/shared/applyBodyMaterial';
 import { EXPERIENCE_CONFIG } from '@/core/config/experience.config';
 
+// Dos niveles de intensidad de chispas — pedido explícito: "muchas
+// chispas" mientras vibra en el centro y sube rápido ('high'), "ahi ya
+// bajan las chispas" una vez asentado arriba ('low'). uPulseSpeed/
+// uIgniteThreshold del shader compartido (CablePulseShader.tsx) — el
+// robot nunca toca estos 2 uniforms (crea su propio material aparte en
+// DescentCables.tsx), así que se queda con sus defaults (1.0 / 0.975) de
+// siempre, esto es 100% exclusivo del wordmark.
+//
+// 'high': recorrido — velocidad 1.0→3.5→3.15→2.835→4.5→4.95 ("agrégale un
+// 10% más cuando esté vibrando"). Probabilidad de encendido por ciclo
+// 2.5%→45%→40.5%→36.45%→60%→66%, uIgniteThreshold = 1-0.66 = 0.34.
+// 'low': bastante más calmo que 'high' pero sin volver del todo al
+// default del robot — un parpadeo ocasional, no un apagón total.
+const SPARK_INTENSITY = {
+  high: { pulseSpeed: 4.95, igniteThreshold: 0.34 },
+  low: { pulseSpeed: 1.2, igniteThreshold: 0.82 },
+} as const;
+
 interface WordmarkModelProps {
   sparksEnabled: boolean;
+  sparkIntensity: keyof typeof SPARK_INTENSITY;
 }
 
-export function WordmarkModel({ sparksEnabled }: WordmarkModelProps) {
+export function WordmarkModel({ sparksEnabled, sparkIntensity }: WordmarkModelProps) {
   const { scene } = useGLTF('/models/aventhra-wordmark-cables.glb');
   const overlaysRef = useRef<SparkOverlayHandle[]>([]);
 
@@ -116,8 +135,11 @@ export function WordmarkModel({ sparksEnabled }: WordmarkModelProps) {
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
+    const { pulseSpeed, igniteThreshold } = SPARK_INTENSITY[sparkIntensity];
     overlaysRef.current.forEach(({ material }) => {
       material.uniforms.uTime.value = t;
+      material.uniforms.uPulseSpeed.value = pulseSpeed;
+      material.uniforms.uIgniteThreshold.value = igniteThreshold;
     });
   });
 
