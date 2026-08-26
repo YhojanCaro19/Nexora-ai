@@ -17,6 +17,7 @@ import {
   Package,
   StickyNote,
   Tag as TagIcon,
+  Trash2,
 } from "lucide-react";
 import {
   Table,
@@ -31,7 +32,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 // El historial de pedidos reutiliza el mismo indicador de estado que
 // pedidos-panel.tsx (mismo look, sin duplicar el mapa de colores) — es
 // una vista de solo lectura acá, no se puede cambiar el estado desde
@@ -42,6 +42,7 @@ import {
   createCustomerNoteAction,
   createCustomerTaskAction,
   createTagAction,
+  deleteCustomerNoteAction,
   getTagsForBusinessAction,
   assignTagToCustomerAction,
   removeTagFromCustomerAction,
@@ -53,6 +54,16 @@ import type { Conversation } from "@/lib/services/conversationService";
 import type { CustomerNote } from "@/lib/services/customerNoteService";
 import type { Tag } from "@/lib/services/tagService";
 import type { CustomerTask } from "@/lib/services/customerTaskService";
+// Los 3 topes vienen de acá, no de los services de arriba: esos importan
+// createClient() de lib/supabase/server.ts (solo servidor, usa
+// "next/headers"), y este archivo es "use client" — importar un value
+// (no un type) de un service server-only rompe el build. Ver el porqué
+// completo en lib/constants/customerLimits.ts.
+import {
+  MAX_TAGS_PER_CUSTOMER,
+  MAX_NOTES_PER_CUSTOMER,
+  MAX_PENDING_TASKS_PER_CUSTOMER,
+} from "@/lib/constants/customerLimits";
 import { channelLabel } from "./channel-labels";
 import { formatDateOnly, formatShortDate, formatShortDateTime, formatTimeOnly } from "@/lib/utils/date";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -130,6 +141,7 @@ export function CustomerDetailView({
             customerId={customer.id}
             notes={notes}
             onAdd={(note) => setNotes((prev) => [note, ...prev])}
+            onDelete={(noteId) => setNotes((prev) => prev.filter((n) => n.id !== noteId))}
           />
         )}
         {activeSection === "tareas" && (
@@ -172,8 +184,17 @@ export function CustomerDetailView({
           (mismo peso visual entre sí) + Etiquetas como fila completa
           debajo — es un tipo de contenido distinto (gestión de tags, no
           historial/actividad), separarla visualmente evita que compita
-          por espacio con las otras cuatro y la deja igual de accesible. */}
-      <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-3">
+          por espacio con las otras cuatro y la deja igual de accesible.
+          Recorrido: max-w-2xl/gap-3 (original) → max-w-4xl/gap-5 (1er
+          ajuste, "usa más el espacio") → max-w-6xl/gap-6 (este, "sigue
+          mal, muy junto") — en pantallas grandes de verdad (>1280px) el
+          4xl seguía dejando mucho margen sin usar a los lados. 6xl ya
+          rompe la simetría con el grid de Pedidos/Conversaciones más
+          abajo (que se queda en 4xl porque ES una tabla/lista, no
+          tarjetas — un ancho excesivo ahí solo estira columnas vacías),
+          así que ahora son anchos distintos a propósito, no por
+          descuido. */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
         <SectionMenuItem
           icon={Package}
           label="Pedidos"
@@ -245,29 +266,31 @@ function SectionMenuItem({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3.5 text-left transition-colors hover:bg-white/[0.06] ${className}`}
+      className={`flex w-full items-start gap-4 lg:gap-5 rounded-2xl border px-5 py-4 lg:px-7 lg:py-6 text-left transition-colors hover:bg-white/[0.06] ${className}`}
       style={{ borderColor: 'rgba(255,255,255,0.08)' }}
     >
       <span
-        className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        className="mt-0.5 flex h-11 w-11 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl"
         style={{ background: 'var(--nexora-muted)' }}
       >
-        <Icon size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+        <Icon size={19} strokeWidth={1.5} className="lg:hidden" style={{ color: 'var(--nexora-nova)' }} />
+        <Icon size={24} strokeWidth={1.5} className="hidden lg:block" style={{ color: 'var(--nexora-nova)' }} />
       </span>
-      <div className="min-w-0 flex-1 space-y-0.5">
+      <div className="min-w-0 flex-1 space-y-1 lg:space-y-1.5">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+          <p className="text-sm lg:text-base font-medium" style={{ color: 'var(--nexora-ink)' }}>
             {label}
           </p>
-          <span className="shrink-0 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+          <span className="shrink-0 text-[11px] lg:text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
             {summary}
           </span>
         </div>
-        <p className="text-xs leading-snug" style={{ color: 'var(--nexora-ink-dim)', opacity: 0.85 }}>
+        <p className="text-xs lg:text-sm leading-relaxed" style={{ color: 'var(--nexora-ink-dim)', opacity: 0.85 }}>
           {description}
         </p>
       </div>
-      <ChevronRight size={16} strokeWidth={1.75} className="mt-0.5 shrink-0" style={{ color: 'var(--nexora-ink-dim)' }} />
+      <ChevronRight size={16} strokeWidth={1.75} className="mt-1 shrink-0 lg:hidden" style={{ color: 'var(--nexora-ink-dim)' }} />
+      <ChevronRight size={20} strokeWidth={1.75} className="mt-1.5 shrink-0 hidden lg:block" style={{ color: 'var(--nexora-ink-dim)' }} />
     </button>
   );
 }
@@ -380,11 +403,16 @@ function ConversationsSection({
   );
 }
 
-// Etiquetas asignadas al cliente + selector para asignar una existente o
-// crear una nueva ahí mismo. El catálogo de etiquetas del negocio
-// (availableTags) se pide una sola vez al montar — es una lista corta
-// (etiquetas, no clientes), no vale la pena precargarla desde el server
-// component solo para este selector.
+// Etiquetas asignadas al cliente + un solo campo para agregar una — pedido
+// explícito tras feedback real: el selector "elegir etiqueta" de antes
+// mostraba el ID crudo en vez del nombre (bug real de cómo SelectValue
+// renderiza acá) y la organización en dos flujos separados (elegir /
+// crear, este último escondido detrás de un link) "no gustaba". Ahora es
+// un único input: si el nombre escrito coincide (sin importar mayúsculas)
+// con una etiqueta que YA existe en el negocio, la reutiliza y la asigna
+// directo — no la duplica ni tira error de "ya existe" — y si no existe,
+// la crea. El catálogo del negocio (availableTags) se pide una sola vez al
+// montar, solo para esa comparación, nunca se muestra como lista propia.
 function TagsSection({
   customerId,
   tags,
@@ -395,12 +423,9 @@ function TagsSection({
   onTagsChange: (tags: Tag[]) => void;
 }) {
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [loadingTags, setLoadingTags] = useState(true);
-  const [selectedTagId, setSelectedTagId] = useState("");
-  const [assigning, setAssigning] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -408,30 +433,11 @@ function TagsSection({
     getTagsForBusinessAction().then((result) => {
       if (cancelled) return;
       setAvailableTags(result.data);
-      setLoadingTags(false);
     });
     return () => {
       cancelled = true;
     };
   }, []);
-
-  const assignedIds = new Set(tags.map((t) => t.id));
-  const selectableTags = availableTags.filter((t) => !assignedIds.has(t.id));
-
-  async function handleAssign() {
-    if (!selectedTagId) return;
-    setAssigning(true);
-    setError(null);
-    const result = await assignTagToCustomerAction(customerId, selectedTagId);
-    setAssigning(false);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-    const tag = availableTags.find((t) => t.id === selectedTagId);
-    if (tag) onTagsChange([...tags, tag]);
-    setSelectedTagId("");
-  }
 
   async function handleRemove(tagId: string) {
     setRemovingId(tagId);
@@ -445,28 +451,50 @@ function TagsSection({
     onTagsChange(tags.filter((t) => t.id !== tagId));
   }
 
-  async function handleCreate(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!newTagName.trim()) return;
-    setAssigning(true);
-    setError(null);
-    const created = await createTagAction(newTagName);
-    if (created.error || !created.data) {
-      setAssigning(false);
-      setError(created.error ?? "No se pudo crear la etiqueta");
+    const trimmed = newTagName.trim();
+    if (!trimmed) return;
+
+    if (tags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
+      setError("El cliente ya tiene esa etiqueta");
       return;
     }
-    const newTag = created.data;
-    const assignResult = await assignTagToCustomerAction(customerId, newTag.id);
-    setAssigning(false);
+
+    if (tags.length >= MAX_TAGS_PER_CUSTOMER) {
+      setError(`Máximo ${MAX_TAGS_PER_CUSTOMER} etiquetas por cliente. Quita una para agregar otra.`);
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    // ¿Ya existe en el negocio (de otro cliente)? La reutiliza en vez de
+    // duplicarla o de que createTagAction tire "ya existe una etiqueta
+    // con ese nombre" — el usuario solo quiere escribir un nombre y que
+    // funcione, sin pensar si ya existía.
+    const existing = availableTags.find((t) => t.name.toLowerCase() === trimmed.toLowerCase());
+    let tag = existing ?? null;
+
+    if (!tag) {
+      const created = await createTagAction(trimmed);
+      if (created.error || !created.data) {
+        setSubmitting(false);
+        setError(created.error ?? "No se pudo crear la etiqueta");
+        return;
+      }
+      tag = created.data;
+      setAvailableTags((prev) => [...prev, tag as Tag]);
+    }
+
+    const assignResult = await assignTagToCustomerAction(customerId, tag.id);
+    setSubmitting(false);
     if (assignResult.error) {
       setError(assignResult.error);
       return;
     }
-    setAvailableTags((prev) => [...prev, newTag]);
-    onTagsChange([...tags, newTag]);
+    onTagsChange([...tags, tag]);
     setNewTagName("");
-    setCreating(false);
   }
 
   return (
@@ -495,67 +523,22 @@ function TagsSection({
         </div>
       )}
 
-      {!loadingTags && (
-        <div className="space-y-3">
-          {selectableTags.length > 0 && (
-            <div className="flex items-center justify-center gap-2">
-              <Select value={selectedTagId} onValueChange={(v) => setSelectedTagId(v ?? "")}>
-                <SelectTrigger className="w-44">
-                  <SelectValue placeholder="Elegir etiqueta" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectableTags.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button type="button" size="sm" disabled={!selectedTagId || assigning} onClick={handleAssign}>
-                Agregar
-              </Button>
-            </div>
-          )}
-
-          {!creating ? (
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setCreating(true)}
-                className="text-xs underline underline-offset-2"
-                style={{ color: 'var(--nexora-ink-dim)' }}
-              >
-                + Crear una etiqueta nueva
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleCreate} className="flex flex-col items-center gap-2">
-              <Input
-                autoFocus
-                value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
-                placeholder="Nombre de la etiqueta"
-                className="max-w-[220px]"
-              />
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={assigning || !newTagName.trim()}>
-                  {assigning ? "Creando..." : "Crear y asignar"}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setCreating(false);
-                    setNewTagName("");
-                  }}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </form>
-          )}
-        </div>
+      {tags.length >= MAX_TAGS_PER_CUSTOMER ? (
+        <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Máximo {MAX_TAGS_PER_CUSTOMER} etiquetas por cliente. Quita una para agregar otra.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="flex items-center justify-center gap-2">
+          <Input
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            placeholder="Escribe una etiqueta y presiona agregar..."
+            className="max-w-[260px]"
+          />
+          <Button type="submit" size="sm" disabled={submitting || !newTagName.trim()}>
+            {submitting ? "Agregando..." : "Agregar"}
+          </Button>
+        </form>
       )}
 
       {error && (
@@ -569,23 +552,31 @@ function TagsSection({
 
 // Notas internas del equipo sobre el cliente — más reciente primero (ya
 // llegan así de getNotesForCustomer, y la nota nueva se agrega al frente
-// del array local para mantener ese mismo orden sin refrescar todo).
+// del array local para mantener ese mismo orden sin refrescar todo). A
+// partir del tope de MAX_NOTES_PER_CUSTOMER cada nota tiene su botón de
+// borrar (antes no existía, ver nota en customerNoteService.ts) — es la
+// única forma de hacer espacio para una nueva una vez alcanzado el tope.
 function NotesSection({
   customerId,
   notes,
   onAdd,
+  onDelete,
 }: {
   customerId: string;
   notes: CustomerNote[];
   onAdd: (note: CustomerNote) => void;
+  onDelete: (noteId: string) => void;
 }) {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const atLimit = notes.length >= MAX_NOTES_PER_CUSTOMER;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || atLimit) return;
     setSaving(true);
     setError(null);
     const result = await createCustomerNoteAction(customerId, text);
@@ -596,6 +587,18 @@ function NotesSection({
     }
     onAdd(result.data);
     setText("");
+  }
+
+  async function handleDelete(noteId: string) {
+    setDeletingId(noteId);
+    setError(null);
+    const result = await deleteCustomerNoteAction(noteId);
+    setDeletingId(null);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    onDelete(noteId);
   }
 
   return (
@@ -616,40 +619,59 @@ function NotesSection({
           {notes.map((note) => (
             <div
               key={note.id}
-              className="rounded-xl border px-3 py-2.5 text-left"
+              className="flex items-start justify-between gap-2 rounded-xl border px-3 py-2.5 text-left"
               style={{ borderColor: 'rgba(255,255,255,0.08)' }}
             >
-              <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--nexora-ink)' }}>
-                {note.text}
-              </p>
-              <p className="mt-1.5 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-                {note.author_name ?? "Alguien del equipo"} · {formatShortDateTime(note.created_at)}
-              </p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--nexora-ink)' }}>
+                  {note.text}
+                </p>
+                <p className="mt-1.5 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {note.author_name ?? "Alguien del equipo"} · {formatShortDateTime(note.created_at)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDelete(note.id)}
+                disabled={deletingId === note.id}
+                aria-label="Borrar nota"
+                className="shrink-0 rounded-full p-1.5 transition-colors hover:bg-white/[0.06] disabled:opacity-50"
+                style={{ color: 'var(--nexora-ink-dim)' }}
+              >
+                <Trash2 size={14} strokeWidth={1.75} />
+              </button>
             </div>
           ))}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-2 text-center">
-        <Label htmlFor="new-note" className="justify-center">
-          Agregar una nota
-        </Label>
-        <Textarea
-          id="new-note"
-          rows={2}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Escribe un apunte interno sobre este cliente..."
-        />
-        {error && (
-          <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="sm" disabled={saving || !text.trim()}>
-          {saving ? "Guardando..." : "Guardar nota"}
-        </Button>
-      </form>
+      {atLimit ? (
+        <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Máximo {MAX_NOTES_PER_CUSTOMER} notas por cliente. Borra una para agregar otra.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2 text-center">
+          <Label htmlFor="new-note" className="justify-center">
+            Agregar una nota
+          </Label>
+          <Textarea
+            id="new-note"
+            rows={2}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Escribe un apunte interno sobre este cliente..."
+          />
+          <Button type="submit" size="sm" disabled={saving || !text.trim()}>
+            {saving ? "Guardando..." : "Guardar nota"}
+          </Button>
+        </form>
+      )}
+
+      {error && (
+        <p className="text-xs text-center" style={{ color: 'var(--nexora-alert)' }}>
+          {error}
+        </p>
+      )}
     </section>
   );
 }
@@ -673,9 +695,18 @@ function TasksSection({
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Separadas en dos apartados — "Pendientes" arriba, "Completadas" abajo —
+  // en vez de una sola lista mezclada con tachado, pedido explícito: "las
+  // tareas completadas se deben poner en otro apartado". Se calculan acá
+  // arriba (no solo antes del render) porque handleSubmit también necesita
+  // pendingTasks.length para el tope de pendientes.
+  const pendingTasks = tasks.filter((t) => t.done_at === null);
+  const doneTasks = tasks.filter((t) => t.done_at !== null);
+  const atPendingLimit = pendingTasks.length >= MAX_PENDING_TASKS_PER_CUSTOMER;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || atPendingLimit) return;
     setSaving(true);
     setError(null);
     const result = await createCustomerTaskAction(customerId, text, dueDate || null);
@@ -692,18 +723,60 @@ function TasksSection({
     setDueDate("");
   }
 
-  async function handleToggle(task: CustomerTask) {
+  // Pedido explícito: "no dejar destachar una tarea, porque si la marco es
+  // que ya la completé" — una vez completada, la tarea queda fija en ese
+  // estado (sin checkbox para revertir); ya no es un toggle bidireccional,
+  // es una acción de una sola vía. Por eso el guard `task.done_at !== null`
+  // acá, y por eso el <Checkbox> de una tarea completada más abajo se
+  // renderiza `disabled` sin `onCheckedChange`.
+  async function handleComplete(task: CustomerTask) {
+    if (task.done_at !== null) return;
     setTogglingId(task.id);
     setError(null);
-    const nextDone = task.done_at === null;
-    const result = await toggleCustomerTaskDoneAction(task.id, nextDone);
+    const result = await toggleCustomerTaskDoneAction(task.id, true);
     setTogglingId(null);
     if (result.error) {
       setError(result.error);
       return;
     }
     onTasksChange(
-      tasks.map((t) => (t.id === task.id ? { ...t, done_at: nextDone ? new Date().toISOString() : null } : t))
+      tasks.map((t) => (t.id === task.id ? { ...t, done_at: new Date().toISOString() } : t))
+    );
+  }
+
+  function renderTaskRow(task: CustomerTask) {
+    const done = task.done_at !== null;
+    return (
+      <div
+        key={task.id}
+        className="flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left"
+        style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+      >
+        <Checkbox
+          checked={done}
+          disabled={done || togglingId === task.id}
+          onCheckedChange={() => handleComplete(task)}
+          className="mt-0.5 shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-sm ${done ? "line-through" : ""}`}
+            style={{ color: done ? 'var(--nexora-ink-dim)' : 'var(--nexora-ink)' }}
+          >
+            {task.text}
+          </p>
+          {/* Pedido explícito: "en las tareas hay que mostrar cuándo
+              se creó la tarea y hasta cuándo se tiene para
+              hacerla" + ajuste de texto: "se tiene hasta [fecha]
+              para completarse" en vez de "Vence el [fecha]". */}
+          <p className="mt-0.5 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Creada el {formatShortDate(task.created_at)}
+            {task.due_date && (
+              <> · Se tiene hasta {formatDateOnly(task.due_date)} para completarse</>
+            )}
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -721,71 +794,83 @@ function TasksSection({
           Sin tareas pendientes.
         </p>
       ) : (
-        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-          {tasks.map((task) => {
-            const done = task.done_at !== null;
-            return (
-              <div
-                key={task.id}
-                className="flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left"
-                style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+        <div className="space-y-4">
+          {pendingTasks.length === 0 ? (
+            <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+              No hay tareas pendientes.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {pendingTasks.map(renderTaskRow)}
+            </div>
+          )}
+
+          {doneTasks.length > 0 && (
+            <div className="space-y-2">
+              <p
+                className="text-xs uppercase tracking-wide font-semibold text-center"
+                style={{ color: 'var(--nexora-ink-dim)' }}
               >
-                <Checkbox
-                  checked={done}
-                  disabled={togglingId === task.id}
-                  onCheckedChange={() => handleToggle(task)}
-                  className="mt-0.5 shrink-0"
-                />
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`text-sm ${done ? "line-through" : ""}`}
-                    style={{ color: done ? 'var(--nexora-ink-dim)' : 'var(--nexora-ink)' }}
-                  >
-                    {task.text}
-                  </p>
-                  {task.due_date && (
-                    <p className="mt-0.5 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-                      Vence el {formatDateOnly(task.due_date)}
-                    </p>
-                  )}
-                </div>
+                Tareas completadas
+              </p>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {doneTasks.map(renderTaskRow)}
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-2 text-center">
-        <Label htmlFor="new-task" className="justify-center">
-          Agregar una tarea
-        </Label>
-        <Input
-          id="new-task"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="¿Qué hay que hacer?"
-        />
-        <div className="flex flex-col items-center gap-1">
-          <Label htmlFor="new-task-due" className="text-xs font-normal" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Fecha límite (opcional)
+      {atPendingLimit ? (
+        <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Máximo {MAX_PENDING_TASKS_PER_CUSTOMER} tareas pendientes por cliente. Completa una para agregar otra.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-2 text-center">
+          <Label htmlFor="new-task" className="justify-center">
+            Agregar una tarea
           </Label>
           <Input
-            id="new-task-due"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-40"
+            id="new-task"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="¿Qué hay que hacer?"
           />
-        </div>
-        {error && (
-          <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="sm" disabled={saving || !text.trim()}>
-          {saving ? "Guardando..." : "Crear tarea"}
-        </Button>
-      </form>
+          <div className="flex flex-col items-center gap-1">
+            <Label htmlFor="new-task-due" className="text-xs font-normal" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Fecha límite (opcional)
+            </Label>
+            {/* 🐛→✅ Bug real confirmado con datos: la fecha límite nunca
+                llegaba a guardarse (verificado con una consulta directa a
+                customer_tasks, due_date quedaba null aunque se elegía una
+                fecha en el formulario). El componente <Input> del proyecto
+                es un wrapper de Base UI (Field.Control) pensado para su
+                propio contrato value/onValueChange — funciona bien para
+                texto normal, pero un input de fecha nativo dispara sus
+                eventos de cambio por segmento (día/mes/año) de forma
+                distinta, y ahí se perdía el valor antes de llegar a
+                `dueDate`. Un <input> nativo de HTML, sin ese wrapper, es
+                100% predecible para fechas — mismas clases de Tailwind que
+                ya usa <Input> para verse igual. */}
+            <input
+              id="new-task-due"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="h-8 w-40 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
+              style={{ colorScheme: 'dark' }}
+            />
+          </div>
+          {error && (
+            <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>
+              {error}
+            </p>
+          )}
+          <Button type="submit" size="sm" disabled={saving || !text.trim()}>
+            {saving ? "Guardando..." : "Crear tarea"}
+          </Button>
+        </form>
+      )}
     </section>
   );
 }

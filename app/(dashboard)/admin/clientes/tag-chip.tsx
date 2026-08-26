@@ -1,27 +1,9 @@
 // Chip de etiqueta reutilizado tanto en el detalle de un cliente
 // (customer-detail-view.tsx, con opción de quitar) como en la lista de
-// Clientes (clientes-panel.tsx, solo lectura) — un solo lugar para el
-// mapeo hex -> fondo con opacidad baja, en vez de duplicarlo en los dos
-// archivos.
+// Clientes (clientes-panel.tsx, solo lectura) — un solo lugar para este
+// estilo, en vez de duplicarlo en los dos archivos.
 import { X } from "lucide-react";
 import type { Tag } from "@/lib/services/tagService";
-
-// El color de una etiqueta es un valor por-registro que viene de la base
-// de datos (tags.color, elegido por el admin al crearla) — no es un color
-// del sistema Nexora, así que esta conversión hex->rgba es la excepción
-// legítima a "nunca un hex suelto": el hex acá es dato, no diseño.
-function hexToRgba(hex: string, alpha: number): string | null {
-  const clean = hex.replace("#", "").trim();
-  const full = clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean;
-  const value = parseInt(full, 16);
-  if (Number.isNaN(value) || full.length !== 6) {
-    return null;
-  }
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 export function TagChip({
   tag,
@@ -32,16 +14,20 @@ export function TagChip({
   onRemove?: () => void;
   removing?: boolean;
 }) {
-  // Si el color guardado no es un hex válido (no debería pasar, siempre
-  // sale de DEFAULT_TAG_COLOR o de un input controlado), cae a los tokens
-  // Nexora en vez de un valor inventado.
-  const background = hexToRgba(tag.color, 0.16) ?? 'var(--nexora-muted)';
-  const ink = hexToRgba(tag.color, 1) ? tag.color : 'var(--nexora-ink-dim)';
-
+  // Antes: fondo/letra calculados desde tags.color (por-registro, siempre
+  // el mismo cian de DEFAULT_TAG_COLOR en la práctica — no hay selector de
+  // color en la UI, así que todas las etiquetas terminaban viéndose
+  // idénticas y "azules"). Después: blanco sólido con letra oscura, pero
+  // eso volvió a ser el feedback real — "no quiero que las etiquetas
+  // tengan fondo blanco, quiero el mismo fondo que tiene [el chip]
+  // Etiquetas" (el disparador "N etiquetas" del acordeón en
+  // clientes-panel.tsx: borde sutil + fondo transparente, sin relleno
+  // sólido). Mismo borde/color acá para que un chip individual se vea
+  // consistente con ese disparador, sin depender de tags.color.
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium"
-      style={{ background, color: ink }}
+      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium"
+      style={{ borderColor: 'rgba(255,255,255,0.12)', color: 'var(--nexora-ink-dim)' }}
     >
       {tag.name}
       {onRemove && (
@@ -50,7 +36,7 @@ export function TagChip({
           onClick={onRemove}
           disabled={removing}
           aria-label={`Quitar etiqueta ${tag.name}`}
-          className="rounded-full p-0.5 transition-colors hover:bg-white/15 disabled:opacity-50"
+          className="rounded-full p-0.5 transition-colors hover:bg-white/10 disabled:opacity-50"
         >
           <X size={10} strokeWidth={2.5} />
         </button>

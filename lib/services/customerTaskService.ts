@@ -6,6 +6,15 @@
 // completado (nunca se borra una tarea al completarla, queda en el
 // historial — mismo criterio que orders: el estado avanza, no se borra).
 import { createClient } from "@/lib/supabase/server";
+// Tope de tareas PENDIENTES por cliente — vive en
+// lib/constants/customerLimits.ts (no acá) porque customer-detail-view.tsx
+// ("use client") también lo necesita y este archivo importa createClient()
+// de server.ts (solo servidor) — ver el porqué completo en ese archivo de
+// constantes. Acotado solo a pendientes para no chocar con el criterio ya
+// documentado arriba ("nunca se borra una tarea al completarla, queda en
+// el historial"): al completar una tarea libera espacio para una nueva,
+// las completadas se siguen acumulando sin límite ni borrado.
+import { MAX_PENDING_TASKS_PER_CUSTOMER } from "@/lib/constants/customerLimits";
 
 export interface CustomerTask {
   id: string;
@@ -54,6 +63,42 @@ export async function getTasksForCustomer(businessId: string, customerId: string
   return [...((pending ?? []) as CustomerTask[]), ...((done ?? []) as CustomerTask[])];
 }
 
+// Cuántas tareas PENDIENTES (done_at is null) tiene cada cliente de una
+// lista — mismo criterio que getNoteCountsForCustomers/getTagsForCustomers,
+// un solo query agrupado en vez de N por cliente.
+export async function getPendingTaskCountsForCustomers(
+  businessId: string,
+  customerIds: string[]
+): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (customerIds.length === 0) {
+    return map;
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customer_tasks")
+    .select("customer_id")
+    .eq("business_id", businessId)
+    .is("done_at", null)
+    .in("customer_id", customerIds);
+
+  if (error) {
+    console.error("[getPendingTaskCountsForCustomers] error:", {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+    });
+    return map;
+  }
+
+  for (const row of data ?? []) {
+    const id = (row as { customer_id: string }).customer_id;
+    map.set(id, (map.get(id) ?? 0) + 1);
+  }
+  return map;
+}
+
 // Crea una tarea/recordatorio para un cliente. dueDate es opcional
 // (nullable en la tabla) — createdBy siempre viene de la sesión, validado
 // por quien llama (server action), no acá.
@@ -82,6 +127,27 @@ export async function createCustomerTask(
 
   if (customerError || !customer) {
     return { error: "Cliente no encontrado", data: null };
+  }
+
+  // Doble capa igual que el resto de este archivo: el tope también se
+  // valida en el cliente (TasksSection) para feedback inmediato, pero acá
+  // es donde de verdad se hace cumplir.
+  const { count, error: countError } = await supabase
+    .from("customer_tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("customer_id", customerId)
+    .is("done_at", null);
+
+  if (countError) {
+    console.error("[createCustomerTask] count error:", countError);
+    return { error: "No se pudo crear la tarea", data: null };
+  }
+  if ((count ?? 0) >= MAX_PENDING_TASKS_PER_CUSTOMER) {
+    return {
+      error: `Máximo ${MAX_PENDING_TASKS_PER_CUSTOMER} tareas pendientes por cliente. Completa una para agregar otra.`,
+      data: null,
+    };
   }
 
   const { data, error } = await supabase

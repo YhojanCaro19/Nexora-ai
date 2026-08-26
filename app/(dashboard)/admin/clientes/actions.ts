@@ -11,7 +11,7 @@
 // esta action en vez de precargar el detalle de todos los clientes de una.
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getCustomerDetail, type CustomerDetail } from "@/lib/services/customerService";
-import { createCustomerNote, type CustomerNote } from "@/lib/services/customerNoteService";
+import { createCustomerNote, deleteCustomerNote, type CustomerNote } from "@/lib/services/customerNoteService";
 import {
   createTag,
   getTagsForBusiness,
@@ -50,6 +50,15 @@ export async function createCustomerNoteAction(
   }
 
   return createCustomerNote(profile.businessId, customerId, text, profile.userId);
+}
+
+export async function deleteCustomerNoteAction(noteId: string): Promise<{ error: string | null }> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+
+  return deleteCustomerNote(profile.businessId, noteId);
 }
 
 export async function getTagsForBusinessAction(): Promise<{ error: string | null; data: Tag[] }> {

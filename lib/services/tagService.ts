@@ -6,6 +6,11 @@
 // puente que asigna etiquetas a clientes (PK compuesta customer_id +
 // tag_id, sin business_id propio — su RLS valida vía join a customers).
 import { createClient } from "@/lib/supabase/server";
+// Tope de etiquetas por cliente — vive en lib/constants/customerLimits.ts
+// (no acá) porque customer-detail-view.tsx ("use client") también lo
+// necesita y este archivo importa createClient() de server.ts (solo
+// servidor) — ver el porqué completo en ese archivo de constantes.
+import { MAX_TAGS_PER_CUSTOMER } from "@/lib/constants/customerLimits";
 
 export interface Tag {
   id: string;
@@ -172,6 +177,22 @@ export async function assignTagToCustomer(
   }
   if (tagError || !tag) {
     return { error: "Etiqueta no encontrada" };
+  }
+
+  // Doble capa igual que el resto de esta función: el tope también se
+  // valida en el cliente (TagsSection) para feedback inmediato, pero acá
+  // es donde de verdad se hace cumplir.
+  const { count, error: countError } = await supabase
+    .from("customer_tags")
+    .select("tag_id", { count: "exact", head: true })
+    .eq("customer_id", customerId);
+
+  if (countError) {
+    console.error("[assignTagToCustomer] count error:", countError);
+    return { error: "No se pudo asignar la etiqueta" };
+  }
+  if ((count ?? 0) >= MAX_TAGS_PER_CUSTOMER) {
+    return { error: `Máximo ${MAX_TAGS_PER_CUSTOMER} etiquetas por cliente. Quita una para agregar otra.` };
   }
 
   const { error } = await supabase.from("customer_tags").insert({ customer_id: customerId, tag_id: tagId });
