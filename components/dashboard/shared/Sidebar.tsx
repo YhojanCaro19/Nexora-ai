@@ -1,9 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
 import type { NavGroup } from '@/lib/constants/nav-items';
 import { Avatar } from '@/components/shared/Avatar';
 
@@ -17,7 +15,7 @@ interface SidebarProps {
   avatarUrl?: string | null;
 }
 
-function NavGroups({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathname: string; onNavigate?: () => void }) {
+function NavGroups({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
   return (
     <nav className="flex-1 px-3 space-y-7 overflow-y-auto pb-6">
       {groups.map((group) => (
@@ -36,7 +34,6 @@ function NavGroups({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathn
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onNavigate}
                   className="relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-light transition-colors duration-200"
                   style={{
                     color: active ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)',
@@ -61,9 +58,50 @@ function NavGroups({ groups, pathname, onNavigate }: { groups: NavGroup[]; pathn
   );
 }
 
+// Barra inferior de navegación para móvil — fila horizontal deslizable
+// (scroll-x nativo), tipo "tab bar" de app. Reemplaza al menú hamburguesa
+// de antes (barra superior + panel lateral con overlay): pedido explícito
+// "no debe salir la hamburguesa, mejor que salgan las opciones abajo, pero
+// que sean movibles, porque obvio no cabe dentro del ancho de la
+// pantalla". Los grupos de NavGroups (Principal/Operación/Negocio, etc.)
+// se aplanan acá a propósito — en una tab bar no hay espacio ni sentido
+// para repetir encabezados de sección, solo una fila continua en el mismo
+// orden que ya tiene el sidebar de escritorio.
+function MobileBottomNav({ groups, pathname }: { groups: NavGroup[]; pathname: string }) {
+  const items = groups.flatMap((group) => group.items);
+  return (
+    <nav
+      className="md:hidden fixed inset-x-0 bottom-0 z-40 flex overflow-x-auto"
+      style={{
+        background: 'var(--nexora-panel)',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        // Respeta el home indicator de iOS/Android en vez de quedar tapada
+        // por él — cae a 0 en dispositivos sin ese recorte.
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      {items.map((item) => {
+        const active = pathname === item.href;
+        const Icon = item.icon;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? 'page' : undefined}
+            className="flex shrink-0 flex-col items-center justify-center gap-1 px-4 py-2.5 min-w-[68px] transition-colors duration-200"
+            style={{ color: active ? 'var(--nexora-nova)' : 'var(--nexora-ink-dim)' }}
+          >
+            <Icon size={19} strokeWidth={active ? 2 : 1.5} />
+            <span className="text-[10px] font-light whitespace-nowrap">{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export const Sidebar = ({ groups, roleLabel, userName, avatarUrl = null }: SidebarProps) => {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <>
@@ -81,44 +119,11 @@ export const Sidebar = ({ groups, roleLabel, userName, avatarUrl = null }: Sideb
         <NavGroups groups={groups} pathname={pathname} />
       </aside>
 
-      {/* Mobile: barra superior + menú hamburguesa */}
-      <div
-        className="md:hidden flex items-center justify-between px-4 py-3 shrink-0"
-        style={{ background: 'var(--nexora-panel)' }}
-      >
-        <div className="flex items-center gap-2">
-          <Avatar url={avatarUrl} name={userName} size={24} />
-          <p className="text-[13px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
-            {roleLabel}
-          </p>
-        </div>
-        <button onClick={() => setIsOpen(true)} aria-label="Abrir menú">
-          <Menu size={20} style={{ color: 'var(--nexora-ink)' }} />
-        </button>
-      </div>
-
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div
-            className="w-64 h-full flex flex-col"
-            style={{ background: 'var(--nexora-panel)' }}
-          >
-            <div className="px-6 py-7 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Avatar url={avatarUrl} name={userName} size={26} />
-                <p className="text-[15px] font-medium tracking-[0.1em] uppercase" style={{ color: 'var(--nexora-ink)' }}>
-                  {roleLabel}
-                </p>
-              </div>
-              <button onClick={() => setIsOpen(false)} aria-label="Cerrar menú">
-                <X size={20} style={{ color: 'var(--nexora-ink)' }} />
-              </button>
-            </div>
-            <NavGroups groups={groups} pathname={pathname} onNavigate={() => setIsOpen(false)} />
-          </div>
-          <div className="flex-1 bg-black/60" onClick={() => setIsOpen(false)} />
-        </div>
-      )}
+      {/* Mobile: barra inferior — ver MobileBottomNav arriba. La
+          identificación (avatar + rol) que antes vivía en la barra
+          superior de acá se movió al header compartido de
+          DashboardShell.tsx, para no duplicar esa franja en dos lugares. */}
+      <MobileBottomNav groups={groups} pathname={pathname} />
     </>
   );
 };
