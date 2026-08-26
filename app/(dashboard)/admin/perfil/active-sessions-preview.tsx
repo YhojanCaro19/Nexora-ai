@@ -35,7 +35,12 @@ function describeUserAgent(userAgent: string | null): string {
 export function ActiveSessionsPreview({ events }: { events: LoginEvent[] }) {
   return (
     <div className="space-y-5 flex flex-col items-center text-center">
-      <CardDescription>
+      {/* max-w-sm: sin tope de ancho, este párrafo de 3 oraciones se estira
+          a todo el ancho disponible y en pantallas grandes se lee como una
+          sola línea larguísima — igual de incómodo que si se cortara mal en
+          móvil. Un ancho de lectura consistente (misma idea que
+          bulk-import.tsx) lo hace legible en cualquier tamaño. */}
+      <CardDescription className="max-w-sm mx-auto">
         Historial de tus inicios de sesión — queda guardado como registro de seguridad, no desaparece al cerrar
         sesión (cerrar sesión revoca el acceso, no borra que ese inicio de sesión ocurrió). No permite cerrar
         sesiones una por una, eso no es técnicamente posible con nuestro proveedor de autenticación. Para revocar

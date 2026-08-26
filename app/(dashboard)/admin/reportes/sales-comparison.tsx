@@ -78,8 +78,14 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
+          {/* grid-cols-1 sm:grid-cols-2 — mismo criterio que las tarjetas de
+              KPI de Inicio (admin/page.tsx: grid-cols-1 sm:grid-cols-3): en
+              un teléfono angosto, dos cifras grandes lado a lado con poco
+              padding quedaban apretadas (moneda con separador de miles
+              fácilmente se corta en text-2xl). Apiladas en móvil, lado a
+              lado desde sm: hacia arriba. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border p-4 sm:p-5 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
               <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
                 Ventas del período
               </p>
@@ -87,7 +93,7 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
                 {formatCurrency(summary.totalRevenue, countryIso2)}
               </p>
             </div>
-            <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
+            <div className="rounded-2xl border p-4 sm:p-5 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
               <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
                 Pedidos del período
               </p>

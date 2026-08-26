@@ -117,15 +117,34 @@ export function BulkImport({ onDone }: { onDone?: () => void }) {
       <CardHeader className="text-center">
         <CardTitle>Importar catálogo</CardTitle>
         <CardDescription>
-          Sube un CSV con columnas <code>nombre</code>, <code>descripcion</code>, <code>precio</code>,{" "}
-          <code>stock</code>, <code>categoria</code>, <code>umbral_stock_bajo</code> — mismo formato que exporta
-          &quot;Exportar CSV&quot; en Ver catálogo. Solo nombre y precio son obligatorios. Las fotos no se importan
-          por CSV, se agregan después editando cada producto.
+          Sube un CSV con el mismo formato que exporta &quot;Exportar CSV&quot; en Ver catálogo.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {!results && (
           <>
+            {/* Antes: los nombres de columna vivían mezclados en la prosa del
+                CardDescription (6 <code> inline separados por comas) — en una
+                pantalla angosta esa oración se cortaba en cualquier parte,
+                sin ninguna estructura que ayudara a leerla. Separado en chips
+                que se envuelven en fila, es igual de escaneable en móvil que
+                en desktop. */}
+            <div className="flex flex-wrap justify-center gap-1.5 max-w-sm mx-auto">
+              {["nombre", "descripcion", "precio", "stock", "categoria", "umbral_stock_bajo"].map((col) => (
+                <code
+                  key={col}
+                  className="rounded-md px-2 py-1 text-[11px]"
+                  style={{ background: 'var(--nexora-muted)', color: 'var(--nexora-ink-dim)' }}
+                >
+                  {col}
+                </code>
+              ))}
+            </div>
+            <p className="text-xs text-center max-w-sm mx-auto" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Solo <span style={{ color: 'var(--nexora-ink)' }}>nombre</span> y{" "}
+              <span style={{ color: 'var(--nexora-ink)' }}>precio</span> son obligatorias. Las fotos no se
+              importan por CSV, se agregan después editando cada producto.
+            </p>
             <div className="flex flex-col items-center gap-2">
               <button
                 type="button"
