@@ -19,9 +19,9 @@ export default async function ChangePasswordPage({
   return (
     <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
       <FocusGlowCard className="w-full max-w-sm ml-0 md:ml-20 lg:ml-32 xl:ml-40 2xl:ml-52">
-        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white font-normal">
+            <CardTitle className="text-xl md:text-2xl text-white font-normal">
               Crea tu contraseña definitiva
             </CardTitle>
             <CardDescription className="text-white/45">

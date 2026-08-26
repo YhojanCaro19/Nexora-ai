@@ -50,12 +50,20 @@ export default async function LoginPage({
           1.134 — no se suman los transforms, así que ya incluye la base. */}
       <FocusGlowCard
         className="w-full max-w-sm ml-0 md:ml-20 lg:ml-32 xl:ml-40 2xl:ml-52"
-        baseScaleClass="scale-[1.08]"
-        activeScaleClass="scale-[1.134]"
+        // El 20%/8% de más era el tamaño pensado para desktop (espacio de
+        // sobra al lado del robot) — aplicado también en mobile, la card
+        // quedaba desbordando un viewport angosto y se sentía "demasiado
+        // grande". Se queda en 100% en mobile y solo crece desde md:.
+        baseScaleClass="scale-100 md:scale-[1.08]"
+        activeScaleClass="scale-[1.03] md:scale-[1.134]"
       >
-        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)]">
+        {/* [--card-spacing:...] reduce el padding interno de Card en
+            mobile (mismo mecanismo que ya usa components/ui/card.tsx para
+            su propia variante "sm" — no se toca el primitivo, solo se
+            sobreescribe la custom property en este uso puntual). */}
+        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white font-normal">Iniciar sesión</CardTitle>
+            <CardTitle className="text-xl md:text-2xl text-white font-normal">Iniciar sesión</CardTitle>
             <CardDescription className="text-white/45">
               Entra a tu panel de AVENTHRA
             </CardDescription>
@@ -72,8 +80,8 @@ export default async function LoginPage({
               </p>
             )}
 
-            <form action={login} className="space-y-4">
-              <div className="space-y-2">
+            <form action={login} className="space-y-3 md:space-y-4">
+              <div className="space-y-1.5 md:space-y-2">
                 <Label htmlFor="email" className="text-white/60 text-xs tracking-wide">Correo</Label>
                 <Input
                   id="email"
@@ -84,7 +92,7 @@ export default async function LoginPage({
                   className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 md:space-y-2">
                 <Label htmlFor="password" className="text-white/60 text-xs tracking-wide">Contraseña</Label>
                 <Input
                   id="password"
