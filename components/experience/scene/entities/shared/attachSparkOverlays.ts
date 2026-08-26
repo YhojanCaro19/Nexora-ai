@@ -59,6 +59,20 @@ export function attachSparkOverlays(root: Group, hotColor = '#eaffff'): SparkOve
     // ahí). Este archivo solo crea el material con los defaults de
     // createSparkOverlayMaterial (1.0 / 0.975, los del robot) — quien
     // llama decide si los pisa.
+    //
+    // uInstanceSeed sí se fija acá, UNA vez por malla clonada, con un
+    // valor al azar: sin esto, dos chips en letras DISTINTAS con la misma
+    // celda UV local (cellId, ver CablePulseShader.tsx) calculaban el
+    // MISMO instante de encendido — se veían varias letras prendiendo
+    // "chispa" a la vez como una ráfaga, en vez de sentirse repartidas por
+    // todo el wordmark. Esta función es 100% exclusiva del wordmark (el
+    // robot arma sus materiales aparte en DescentCables.tsx y nunca pasa
+    // por acá), así que setear esto no le afecta.
+    material.uniforms.uInstanceSeed.value = Math.random() * 1000.0;
+    // uFlashSoftness también se fija acá, constante para todas las mallas
+    // del wordmark: sube el flash un poco más gradual que el default del
+    // robot (1.0 → 0.08/0.3 de duración) sin llegar a sentirse lento.
+    material.uniforms.uFlashSoftness.value = 1.6;
     overlay.material = material;
     overlay.name = `${child.name}__spark`;
     overlay.userData.isSparkOverlay = true;

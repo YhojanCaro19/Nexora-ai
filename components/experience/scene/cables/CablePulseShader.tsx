@@ -21,6 +21,22 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
       // wordmark sin tocar este default ni el robot (DescentCables.tsx no
       // lo toca, se queda en 0.975 de siempre).
       uIgniteThreshold: { value: 0.975 },
+      // Desfase de tiempo POR MALLA (no por celda). cellId sale solo de la
+      // UV local (0-4 en X, 0-10 en Y), así que dos overlays clonados
+      // DISTINTOS —p.ej. un chip de la "A" y uno de la "V" del wordmark—
+      // comparten el mismo rango de UV y, con uInstanceSeed en 0, el mismo
+      // cellId cae en el MISMO instante real en las dos letras: se
+      // encienden juntas sin querer ("ráfaga sincronizada" reportada por
+      // el usuario). Sumar un valor único por malla acá desfasa cada clon
+      // de los demás. Default 0.0 = comportamiento IDÉNTICO a antes — el
+      // robot (DescentCables.tsx) nunca setea este uniform.
+      uInstanceSeed: { value: 0.0 },
+      // Multiplicador de "qué tan gradual" es la curva de encendido/
+      // apagado de la chispa (ver `flash` abajo). 1.0 = comportamiento
+      // IDÉNTICO a antes (curva original, la que ya usa el robot). El
+      // wordmark lo sube un poco para que el flash suba más despacio y no
+      // se sienta como un golpe brusco.
+      uFlashSoftness: { value: 1.0 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -35,6 +51,8 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
       uniform float uPulseSpeed;
       uniform float uFade;
       uniform float uIgniteThreshold;
+      uniform float uInstanceSeed;
+      uniform float uFlashSoftness;
 
       varying vec2 vUv;
 
@@ -53,8 +71,12 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
 
         // Cada celda tiene su PROPIA línea de tiempo, desfasada al azar
         // (cellPhase), para que no "tiren los dados" todas en el mismo
-        // instante.
-        float cellPhase = hash(cellId) * 500.0;
+        // instante. uInstanceSeed (default 0.0) suma un desfase extra POR
+        // MALLA encima de eso — sin él, la MISMA celda [cellX, cellY] en
+        // dos mallas clonadas distintas (dos letras distintas del
+        // wordmark) cae exactamente en el mismo cellPhase y enciende en el
+        // mismo instante real, aunque estén en letras separadas.
+        float cellPhase = hash(cellId) * 500.0 + uInstanceSeed;
         float cycle = (uTime + cellPhase) * uPulseSpeed * 2.2;
         float localStep = floor(cycle);
         float seed = cellId + localStep * 131.0;
@@ -72,8 +94,14 @@ export const createSparkOverlayMaterial = (hotColor: string = '#eaffff') => {
         // CORTO (sube y baja rápido) en vez de quedar prendido el ciclo
         // entero — así se ve como una chispa puntual, no como un bloque de
         // color fijo.
+        // uFlashSoftness (default 1.0, sin cambios) estira las dos paradas
+        // de la curva por igual: sube más gradual y se apaga más gradual,
+        // en vez del golpe corto/brusco original. Con 1.0 da exactamente
+        // 0.08/0.3 de siempre (el robot).
         float t = fract(cycle);
-        float flash = smoothstep(0.0, 0.08, t) - smoothstep(0.08, 0.3, t);
+        float flashRise = 0.08 * uFlashSoftness;
+        float flashFall = 0.3 * uFlashSoftness;
+        float flash = smoothstep(0.0, flashRise, t) - smoothstep(flashRise, flashFall, t);
 
         float spark = ignites * flash * hash(seed * 1.37);
 
