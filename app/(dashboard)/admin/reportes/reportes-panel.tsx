@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Palette, History, Download, ChevronLeft, TrendingUp } from "lucide-react";
+import { Palette, History, Download, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { CustomizePdfForm } from "./customize-pdf-form";
 import { ReportHistoryList } from "./report-history-list";
 import { SalesComparison } from "./sales-comparison";
@@ -24,7 +24,7 @@ export function ReportesPanel({
 
   if (view === "chooser") {
     return (
-      <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 py-10">
+      <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-6 py-4 sm:py-10">
         <ChooserButton icon={Palette} label="Personalizar PDF" onClick={() => setView("customize")} />
         <DownloadReportButton />
         <ChooserButton icon={TrendingUp} label="Comparativa por período" onClick={() => setView("comparison")} />
@@ -63,15 +63,22 @@ function ChooserButton({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center justify-center gap-3 w-48 h-48 rounded-3xl border transition-all duration-300 hover:scale-105"
+      // Mismo tratamiento que ChooserButton en Pedidos/Catálogo/
+      // Colaboradores — móvil: fila compacta de ancho completo. Desktop
+      // (sm:+): el mismo cuadrado grande de siempre, sin cambios.
+      className="flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-300 hover:bg-white/[0.04] sm:w-48 sm:h-48 sm:flex-col sm:items-center sm:justify-center sm:gap-3 sm:rounded-3xl sm:p-0 sm:text-center sm:hover:scale-105 sm:hover:bg-transparent"
       style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
     >
-      <Icon size={32} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-      <span className="text-sm font-medium text-center px-2" style={{ color: 'var(--nexora-ink)' }}>
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nexora-muted)] sm:h-auto sm:w-auto sm:rounded-none sm:bg-transparent">
+        <Icon size={20} strokeWidth={1.5} className="sm:hidden" style={{ color: 'var(--nexora-nova)' }} />
+        <Icon size={32} strokeWidth={1.5} className="hidden sm:block" style={{ color: 'var(--nexora-nova)' }} />
+      </span>
+      <span className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
         {label}
       </span>
+      <ChevronRight size={16} strokeWidth={1.75} className="ml-auto shrink-0 sm:hidden" style={{ color: 'var(--nexora-ink-dim)' }} />
     </button>
   );
 }
@@ -118,20 +125,25 @@ function DownloadReportButton() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex w-full flex-col items-center gap-2 sm:w-auto">
       <button
         type="button"
         onClick={handleDownload}
         disabled={loading}
-        className="flex flex-col items-center justify-center gap-3 w-48 h-48 rounded-3xl border transition-all duration-300 hover:scale-105 disabled:opacity-60 disabled:hover:scale-100"
+        // Mismo tratamiento que ChooserButton, ver comentario ahí arriba.
+        className="flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-300 hover:bg-white/[0.04] disabled:opacity-60 sm:w-48 sm:h-48 sm:flex-col sm:items-center sm:justify-center sm:gap-3 sm:rounded-3xl sm:p-0 sm:text-center sm:hover:scale-105 sm:hover:bg-transparent sm:disabled:hover:scale-100"
         style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
         onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
         onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
       >
-        <Download size={32} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-        <span className="text-sm font-medium text-center px-2" style={{ color: 'var(--nexora-ink)' }}>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nexora-muted)] sm:h-auto sm:w-auto sm:rounded-none sm:bg-transparent">
+          <Download size={20} strokeWidth={1.5} className="sm:hidden" style={{ color: 'var(--nexora-nova)' }} />
+          <Download size={32} strokeWidth={1.5} className="hidden sm:block" style={{ color: 'var(--nexora-nova)' }} />
+        </span>
+        <span className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
           {loading ? "Descargando..." : "Descargar reporte de hoy"}
         </span>
+        <ChevronRight size={16} strokeWidth={1.75} className="ml-auto shrink-0 sm:hidden" style={{ color: 'var(--nexora-ink-dim)' }} />
       </button>
       {error && (
         <span className="text-xs text-center max-w-48" style={{ color: 'var(--nexora-alert)' }}>

@@ -77,7 +77,7 @@ export default async function AdminHomePage() {
       {/* Estado general del negocio (no es "de hoy") — un solo bloque
           ancho, en horizontal. */}
       <div
-        className="rounded-2xl border p-6 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center"
+        className="rounded-2xl border p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center"
         style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
       >
         <div>

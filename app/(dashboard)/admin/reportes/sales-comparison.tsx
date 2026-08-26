@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { getSalesRangeSummaryAction } from "./actions";
 import type { RangeSalesSummary } from "@/lib/services/reportService";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -48,22 +49,25 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        {RANGES.map((r) => (
-          <button
-            key={r.days}
-            type="button"
-            onClick={() => setDays(r.days)}
-            className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-            style={
-              days === r.days
-                ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-                : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-            }
-          >
-            {r.label}
-          </button>
-        ))}
+      {/* Mismo patrón unificado que el filtro de fecha en Pedidos
+          (orders-table.tsx) — un solo Select en vez de una fila de
+          pastillas. Acá siempre hay un rango activo (no hay "todos" como
+          estado neutro), así que la etiqueta refleja el rango elegido
+          directo, sin caso especial de placeholder. */}
+      <div className="flex justify-center">
+        <Select value={String(days)} onValueChange={(v) => v && setDays(Number(v))}>
+          <SelectTrigger className="w-48 justify-center gap-1.5">
+            <ListFilter size={14} strokeWidth={1.75} />
+            {RANGES.find((r) => r.days === days)?.label}
+          </SelectTrigger>
+          <SelectContent>
+            {RANGES.map((r) => (
+              <SelectItem key={r.days} value={String(r.days)}>
+                {r.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {summary === undefined ? (

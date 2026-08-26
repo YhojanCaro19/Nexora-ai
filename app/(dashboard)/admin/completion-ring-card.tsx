@@ -13,7 +13,7 @@ export function CompletionRingCard({
 }) {
   return (
     <div
-      className="rounded-2xl border p-6 flex flex-col items-center justify-center text-center gap-4"
+      className="rounded-2xl border p-4 sm:p-6 flex flex-col items-center justify-center text-center gap-4"
       style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
       <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>

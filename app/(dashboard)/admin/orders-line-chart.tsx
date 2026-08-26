@@ -40,7 +40,7 @@ export function OrdersLineChart({ points }: { points: DailyTrendPoint[] }) {
   const areaPath = `${linePath} Z`;
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
+    <div className="rounded-2xl border p-4 sm:p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
       <p className="text-xs uppercase tracking-wide mb-5" style={{ color: 'var(--nexora-ink-dim)' }}>
         Pedidos de la semana
       </p>

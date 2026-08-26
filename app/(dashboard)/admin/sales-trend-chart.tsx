@@ -20,23 +20,28 @@ export function SalesTrendChart({
   const max = Math.max(1, ...points.map((p) => p.revenue));
 
   return (
-    <div className="rounded-2xl border p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
+    <div className="rounded-2xl border p-4 sm:p-6" style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}>
       <div className="mb-1">
         <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
           Ventas de la semana
         </p>
-        <p className="text-3xl font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>
+        <p className="text-2xl sm:text-3xl font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>
           {formatCurrency(todayRevenue, countryIso2)}
         </p>
       </div>
-      <div className="flex items-end justify-between gap-2 sm:gap-3 h-40 mt-6">
+      <div className="flex items-end justify-between gap-1.5 sm:gap-3 h-32 sm:h-40 mt-6">
         {points.map((p, i) => {
           const isToday = i === points.length - 1;
           const heightPct = (p.revenue / max) * 100;
           return (
             <div key={p.date} className="flex-1 flex flex-col items-center gap-1.5 h-full">
+              {/* Sin whitespace-nowrap acá a propósito: en columnas
+                  angostas de móvil (7 barras en el ancho de un teléfono)
+                  una cifra larga como "$45.000" no cabe en una sola línea
+                  sin invadir la columna vecina — dejar que envuelva a 2
+                  líneas la mantiene legible sin desbordar. */}
               <span
-                className="text-[10px] font-medium whitespace-nowrap"
+                className="text-[9px] sm:text-[10px] font-medium text-center leading-tight"
                 style={{ color: isToday ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
               >
                 {p.revenue > 0 ? formatCurrency(p.revenue, countryIso2) : "—"}

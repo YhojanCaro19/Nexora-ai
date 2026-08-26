@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2 } from "lucide-react";
+import { ChevronDown, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -29,21 +29,56 @@ const MODULE_LABELS: Record<string, string> = Object.fromEntries(
   ASSIGNABLE_MODULES.map((m) => [m.key, m.label])
 );
 
+// Toggle simple (chevron + useState) en vez del <Accordion> de
+// components/ui/accordion.tsx: ese primitivo está pensado para una lista
+// de filas independiente (border, rounded-xl, bg-card propios — ver el
+// único bloque de comentarios de uso en app/globals.css), no para vivir
+// suelto dentro de un <td>. Anidar su Header/Trigger/Panel ahí duplicaría
+// bordes dentro de la fila de la tabla y se vería "una caja dentro de otra
+// caja" — justo lo que se quiere evitar. Un botón + estado local logra el
+// mismo resultado (colapsado por defecto, revela los badges reales al
+// tocar) sin pelear con el layout de la tabla.
 function ModulePills({ permissions }: { permissions: string[] }) {
+  const [open, setOpen] = useState(false);
+
   if (permissions.length === 0) {
     return <span style={{ color: 'var(--nexora-ink-dim)' }}>—</span>;
   }
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {permissions.map((key) => (
-        <span
-          key={key}
-          className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-          style={{ color: 'var(--nexora-nova)', background: 'rgba(238,240,247,0.1)' }}
+    <div className="flex flex-col items-start gap-1.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1 text-xs font-medium transition-colors"
+        style={{ color: open ? 'var(--nexora-nova)' : 'var(--nexora-ink-dim)' }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-nova)')}
+        onMouseLeave={(e) => (e.currentTarget.style.color = open ? 'var(--nexora-nova)' : 'var(--nexora-ink-dim)')}
+      >
+        Módulos ({permissions.length})
+        <ChevronDown
+          size={14}
+          className={`transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <ul
+          className="flex flex-col gap-1 pl-2.5 border-l"
+          style={{ borderColor: 'var(--nexora-line)' }}
         >
-          {MODULE_LABELS[key] ?? key}
-        </span>
-      ))}
+          {permissions.map((key) => (
+            <li
+              key={key}
+              className="flex items-center gap-1.5 text-[11px] font-medium"
+              style={{ color: 'var(--nexora-nova)' }}
+            >
+              <span className="w-1 h-1 rounded-full shrink-0" style={{ background: 'var(--nexora-nova)' }} />
+              {MODULE_LABELS[key] ?? key}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ export function IconStatCard({
 }) {
   return (
     <div
-      className="rounded-2xl border p-5 transition-colors duration-200 hover:border-white/20"
+      className="rounded-2xl border p-4 sm:p-5 transition-colors duration-200 hover:border-white/20"
       style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
       <div className="flex items-center justify-between mb-4">

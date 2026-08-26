@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, AlertTriangle, Download } from "lucide-react";
+import { Search, AlertTriangle, Download, ListFilter } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
@@ -118,35 +119,33 @@ export function ProductsTable({
             />
           </div>
         )}
+        {/* Antes: pastillas siempre visibles, una por categoría — con
+            varias categorías se volvía una fila larga y desordenada.
+            Ahora un solo filtro unificado, mismo patrón que el de fecha en
+            Pedidos (orders-table.tsx): etiqueta fija "Filtra por
+            categoría" cuando no hay filtro activo (evita el mismo bug de
+            SelectValue mostrando el value crudo, ver nota allá), y el
+            nombre real de la categoría en cuanto se elige una. "__all__"
+            como valor centinela porque el Select no maneja bien null. */}
         {usedCategories.length > 0 && (
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setCategoryFilter(null)}
-              className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-              style={
-                categoryFilter === null
-                  ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-                  : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-              }
+          <div className="flex justify-center">
+            <Select
+              value={categoryFilter ?? "__all__"}
+              onValueChange={(v) => setCategoryFilter(v && v !== "__all__" ? v : null)}
             >
-              Todas
-            </button>
-            {usedCategories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setCategoryFilter(cat)}
-                className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-                style={
-                  categoryFilter === cat
-                    ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-                    : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-                }
-              >
-                {cat}
-              </button>
-            ))}
+              <SelectTrigger className="w-56 justify-center gap-1.5">
+                <ListFilter size={14} strokeWidth={1.75} />
+                {categoryFilter ?? "Filtra por categoría"}
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas</SelectItem>
+                {usedCategories.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
         {products.length > 0 && (

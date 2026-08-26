@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download } from "lucide-react";
+import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -183,22 +183,33 @@ export function OrdersTable({
             />
           </div>
 
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            {DATE_FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setDateFilter(f.key)}
-                className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-                style={
-                  dateFilter === f.key
-                    ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-                    : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-                }
-              >
-                {f.label}
-              </button>
-            ))}
+          {/* Antes: 4 botones de pastilla siempre visibles (Todos/Hoy/
+              Últimos 7 días/Este mes) — pedido explícito: un solo filtro
+              unificado que muestre las opciones al tocarlo. Y dentro de
+              eso, ajuste explícito: el botón SÍ debe reflejar lo elegido
+              ("Hoy", "Últimos 7 días"...), pero cuando el filtro está en
+              su estado neutro ("all", sin restricción real) debe decir
+              "Filtra por días" en vez de "Todos" — como un placeholder.
+              No se usa <SelectValue /> para esto: mismo bug real ya
+              documentado en TagsSection (Clientes), Base UI muestra el
+              value crudo ("all"), no el label. Se arma el texto a mano
+              desde dateFilter en vez de depender de ese render. */}
+          <div className="flex justify-center">
+            <Select value={dateFilter} onValueChange={(v) => v && setDateFilter(v as DateFilter)}>
+              <SelectTrigger className="w-48 justify-center gap-1.5">
+                <ListFilter size={14} strokeWidth={1.75} />
+                {dateFilter === "all"
+                  ? "Filtra por días"
+                  : DATE_FILTERS.find((f) => f.key === dateFilter)?.label}
+              </SelectTrigger>
+              <SelectContent>
+                {DATE_FILTERS.map((f) => (
+                  <SelectItem key={f.key} value={f.key}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex justify-center">

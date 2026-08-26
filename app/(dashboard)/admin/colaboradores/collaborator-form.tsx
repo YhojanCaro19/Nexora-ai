@@ -152,8 +152,8 @@ export function CollaboratorForm({
           )}
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
+          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            <div className="space-y-1 md:space-y-1.5">
               <Label htmlFor="full_name" className="block text-center">Nombre completo</Label>
               <Input
                 id="full_name"
@@ -171,7 +171,7 @@ export function CollaboratorForm({
             />
 
             {!isEditing && (
-              <div className="space-y-1.5">
+              <div className="space-y-1 md:space-y-1.5">
                 <Label htmlFor="email" className="block text-center">Correo</Label>
                 <Input
                   id="email"
@@ -183,10 +183,10 @@ export function CollaboratorForm({
               </div>
             )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1 md:space-y-1.5">
               <Label className="block text-center">Módulos que puede ver</Label>
               <div className="flex justify-center">
-                <div className="flex flex-col items-start gap-2">
+                <div className="flex flex-col items-start gap-1.5 md:gap-2">
                   {ASSIGNABLE_MODULES.map((mod) => (
                     <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
                       <Checkbox

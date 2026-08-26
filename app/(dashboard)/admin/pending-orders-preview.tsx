@@ -18,7 +18,7 @@ export function PendingOrdersPreview({
 }) {
   return (
     <div
-      className="rounded-2xl border p-6 h-full flex flex-col"
+      className="rounded-2xl border p-4 sm:p-6 h-full flex flex-col"
       style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
       <p className="text-xs uppercase tracking-wide text-center mb-4" style={{ color: 'var(--nexora-ink-dim)' }}>

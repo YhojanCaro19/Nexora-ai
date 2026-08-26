@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, CheckCircle2, XCircle } from "lucide-react";
+import { Search, CheckCircle2, XCircle, ListFilter } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import type { AutoReportLogEntry } from "@/lib/services/reportHistoryService";
 import { formatDateOnly, formatShortDateTime } from "@/lib/utils/date";
 
@@ -46,24 +47,26 @@ export function ReportLogPanel({ entries }: { entries: AutoReportLogEntry[] }) {
         />
       </div>
 
-      <div className="flex items-center justify-center gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setStatusFilter(f.key)}
-            className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-            style={
-              statusFilter === f.key
-                ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-                : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-            }
-          >
-            {f.label}
-            {f.key === "sent" && ` (${sentCount})`}
-            {f.key === "failed" && ` (${failedCount})`}
-          </button>
-        ))}
+      {/* Mismo patrón unificado que el filtro de fecha en Pedidos
+          (orders-table.tsx) — un solo Select en vez de 3 pastillas.
+          Etiqueta fija "Filtra por estado" en el estado neutro ("all"),
+          el nombre real en cuanto se elige uno. */}
+      <div className="flex justify-center">
+        <Select value={statusFilter} onValueChange={(v) => v && setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-48 justify-center gap-1.5">
+            <ListFilter size={14} strokeWidth={1.75} />
+            {statusFilter === "all" ? "Filtra por estado" : FILTERS.find((f) => f.key === statusFilter)?.label}
+          </SelectTrigger>
+          <SelectContent>
+            {FILTERS.map((f) => (
+              <SelectItem key={f.key} value={f.key}>
+                {f.label}
+                {f.key === "sent" && ` (${sentCount})`}
+                {f.key === "failed" && ` (${failedCount})`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {filtered.length === 0 ? (
