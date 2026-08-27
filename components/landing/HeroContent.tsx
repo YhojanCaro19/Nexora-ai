@@ -49,12 +49,6 @@ export const HeroContent = () => {
           </Link>
         </div>
       </div>
-
-      <style jsx global>{`
-        .nexora-headline {
-          font-family: 'General Sans', var(--font-geist-sans, ui-sans-serif), sans-serif;
-        }
-      `}</style>
     </div>
   );
 };

@@ -253,14 +253,28 @@ export function SectionDots({ className = '' }: SectionDotsProps) {
       mouse.y = -9999;
     };
 
+    // Pausa si la pestaña queda oculta (este fondo va en varias páginas y
+    // muchas veces es `fixed`, siempre "en viewport").
+    let visible = true;
+    let inView = true;
+    const sync = () => (visible && inView ? start() : stop());
+    const onVisibility = () => {
+      visible = !document.hidden;
+      sync();
+    };
+
     window.addEventListener('resize', onResize);
+    document.addEventListener('visibilitychange', onVisibility);
     if (!prefersReducedMotion) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseout', onLeave);
     }
 
     const io = new IntersectionObserver(
-      ([entry]) => (entry.isIntersecting ? start() : stop()),
+      ([entry]) => {
+        inView = entry.isIntersecting;
+        sync();
+      },
       { rootMargin: '120px' }
     );
     io.observe(canvas);
@@ -269,6 +283,7 @@ export function SectionDots({ className = '' }: SectionDotsProps) {
       stop();
       io.disconnect();
       window.removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseout', onLeave);
     };

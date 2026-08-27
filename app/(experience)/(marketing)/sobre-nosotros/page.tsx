@@ -10,10 +10,12 @@
 // robot, sin <Navbar/> genérico, con este navbar dedicado en su lugar —
 // mismo criterio que /soluciones, /precios, /clientes.
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
+import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
 
 export default function AboutPage() {
   return (
     <>
+    <ScreenTwoBackground />
     <ScreenTwoNavbar />
     {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
         ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que

@@ -4,60 +4,58 @@
 // scrollear desde la Pantalla 1 (y también lo que muestra la ruta
 // /productos).
 //
-// Izquierda: título con palabra que rota ("A 1 click de {más ventas / ...}",
-// color tornasol) + gancho + CTA. La malla de puntos reactiva al mouse
-// (SectionDots) vive SOLO detrás de esta columna, no detrás del video.
-// Derecha: el video de la cabeza del robot.
+// Antes de scrollear SOLO se ve "A 1 click de" (grande) + las palabras que
+// rotan. El párrafo y el CTA quedan un poco más abajo, CENTRADOS.
+//
+// El fondo de puntos ya no vive acá: es compartido (ScreenTwoBackground),
+// montado por HomeExperience / cada página de Pantalla 2.
 'use client';
 
-import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { RotatingWords } from '@/components/landing/RotatingWords';
 import { RobotHead } from '@/components/landing/RobotHead';
-import { SectionDots } from '@/components/landing/SectionDots';
+import { OrbitButton } from '@/components/landing/OrbitButton';
 
 export function ProductosHero() {
   return (
     <section
       id="productos"
-      className="relative w-full min-h-screen lg:min-h-[calc(100vh-6rem)] flex items-center overflow-hidden bg-black px-6 md:px-10 lg:px-16"
+      className="relative w-full overflow-hidden px-6 md:px-10 lg:px-16"
     >
-      {/* Trazo de puntos — grande, llega hasta el borde izquierdo. Se
-          desvanece hacia la derecha ANTES del robot y en los bordes de
-          arriba/abajo. */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-full lg:w-[68%] [mask-image:linear-gradient(to_bottom,transparent_0%,black_6%,black_88%,transparent_100%)]">
-        <div className="h-full w-full [mask-image:linear-gradient(to_right,black_0%,black_56%,transparent_90%)]">
-          <SectionDots />
-        </div>
-      </div>
-
-      {/* Video de la cabeza del robot — lado derecho, detrás del texto,
-          oculto en mobile/tablet. */}
-      <div className="pointer-events-none absolute right-[3%] top-1/2 hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
+      {/* Video de la cabeza del robot — lado derecho, oculto en mobile. */}
+      <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
         <RobotHead />
       </div>
 
-      {/* Corrido a la derecha respecto al hero original (pedido del usuario). */}
-      <div className="relative z-10 w-full max-w-xl lg:ml-40 xl:ml-52 2xl:ml-72">
-        <h1 className="nexora-headline text-4xl font-normal leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl">
-          A 1 click de
+      {/* Bloque 1: SOLO el título — ocupa la primera pantalla completa. */}
+      <div className="relative z-10 flex min-h-screen lg:min-h-[calc(100vh-6rem)] items-center">
+        <h1 className="nexora-headline w-full max-w-3xl text-6xl font-normal leading-[1.05] tracking-tight text-white md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72">
+          A 1 click de...
           <br />
-          <RotatingWords className="mt-2" />
+          <RotatingWords className="mt-3" />
         </h1>
+      </div>
 
-        <p className="mt-6 max-w-md text-sm font-light leading-relaxed text-white/60 md:text-base">
-          AVENTHRA gestiona tus mensajes. Te damos un agente que contesta,
-          ofrece y vende por ti — a toda hora, sin que muevas un dedo.
+      {/* Bloque 2: gancho + CTA — CENTRADO, aparece al scrollear un poco.
+          Palabras clave en blanco pleno, relleno en gris (estilo saleads). */}
+      <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center pb-28 text-center lg:pb-40">
+        <p className="aventhra-copy text-base font-normal leading-relaxed text-white/45 md:text-xl md:leading-relaxed">
+          <span className="text-white">AVENTHRA</span> gestiona tus mensajes.
+          Te damos un <span className="text-white">agente</span> que{' '}
+          <span className="text-white">contesta</span>,{' '}
+          <span className="text-white">ofrece</span> y{' '}
+          <span className="text-white">vende</span> por ti —{' '}
+          <span className="text-white">a toda hora</span>, sin que muevas un
+          dedo.
         </p>
 
-        <div className="mt-8">
-          <Link href="/contacto">
-            <span className="group inline-flex items-center gap-2 rounded-full bg-[#4CC2E8] px-6 py-3 text-sm font-medium text-black transition-all hover:shadow-[0_0_30px_rgba(76,194,232,0.25)]">
-              Empezar ahora
-              <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
-            </span>
-          </Link>
-        </div>
+        <OrbitButton href="/contacto" className="mt-10">
+          Empezar ahora
+          <ChevronRight
+            size={16}
+            className="transition-transform duration-300 group-hover:translate-x-1"
+          />
+        </OrbitButton>
       </div>
     </section>
   );

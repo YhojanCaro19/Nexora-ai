@@ -65,6 +65,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { ProductosHero } from '@/components/landing/ProductosHero';
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
+import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
 
 export function HomeExperience() {
@@ -254,6 +255,7 @@ export function HomeExperience() {
   if (prefersReducedMotion) {
     return (
       <>
+        <ScreenTwoBackground />
         <ScreenTwoNavbar />
         <ProductosHero />
       </>
@@ -316,6 +318,9 @@ export function HomeExperience() {
           (#08090D, el mismo tono base de toda la app) para taparla de
           verdad, no solo visualmente "encima" sin cubrir. */}
       <div ref={screenTwoRef} className="relative z-10 w-full bg-black">
+        {/* Fondo de puntos compartido — solo cuando la Pantalla 2 ya
+            cubre (si no, el `fixed` se pintaría sobre la Pantalla 1). */}
+        {screenTwoCovers && <ScreenTwoBackground />}
         {/* 🐛→✅ Antes ScreenTwoNavbar vivía FUERA de este bloque, `fixed`
             + gateado por opacidad (aparecía recién cuando `screenTwoCovers`
             era true, es decir cuando la Pantalla 2 ya cubría el 100% del

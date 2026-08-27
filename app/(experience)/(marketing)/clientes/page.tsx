@@ -5,12 +5,14 @@
 // usuario); el contenido de verdad es una tarea aparte.
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { HideStarfield } from '@/components/landing/HideStarfield';
+import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
 import { ComingSoonSection } from '@/components/landing/ComingSoonSection';
 
 export default function ClientesPage() {
   return (
     <>
       <HideStarfield />
+      <ScreenTwoBackground />
       <ScreenTwoNavbar />
       <ComingSoonSection
         title="Estamos construyendo esto — muy pronto."
