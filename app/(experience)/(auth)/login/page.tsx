@@ -1,4 +1,13 @@
 // app/(auth)/login/page.tsx
+//
+// 🐛→✅ Agregado <ScreenTwoNavbar/> — pedido explícito del usuario: "nada
+// me debe llevar a la Pantalla 1" (robot + fondo 3D). Antes esta página
+// usaba el <Navbar/> genérico + seguía mostrando el robot de fondo (se
+// monta sin importar la ruta) — llegar acá desde "Iniciar sesión" del
+// navbar de Pantalla 2 se sentía como si regenerara la Pantalla 1. Ahora
+// es una ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin
+// robot, sin <Navbar/> genérico, mismo criterio que /soluciones,
+// /precios, /clientes, /sobre-nosotros, /contacto.
 import Link from "next/link";
 import { login, signInWithGoogle } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -12,6 +21,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
+import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
+import { OrbitRing } from "@/components/landing/OrbitRing";
 
 function GoogleLogo() {
   return (
@@ -44,7 +55,13 @@ export default async function LoginPage({
   const params = await searchParams;
 
   return (
-    <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
+    <>
+    <ScreenTwoNavbar />
+    {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
+        ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que
+        este bloque + el navbar sumen exactamente 100vh — mismo criterio
+        que /sobre-nosotros. */}
+    <div className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
       {/* 20% más grande, y luego 10% más chica sobre ese resultado:
           1.2 × 0.9 = 1.08 de base. Al enfocar un campo pasa a 1.08 × 1.05 =
           1.134 — no se suman los transforms, así que ya incluye la base. */}
@@ -57,11 +74,19 @@ export default async function LoginPage({
         baseScaleClass="scale-100 md:scale-[1.08]"
         activeScaleClass="scale-[1.03] md:scale-[1.134]"
       >
-        {/* [--card-spacing:...] reduce el padding interno de Card en
-            mobile (mismo mecanismo que ya usa components/ui/card.tsx para
-            su propia variante "sm" — no se toca el primitivo, solo se
-            sobreescribe la custom property en este uso puntual). */}
-        <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
+        {/* Anillo girando alrededor de TODA la card — pedido explícito del
+            usuario, reconstruido con SVG puro (fill="none", ver el
+            comentario grande en OrbitRing.tsx) después de que la versión
+            con `mask-composite` causara un bug real de renderizado en
+            Safari (líneas diagonales enormes). radius={16}: rounded-2xl
+            de Tailwind = 1rem = 16px (no personalizado en este proyecto,
+            ver --radius-* en globals.css — solo van hasta xl). */}
+        <OrbitRing radius={16} className="w-full">
+          {/* [--card-spacing:...] reduce el padding interno de Card en
+              mobile (mismo mecanismo que ya usa components/ui/card.tsx
+              para su propia variante "sm" — no se toca el primitivo, solo
+              se sobreescribe la custom property en este uso puntual). */}
+          <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
             <CardTitle className="text-xl md:text-2xl text-white font-normal">Iniciar sesión</CardTitle>
             <CardDescription className="text-white/45">
@@ -136,7 +161,9 @@ export default async function LoginPage({
             </p>
           </CardContent>
         </Card>
+        </OrbitRing>
       </FocusGlowCard>
     </div>
+    </>
   );
 }

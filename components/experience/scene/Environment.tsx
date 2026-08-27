@@ -5,6 +5,7 @@ import { useThree, useFrame } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useQuality } from '../providers/QualityProvider';
+import { useExperience } from '../providers/ExperienceProvider';
 import { DeepSpaceStars } from './entities/shared/DeepSpaceStars';
 
 // ============================================
@@ -183,6 +184,17 @@ function ShootingStars() {
 // ============================================
 export const Environment = () => {
   const { scene } = useThree();
+  // Puente de contexto de React Three Fiber a través del límite del
+  // <Canvas> (mismo mecanismo que ya usa useQuality acá mismo) — el Home
+  // (app/(experience)/(marketing)/page.tsx) prende `homeMomentTwoVisible`
+  // cuando el usuario llega, scrolleando, a su Momento 2 ("la página real":
+  // navbar + pitch de marketing + módulos) — mientras eso pasa, acá se
+  // apagan (con fundido, ver DeepSpaceStars) las estrellas para que se
+  // sienta el fondo "oscuro plano" detrás del robot. Default `false`:
+  // cualquier otra ruta (login, contacto, sobre-nosotros) nunca toca este
+  // estado, así que ahí las estrellas siempre se renderizan igual que
+  // antes.
+  const { state } = useExperience();
 
   useMemo(() => {
     scene.background = new THREE.Color(0x03030a);
@@ -191,7 +203,7 @@ export const Environment = () => {
 
   return (
     <>
-      <DeepSpaceStars />
+      <DeepSpaceStars visible={!state.homeMomentTwoVisible} />
       <CinematicOrbitalLight />
       <ShootingStars />
 

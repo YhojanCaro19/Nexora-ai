@@ -213,3 +213,25 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nexora-intro-reveal { transition: none; }
 }
+
+/* El anillo de la CARD de login (componente OrbitRing.tsx) ya NO usa CSS
+   — es SVG puro (`fill="none"` + `<animateTransform>` sobre el propio
+   degradado, ver el comentario grande ahí). Necesitaba esa técnica
+   distinta porque la card es semi-transparente (con la versión de acá
+   abajo, el degradado se veía A TRAVÉS de la card y la teñía entera —
+   bug real, ya corregido).
+
+   Este keyframe sigue siendo el que usa el botón "Iniciar sesión" del
+   navbar (ScreenTwoNavbar.tsx, clase .nexora-navlogin-orbit) — ese botón
+   tiene fondo SÓLIDO, nunca tuvo el problema de la card, así que se dejó
+   con la técnica original que el usuario confirmó que le gustaba: un div
+   con el degradado como fondo, rotando detrás del botón. */
+@keyframes nexora-navlogin-orbit {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.nexora-navlogin-orbit {
+  animation: nexora-navlogin-orbit 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexora-navlogin-orbit { animation: none; }
+}

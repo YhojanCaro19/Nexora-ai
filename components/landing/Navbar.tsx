@@ -36,9 +36,21 @@ export const Navbar = () => {
     <>
       {/* DESKTOP — mismo corte lg (1024px) que useViewportTier() en
           core/hooks/useQuality.ts, que es quien decide si se monta el
-          robot 3D o la intro cinemática. Deben moverse juntos. */}
+          robot 3D o la intro cinemática. Deben moverse juntos.
 
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-[260px] z-50 flex-col px-10 py-10">
+          Barra horizontal fija ARRIBA (pedido explícito del usuario:
+          "como Vercel/Linear/ElevenLabs", no un <aside> lateral fijo que
+          le come 260px de ancho a toda página). Altura h-24 (96px) —
+          Experience.tsx compensa con `lg:pt-24` en el <main> y cada
+          página de marketing con contenido "hero" usa
+          `lg:min-h-[calc(100vh-6rem)]` para seguir centrando su
+          contenido respecto al alto real que queda debajo de la barra,
+          no respecto al viewport completo. Mismo tratamiento visual que
+          antes (texto/íconos/hover, sin fondo propio — se ve el fondo
+          3D detrás, igual que la barra mobile de acá abajo), solo
+          reacomodado de columna a fila. */}
+
+      <div className="hidden lg:flex fixed inset-x-0 top-0 h-24 z-50 items-center justify-between px-10 xl:px-16">
 
         {/* Logo */}
         <Link href="/" className="block">
@@ -53,10 +65,11 @@ export const Navbar = () => {
 
         </Link>
 
-        {/* Menú + Iniciar sesión (centrado verticalmente como un solo bloque) */}
-        <div className="flex-1 flex flex-col items-start justify-center">
+        {/* Menú + Iniciar sesión, agrupados a la derecha (mismo bloque
+            único que antes, solo que ahora en fila en vez de columna). */}
+        <div className="flex items-center gap-10">
 
-          <nav className="flex flex-col gap-7">
+          <nav className="flex items-center gap-8">
 
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -65,7 +78,13 @@ export const Navbar = () => {
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="group flex items-center gap-3 pl-5 text-[15px] font-light text-white/55 transition-all duration-300 hover:text-white hover:translate-x-1"
+                  // hover:-translate-y-0.5 en vez del hover:translate-x-1
+                  // original — ese desplazamiento horizontal tenía sentido
+                  // en una lista vertical (el link "avanza" hacia la
+                  // derecha); en una fila horizontal el equivalente natural
+                  // es un leve levantamiento. Mismo color/opacidad/duración
+                  // que antes, no es un estilo nuevo.
+                  className="group flex items-center gap-2 text-[15px] font-light text-white/55 transition-all duration-300 hover:text-white hover:-translate-y-0.5"
                 >
                   <Icon
                     size={16}
@@ -81,7 +100,7 @@ export const Navbar = () => {
 
           <Link
             href="/login"
-            className="group mt-10 inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm text-white/75 transition-all duration-300 hover:border-white/30 hover:bg-white/5 hover:text-white"
+            className="group inline-flex w-fit items-center gap-2 rounded-full border border-white/15 px-6 py-3 text-sm text-white/75 transition-all duration-300 hover:border-white/30 hover:bg-white/5 hover:text-white"
           >
             <LogIn
               size={15}
@@ -93,7 +112,7 @@ export const Navbar = () => {
 
         </div>
 
-      </aside>
+      </div>
 
       {/* MOBILE + TABLET (comparten el mismo navbar por debajo de lg) */}
 

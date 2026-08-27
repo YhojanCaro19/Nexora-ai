@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { ExperienceProvider, useExperience } from './providers/ExperienceProvider';
 import { MouseProvider } from './providers/MouseProvider';
 import { QualityProvider } from './providers/QualityProvider';
@@ -26,6 +27,26 @@ export const Experience = ({
   // a mano.
   const tier = useViewportTier();
   const showRobot3D = tier === 'desktop';
+  const pathname = usePathname();
+
+  // Pedido explícito del usuario: "el robot y el fondo de la Pantalla 1
+  // solo debe salir en el inicio, ya cuando suba la Pantalla 2 es algo
+  // diferente" — cualquier ruta con su propio ScreenTwoNavbar (ver la
+  // lista de abajo) EXCEPTO Home ('/', donde vive la Pantalla 1 de
+  // verdad) es un entorno COMPLETAMENTE aparte: nada de robot, nada de
+  // fondo 3D/estrellas. Antes el robot se montaba igual ahí (showRobot3D
+  // solo miraba el tier, nunca la ruta) — eso es lo que se reportó como
+  // "se buguea" al navegar a Productos/Soluciones/Precios/Clientes/Sobre
+  // nosotros.
+  const isBareEnvironmentRoute = SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '') && pathname !== '/';
+  const shouldHideRobot = isBareEnvironmentRoute;
+  // <main> reserva pt-24 arriba SOLO para las rutas que usan el <Navbar/>
+  // genérico (fixed, fuera del flujo normal) — las rutas con
+  // ScreenTwoNavbar ya reservan su propio espacio como primer elemento en
+  // flujo normal (sticky en Home/HomeExperience.tsx, o simplemente el
+  // primer hijo de la página en las demás), así que sumarle el pt-24 de
+  // acá encima sería un hueco vacío duplicado.
+  const usesGenericNavbarSpacing = !SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '');
 
   return (
     <QualityProvider>
@@ -39,18 +60,60 @@ export const Experience = ({
               ancestro. <Navbar/> usa fixed top-0/bottom-0 — antes vivía
               DENTRO del div con overflow-hidden de más abajo, junto a los
               fondos y <main>. Ahora ese div solo envuelve lo que
-              realmente necesita recortarse (fondos 3D/CSS + contenido);
-              <Navbar/> queda como hijo directo de este div de afuera, que
-              ya NO tiene overflow-hidden. El z-index no cambia (Navbar ya
-              usa z-50 en sus propios elementos, por encima de z-10/z-0),
-              así que el orden en el DOM no afecta el apilamiento visual. */}
+              realmente necesita recortarse (fondos 3D/CSS).
+              🐛→✅ <main> TAMBIÉN salió de acá (antes vivía adentro): el
+              mismo `overflow-hidden` rompe `position: sticky` de los hijos
+              en TODOS los navegadores (no solo iOS) — encontrado en vivo
+              porque ScreenTwoNavbar.tsx (sticky, dentro de HomeExperience,
+              dentro de <main>) no se quedaba pegado arriba al hacer scroll.
+              El z-index no cambia (Navbar ya usa z-50, <main> z-10, por
+              encima del z-0 de los fondos), así que el orden en el DOM no
+              afecta el apilamiento visual. */}
           <div className="relative min-h-screen w-full bg-[#08090D]">
 
-            <div className="relative min-h-screen w-full overflow-hidden">
+            {/* 🐛→✅ SIN `min-h-screen` acá (a propósito, distinto de antes):
+                todos los hijos de este div son `position: fixed` — nunca
+                necesitaron que el padre tuviera alto propio para nada, esa
+                clase era un resabio de cuando <main> (contenido normal,
+                con altura real) vivía ADENTRO de este mismo div. Ahora que
+                <main> salió (ver comentario de arriba), en las rutas
+                "bare" (isBareEnvironmentRoute, sin SceneContainer/
+                MobileSceneContainer montado) este div queda con CERO hijos
+                reales — con `min-h-screen` se quedaba ocupando una
+                pantalla completa de espacio en blanco igual, empujando
+                <main>/ScreenTwoNavbar hacia abajo un viewport entero (bug
+                real, encontrado en vivo: el navbar aparecía pegado abajo
+                del todo con todo negro arriba). Sin la clase, un div vacío
+                simplemente colapsa a 0 de alto — nada que empujar. */}
+            <div className="relative w-full overflow-hidden">
 
-              {/* Fondo 3D del robot — nunca se monta en mobile/tablet. */}
+              {/* Fondo 3D del robot — nunca se monta en mobile/tablet.
+                  🐛→✅ Antes también condicionaba el montaje a
+                  `mountBackgroundScene` (oculto en las páginas
+                  placeholder) — eso DESMONTABA el Canvas entero al
+                  navegar a una de esas rutas, y al volver a Home lo volvía
+                  a montar de cero, repitiendo la animación de descenso del
+                  robot (bug real reportado por el usuario: "vuelvo a
+                  Productos y se abre otra vez la animación de la Pantalla
+                  1" — en realidad era el robot re-animando su entrada, no
+                  la Pantalla 1 en sí). El robot SIEMPRE debe quedar
+                  montado en desktop (mismo criterio que layout.tsx: "la
+                  animación de descenso solo se ve una vez por carga real
+                  de la app") — en las páginas placeholder simplemente se
+                  OCULTA con opacidad, sin desmontar nada.
+                  🐛→✅ Sin `transition-opacity` (antes tenía una de 300ms):
+                  el usuario reportó ver la Pantalla 1 (fondo + robot)
+                  "por medio segundo" al navegar — exactamente la ventana
+                  de esa transición, que dejaba el fade a medio camino
+                  visible durante la navegación. El cambio de opacidad
+                  ahora es instantáneo (0 → 1 o 1 → 0 de una), sin ventana
+                  intermedia que se alcance a pintar. */}
               {showRobot3D && (
-                <div className="fixed inset-0 z-0">
+                <div
+                  className={`fixed inset-0 z-0 ${
+                    shouldHideRobot ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
+                >
                   <SceneContainer />
                 </div>
               )}
@@ -59,9 +122,17 @@ export const Experience = ({
                   (Starfield.tsx, eliminado) — MobileWordmarkScene.tsx
                   monta su propio DeepSpaceStars (mismos radios que
                   desktop, ver ese archivo), así que este <Canvas> es la
-                  única capa de fondo, sin duplicar geometría/gradientes. */}
+                  única capa de fondo, sin duplicar geometría/gradientes.
+                  Mismo criterio que arriba: se OCULTA en las páginas
+                  placeholder, nunca se desmonta (evita que la escena del
+                  wordmark 3D mobile reinicie su animación al volver a
+                  Home). */}
               {!showRobot3D && (
-                <div className="fixed inset-0 z-0">
+                <div
+                  className={`fixed inset-0 z-0 ${
+                    shouldHideRobot ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                  }`}
+                >
                   <MobileSceneContainer />
                 </div>
               )}
@@ -72,28 +143,41 @@ export const Experience = ({
                   "Tu empleado virtual" aparece y se desvanece, y RECIÉN AHÍ
                   arranca el wordmark 3D (que hasta entonces queda oculto,
                   ver la fase 'pending' en MobileWordmarkScene.tsx). Solo
-                  mobile/tablet. */}
+                  mobile/tablet — su propia lógica interna (timers, ver
+                  MobileTextIntro más abajo) corre una sola vez al montar,
+                  así que queda siempre montado igual que las escenas de
+                  arriba, sin gate de `isBareEnvironmentRoute` (es
+                  puramente decorativo/temporal, no hace falta ocultarlo
+                  aparte). */}
               {!showRobot3D && <MobileTextIntro />}
-
-              {/* Contenido — el espacio para el sidebar solo aplica cuando
-                  el sidebar existe de verdad (lg), mismo corte que Navbar.
-                  RevealedContent lo mantiene montado (nunca se pierde el
-                  estado de un form) pero invisible en mobile/tablet hasta
-                  que la intro 3D termine (ver el comentario en la
-                  definición de RevealedContent, más abajo). */}
-              <RevealedContent showRobot3D={showRobot3D}>
-                <main className="relative z-10 min-h-screen pl-0 lg:pl-[260px]">
-                  {children}
-                </main>
-              </RevealedContent>
 
             </div>
 
-            {/* Sidebar / navbar mobile+tablet — fuera del overflow-hidden
-                de arriba, ver el comentario del fix de iOS. Mismo gate de
-                reveal que el contenido: entra junto, no antes. */}
+            {/* <main> — fuera del overflow-hidden de arriba (ver comentario
+                grande al inicio del archivo: rompía tanto el fix de iOS
+                como `position: sticky`). El espacio reservado arriba solo
+                aplica cuando la barra horizontal de desktop existe de
+                verdad (lg), mismo corte y misma altura (h-24) que Navbar.
+                RevealedContent lo mantiene montado (nunca se pierde el
+                estado de un form) pero invisible en mobile/tablet hasta
+                que la intro 3D termine (ver el comentario en la definición
+                de RevealedContent, más abajo). */}
             <RevealedContent showRobot3D={showRobot3D}>
-              <Navbar />
+              <main className={`relative z-10 min-h-screen pt-0 ${usesGenericNavbarSpacing ? 'lg:pt-24' : ''}`}>
+                {children}
+              </main>
+            </RevealedContent>
+
+            {/* Navbar (barra superior en desktop, barra + panel inferior en
+                mobile/tablet) — fuera del overflow-hidden de arriba, ver el
+                comentario del fix de iOS. Mismo gate de reveal que el
+                contenido: entra junto, no antes. HomeDesktopNavbarGate
+                (adentro) agrega el gate EXTRA, exclusivo de Home+desktop:
+                ver su comentario. */}
+            <RevealedContent showRobot3D={showRobot3D}>
+              <HomeDesktopNavbarGate showRobot3D={showRobot3D}>
+                <Navbar />
+              </HomeDesktopNavbarGate>
             </RevealedContent>
 
           </div>
@@ -219,4 +303,54 @@ function RevealedContent({
       {children}
     </div>
   );
+}
+
+// Rutas que tienen su PROPIO navbar de desktop (ScreenTwoNavbar.tsx: logo +
+// Productos/Soluciones/Precios/Sobre nosotros/Clientes + Contáctanos/
+// Iniciar sesión) en vez del <Navbar/> genérico — Home ('/'), las páginas
+// placeholder que enlaza (Productos/Soluciones/Precios/Clientes), y
+// /sobre-nosotros (agregada después: pedido explícito del usuario — "el
+// robot y el fondo de la Pantalla 1 solo debe salir en el inicio, ya
+// cuando suba la Pantalla 2 es algo diferente", así que cualquier destino
+// del navbar de Pantalla 2 debe sentirse como la MISMA Pantalla 2, no
+// como si "regenerara" la Pantalla 1 con el navbar genérico viejo). Se
+// usa en dos lugares de este archivo (acá abajo y en `Experience`, para
+// decidir si <main> necesita el padding-top que reserva espacio para el
+// <Navbar/> genérico) — mantenida en un solo lugar para no desincronizar
+// ambos usos. Incluye /contacto y /login (agregadas después: el usuario
+// confirmó "nada me debe llevar a la Pantalla 1", así que los accesos de
+// "Contáctanos"/"Iniciar sesión" del propio ScreenTwoNavbar tampoco pueden
+// aterrizar en el robot + navbar genérico).
+const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/soluciones', '/precios', '/clientes', '/sobre-nosotros', '/contacto', '/login'];
+
+// Gate EXTRA, exclusivo de desktop, en las rutas de arriba: esas páginas ya
+// traen su propio navbar (ScreenTwoNavbar.tsx, montado por cada una de
+// ellas — Home lo hace desde HomeExperience.tsx, gateado a su propia
+// Pantalla 2; las 3 placeholder lo muestran siempre, como cualquier
+// navbar de página normal) — mostrar ADEMÁS el <Navbar/> genérico de acá
+// duplicaría la barra superior. Por eso este gate directamente NO
+// renderiza nada (`return null`) en desktop para esas rutas — a
+// diferencia de RevealedContent (que solo cambia opacidad), acá no hace
+// falta ningún fundido: nunca debe aparecer.
+//
+// Fuera de esas rutas (cualquier otra página), o en mobile/tablet (ahí
+// showRobot3D ya es `false` y esas páginas siguen sin tener un
+// ScreenTwoNavbar mobile — ver el comentario de ese archivo, no se
+// construyó a propósito) este componente es un no-op: no envuelve nada,
+// cero cambio de comportamiento ni de DOM respecto a como estaba antes.
+function HomeDesktopNavbarGate({
+  showRobot3D,
+  children,
+}: {
+  showRobot3D: boolean;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const hasOwnDesktopNavbar = showRobot3D && SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '');
+
+  if (hasOwnDesktopNavbar) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

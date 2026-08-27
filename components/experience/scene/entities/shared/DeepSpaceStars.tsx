@@ -19,6 +19,9 @@ export const DEFAULT_STAR_COUNT = 20000;
 const DEFAULT_RADIUS_MIN = 30;
 const DEFAULT_RADIUS_MAX = 70;
 
+const VISIBLE_OPACITY = 0.6;
+const FADE_SPEED = 2.5; // más alto = fade más rápido, en "por segundo".
+
 interface DeepSpaceStarsProps {
   count?: number;
   /** Radio mínimo/máximo de la esfera donde se reparten las estrellas —
@@ -27,12 +30,23 @@ interface DeepSpaceStarsProps {
    * "denso" en vez de disperso. */
   radiusMin?: number;
   radiusMax?: number;
+  /** Default `true` — MobileWordmarkScene.tsx nunca pasa esta prop, así que
+   * ahí el fondo de estrellas queda exactamente igual que siempre. Solo
+   * Environment.tsx (escena de desktop) la controla, para apagar suave las
+   * estrellas cuando el Home entra a su Momento 2 (ver `homeMomentTwoVisible`
+   * en ExperienceProvider.tsx). Se anima con un lerp de opacidad en vez de
+   * desmontar/montar el componente: desmontar recalcularía las 20k
+   * posiciones aleatorias cada vez (el `useMemo` de la geometría) en lugar
+   * de solo perder/ganar visibilidad, y de paso permite el fundido suave
+   * en vez de un corte abrupto. */
+  visible?: boolean;
 }
 
 export function DeepSpaceStars({
   count = DEFAULT_STAR_COUNT,
   radiusMin = DEFAULT_RADIUS_MIN,
   radiusMax = DEFAULT_RADIUS_MAX,
+  visible = true,
 }: DeepSpaceStarsProps) {
   const pointsRef = useRef<THREE.Points>(null);
 
@@ -58,17 +72,29 @@ export function DeepSpaceStars({
         color: '#a0b4ff',
         size: 0.15,
         transparent: true,
-        opacity: 0.6,
+        opacity: visible ? VISIBLE_OPACITY : 0,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
 
-  useFrame(() => {
-    if (pointsRef.current) {
-      pointsRef.current.rotation.y += 0.0001;
-    }
+  useFrame((_state, delta) => {
+    const points = pointsRef.current;
+    if (!points) return;
+    points.rotation.y += 0.0001;
+
+    // Lerp de opacidad hacia el target de `visible` — fundido suave en vez
+    // de un corte abrupto al entrar/salir de la Pantalla 2 del Home.
+    // Mutado vía `pointsRef.current.material` (no la variable `material`
+    // capturada del useMemo de arriba) — mismo objeto real, pero ir por el
+    // `.current` de un ref es la vía ya establecida para mutación
+    // imperativa seguida cuadro a cuadro (mismo patrón que la rotación
+    // arriba mismo).
+    const pointsMaterial = points.material as THREE.PointsMaterial;
+    const target = visible ? VISIBLE_OPACITY : 0;
+    pointsMaterial.opacity += (target - pointsMaterial.opacity) * Math.min(1, delta * FADE_SPEED);
   });
 
   return <points ref={pointsRef} geometry={geometry} material={material} />;

@@ -15,7 +15,12 @@ import { ChevronRight } from 'lucide-react';
 
 export const HeroContent = () => {
   return (
-    <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
+    // lg:min-h-[calc(100vh-6rem)] en vez de min-h-screen a secas: en
+    // desktop el <main> padre ya reserva 6rem (h-24) arriba para la barra
+    // horizontal fija (ver Experience.tsx), así que centrar verticalmente
+    // contra el 100vh completo dejaría este bloque corrido hacia abajo
+    // respecto al espacio real visible debajo de la barra.
+    <div className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
       <div className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16 flex flex-col items-start text-left">
         <h1 className="nexora-headline text-4xl md:text-5xl lg:text-6xl font-normal leading-[1.15] tracking-tight text-white">
           Siempre hay alguien <br />

@@ -1,4 +1,13 @@
 // app/contacto/page.tsx
+//
+// 🐛→✅ Agregado <ScreenTwoNavbar/> — pedido explícito del usuario: "nada
+// me debe llevar a la Pantalla 1" (robot + fondo 3D). Antes esta página
+// usaba el <Navbar/> genérico + seguía mostrando el robot de fondo (se
+// monta sin importar la ruta) — llegar acá desde "Contáctanos" del navbar
+// de Pantalla 2 se sentía como si regenerara la Pantalla 1. Ahora es una
+// ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin robot, sin
+// <Navbar/> genérico, mismo criterio que /soluciones, /precios,
+// /clientes, /sobre-nosotros, /login.
 
 import { submitContactRequest } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -14,6 +23,7 @@ import {
 import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
+import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
 
 export default async function ContactPage({
   searchParams,
@@ -23,6 +33,8 @@ export default async function ContactPage({
   const params = await searchParams;
 
   return (
+    <>
+    <ScreenTwoNavbar />
     <div
       // Vuelto a items-center (pedido explícito: "la idea es que quede
       // centrado") — la corrección anterior (items-start) partía de un
@@ -43,7 +55,14 @@ export default async function ContactPage({
       // pb-[6.5rem+safe-area] cubre la altura real de la barra inferior
       // fija de Navbar.tsx (3 botones) — mismo criterio que ya usa el
       // propio Navbar.tsx en su pb-[max(1rem,env(safe-area-inset-bottom))].
-      className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
+      //
+      // lg:pt-0 sigue siendo correcto sin cambios: el <main> padre ya
+      // reserva 6rem arriba para la barra horizontal de desktop (ver
+      // Experience.tsx), esta página no necesita padding-top propio ahí.
+      // lg:min-h-[calc(100vh-6rem)] sí es nuevo — mismo ajuste que
+      // HeroContent.tsx/sobre-nosotros: centrar contra el alto real
+      // disponible debajo de esa barra, no contra el 100vh completo.
+      className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
     >
       <FocusGlowCard className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
         {/* Mismo mecanismo de card.tsx (data-[size=sm]) para el padding
@@ -180,5 +199,6 @@ export default async function ContactPage({
         </Card>
       </FocusGlowCard>
     </div>
+    </>
   );
 }

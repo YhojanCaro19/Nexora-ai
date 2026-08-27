@@ -1,8 +1,26 @@
 // app/sobre-nosotros/page.tsx
+//
+// 🐛→✅ Agregado <ScreenTwoNavbar/> — pedido explícito del usuario: "el
+// robot y el fondo de la Pantalla 1 solo debe salir en el inicio, ya
+// cuando suba la Pantalla 2 es algo diferente". Antes esta página usaba el
+// <Navbar/> genérico (y seguía mostrando el robot 3D de fondo, montado sin
+// importar la ruta) — al llegar acá desde el navbar de Pantalla 2 se
+// sentía como si "regenerara" la Pantalla 1 con un navbar distinto. Ahora
+// es una ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin
+// robot, sin <Navbar/> genérico, con este navbar dedicado en su lugar —
+// mismo criterio que /soluciones, /precios, /clientes.
+import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 
 export default function AboutPage() {
   return (
-    <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
+    <>
+    <ScreenTwoNavbar />
+    {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
+        ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que
+        este bloque + el navbar sumen exactamente 100vh — no tiene que ver
+        con el <main> padre (ya no reserva padding en esta ruta, ver
+        Experience.tsx). */}
+    <div className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
       {/* Contenedor del contenido */}
       <div className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
         {/* Mismo lenguaje que HeroContent.tsx: mitad en blanco, mitad en el
@@ -30,5 +48,6 @@ export default function AboutPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

@@ -17,7 +17,10 @@ export default async function ChangePasswordPage({
   const params = await searchParams;
 
   return (
-    <div className="w-full flex items-center min-h-screen px-6 md:px-10 lg:px-16">
+    // lg:min-h-[calc(100vh-6rem)]: mismo ajuste que login/page.tsx — el
+    // <main> padre reserva 6rem (h-24) arriba para la barra horizontal fija
+    // de desktop (ver Experience.tsx).
+    <div className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
       <FocusGlowCard className="w-full max-w-sm ml-0 md:ml-20 lg:ml-32 xl:ml-40 2xl:ml-52">
         <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
