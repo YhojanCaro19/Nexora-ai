@@ -88,7 +88,7 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
 
   return (
     <div
-      className={`hidden lg:flex sticky top-0 inset-x-0 h-24 z-40 items-center justify-between border-b border-white/[0.06] bg-[#08090D]/80 backdrop-blur-sm px-10 xl:px-16 ${className}`}
+      className={`hidden lg:flex sticky top-0 inset-x-0 h-24 z-40 items-center justify-between border-b border-white/[0.06] bg-black/75 backdrop-blur-sm px-10 xl:px-16 ${className}`}
     >
       {/* Logo — mismo tratamiento tipográfico que el resto del sitio
           (aventhra-logo, Space Grotesk vía Navbar.tsx). */}

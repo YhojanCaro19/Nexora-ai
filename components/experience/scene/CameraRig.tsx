@@ -12,8 +12,11 @@ export const CameraRig = () => {
   const { camera } = useThree();
   const mouse = useMouse();
 
-  // 🔥 La cámara arranca YA en su posición final — no viaja en Z.
-  // Solo el robot se mueve; así el "acercamiento" se lee limpio, sin parallax que lo distorsione.
+  // La cámara arranca YA en su posición final — no viaja en Z. Antes
+  // apuntaba a (3.5, 0, 0) porque el robot vivía a la derecha del encuadre;
+  // ahora que el robot salió de esta escena (ver SceneContainer.tsx) el
+  // objetivo vuelve al centro para que el campo de estrellas quede
+  // centrado.
   const currentPos = useRef(new Vector3(0, 0, 2.8));
 
   useFrame(() => {
@@ -31,7 +34,7 @@ export const CameraRig = () => {
     camera.position.y = currentPos.current.y;
     camera.position.z = currentPos.current.z;
 
-    camera.lookAt(3.5, 0, 0);
+    camera.lookAt(0, 0, 0);
   });
 
   return null;

@@ -63,7 +63,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { HeroContent } from '@/components/landing/HeroContent';
+import { ProductosHero } from '@/components/landing/ProductosHero';
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
 
@@ -255,7 +255,7 @@ export function HomeExperience() {
     return (
       <>
         <ScreenTwoNavbar />
-        <HeroContent />
+        <ProductosHero />
       </>
     );
   }
@@ -281,9 +281,22 @@ export function HomeExperience() {
                 logo real (Navbar.tsx) y que MobileTextIntro (Experience.tsx):
                 SOLO "AVENTHRA" hereda Space Grotesk, el tagline va con la
                 tipografía normal de la app. */}
-            <p className="mt-6 text-sm uppercase tracking-[0.35em] text-white/35">
+            <p className="mt-6 text-sm uppercase tracking-[0.35em] text-white/55">
               Tu empleado virtual
             </p>
+          </div>
+
+          {/* Señal de "scroll hacia abajo" — línea fina con un punto de luz
+              que cae en loop (keyframe aventhra-scrollcue en globals.css).
+              Vive dentro del bloque de Momento 1, así desaparece solo
+              cuando la Pantalla 2 lo tapa (`!screenTwoCovers`). */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-white/25">
+              Scroll
+            </span>
+            <span className="relative block h-10 w-px overflow-hidden bg-white/10">
+              <span className="aventhra-scrollcue-dot absolute left-1/2 top-0 h-3 w-px -translate-x-1/2 bg-white/70" />
+            </span>
           </div>
         </div>
       )}
@@ -302,7 +315,7 @@ export function HomeExperience() {
           normal lo sube y tapa a la Pantalla 1. Fondo propio opaco
           (#08090D, el mismo tono base de toda la app) para taparla de
           verdad, no solo visualmente "encima" sin cubrir. */}
-      <div ref={screenTwoRef} className="relative z-10 w-full bg-[#08090D]">
+      <div ref={screenTwoRef} className="relative z-10 w-full bg-black">
         {/* 🐛→✅ Antes ScreenTwoNavbar vivía FUERA de este bloque, `fixed`
             + gateado por opacidad (aparecía recién cuando `screenTwoCovers`
             era true, es decir cuando la Pantalla 2 ya cubría el 100% del
@@ -315,7 +328,7 @@ export function HomeExperience() {
             sin ningún gate de opacidad, siempre visible como parte normal
             de la Pantalla 2. */}
         <ScreenTwoNavbar />
-        <HeroContent />
+        <ProductosHero />
       </div>
     </>
   );

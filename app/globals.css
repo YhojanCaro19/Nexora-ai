@@ -235,3 +235,52 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nexora-navlogin-orbit { animation: none; }
 }
+
+/* Texto multicolor animado — para palabras de énfasis en títulos de la
+   landing (inspiración: saleads.ai). Degradado clipeado al texto con
+   `background-size` 200% y la posición viajando en loop, así el color
+   "fluye" por las letras. Paleta Nexora (cian → índigo → violeta) + un
+   par de pasos extra (rosa/celeste) para el pop multicolor, sin salirse
+   del sistema. Bajo reduced motion queda con el degradado quieto (mismo
+   look, sin movimiento). */
+@keyframes aventhra-iridescent {
+  to { background-position: 200% center; }
+}
+.aventhra-iridescent {
+  background-image: linear-gradient(
+    100deg,
+    #4CC2E8 0%,
+    #818CF8 22%,
+    #A78BFA 40%,
+    #E879C7 55%,
+    #818CF8 72%,
+    #4CC2E8 100%
+  );
+  background-size: 200% auto;
+  background-position: 0% center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: aventhra-iridescent 6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aventhra-iridescent { animation: none; }
+}
+
+/* Indicador de "scroll hacia abajo" de la Pantalla 1 (HomeExperience.tsx).
+   Una línea vertical fina con un punto de luz que cae en loop — sutil, no
+   una flecha parpadeante. La keyframe mueve el punto y lo desvanece al
+   final del recorrido. */
+@keyframes aventhra-scrollcue {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { transform: translateY(320%); opacity: 0; }
+}
+.aventhra-scrollcue-dot {
+  animation: aventhra-scrollcue 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aventhra-scrollcue-dot { animation: none; opacity: 0.5; transform: none; }
+}

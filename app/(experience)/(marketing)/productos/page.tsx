@@ -1,21 +1,20 @@
 // app/(experience)/(marketing)/productos/page.tsx
 //
-// "Productos" — ruta normal, exactamente el mismo patrón que /soluciones,
-// /precios y /clientes: HideStarfield (apaga el fondo de estrellas) +
-// ScreenTwoNavbar + su contenido. Antes "Productos" era una sección con
-// ancla dentro del Home (`/?section=modulos`), lo que causaba que al
-// entrar se viera la Pantalla 1 por condiciones de carrera; ahora es una
-// página aparte y se acabó el problema.
+// "Productos" — ruta normal, mismo patrón que /soluciones, /precios,
+// /clientes. Renderiza exactamente la misma sección que se ve al scrollear
+// la Pantalla 2 del Home (ProductosHero): "A 1 click de {…}" + la cabeza
+// del robot. Así "Productos" es lo mismo, se llegue por scroll desde el
+// inicio o por el link del navbar.
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { HideStarfield } from '@/components/landing/HideStarfield';
-import { ModulesShowcase } from '@/components/landing/ModulesShowcase';
+import { ProductosHero } from '@/components/landing/ProductosHero';
 
 export default function ProductosPage() {
   return (
     <>
       <HideStarfield />
       <ScreenTwoNavbar />
-      <ModulesShowcase />
+      <ProductosHero />
     </>
   );
 }

@@ -6,7 +6,7 @@ import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useQuality } from '../providers/QualityProvider';
 import { useExperience } from '../providers/ExperienceProvider';
-import { DeepSpaceStars } from './entities/shared/DeepSpaceStars';
+import { DeepSpaceStars, DESKTOP_STAR_COUNT } from './entities/shared/DeepSpaceStars';
 
 // ============================================
 // 1. FONDO DE ESTRELLAS (Sutiles, con deriva lenta)
@@ -112,15 +112,18 @@ function ShootingStar({ seed }: { seed: number }) {
     if (!c.flying) {
       c.cooldown -= delta;
       if (c.cooldown <= 0) {
-        // Nueva trayectoria: entra desde arriba-izquierda, cruza en diagonal.
-        const originX = -20 + Math.random() * 14;
-        const originY = 10 + Math.random() * 6;
+        // Origen en CUALQUIER parte del cielo (antes siempre arriba-
+        // izquierda), pero dirección SIEMPRE la misma: hacia la derecha con
+        // una leve caída (look clásico de estrella fugaz). Jitter mínimo en
+        // el ángulo solo para que no queden perfectamente paralelas.
         const z = -18 - Math.random() * 14;
-        const length = 12 + Math.random() * 8;
-        const angle = 0.55 + (Math.random() - 0.5) * 0.3;
+        const originX = (Math.random() - 0.5) * 46;
+        const originY = (Math.random() - 0.5) * 30;
+        const length = 10 + Math.random() * 10;
+        const angle = 0.5 + (Math.random() - 0.5) * 0.1;
 
         c.start.set(originX, originY, z);
-        c.end.set(originX + Math.cos(-angle) * length, originY - Math.sin(angle) * length, z);
+        c.end.set(originX + Math.cos(angle) * length, originY - Math.sin(angle) * length, z);
         c.progress = 0;
         c.durationSec = 0.6 + Math.random() * 0.5;
         c.flying = true;
@@ -203,7 +206,7 @@ export const Environment = () => {
 
   return (
     <>
-      <DeepSpaceStars visible={!state.homeMomentTwoVisible} />
+      <DeepSpaceStars count={DESKTOP_STAR_COUNT} visible={!state.homeMomentTwoVisible} interactive />
       <CinematicOrbitalLight />
       <ShootingStars />
 
