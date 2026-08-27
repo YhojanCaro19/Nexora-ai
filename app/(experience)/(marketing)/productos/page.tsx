@@ -7,14 +7,14 @@
 // inicio o por el link del navbar.
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { HideStarfield } from '@/components/landing/HideStarfield';
-import { ProductosHero } from '@/components/landing/ProductosHero';
+import { ProductosLanding } from '@/components/landing/ProductosLanding';
 
 export default function ProductosPage() {
   return (
     <>
       <HideStarfield />
       <ScreenTwoNavbar />
-      <ProductosHero />
+      <ProductosLanding />
     </>
   );
 }

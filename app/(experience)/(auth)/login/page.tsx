@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
+import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
 import { OrbitRing } from "@/components/landing/OrbitRing";
 
 function GoogleLogo() {
@@ -56,6 +57,7 @@ export default async function LoginPage({
 
   return (
     <>
+    <ScreenTwoBackground />
     <ScreenTwoNavbar />
     {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
         ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que

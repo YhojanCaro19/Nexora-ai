@@ -24,6 +24,7 @@ import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
+import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
 
 export default async function ContactPage({
   searchParams,
@@ -34,6 +35,7 @@ export default async function ContactPage({
 
   return (
     <>
+    <ScreenTwoBackground />
     <ScreenTwoNavbar />
     <div
       // Vuelto a items-center (pedido explícito: "la idea es que quede

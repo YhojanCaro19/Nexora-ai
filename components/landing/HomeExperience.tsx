@@ -56,14 +56,14 @@
 //   único píxel de scroll, no durante todo el rango. Descartado.)
 //
 // Exclusivo de mobile/tablet: NADA de esto — page.tsx no monta este
-// componente ahí, sigue rindiendo <HeroContent/> solo, una sola pantalla,
-// igual que siempre (esa franja ya tiene su propia intro con timers,
-// MobileTextIntro + MobileWordmarkScene, ver Experience.tsx).
+// componente ahí, rinde <ProductosLanding/> directo (sin cortina), después
+// de la intro 3D mobile (MobileTextIntro + MobileWordmarkScene, ver
+// Experience.tsx).
 'use client';
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
-import { ProductosHero } from '@/components/landing/ProductosHero';
+import { ProductosLanding } from '@/components/landing/ProductosLanding';
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
@@ -257,7 +257,7 @@ export function HomeExperience() {
       <>
         <ScreenTwoBackground />
         <ScreenTwoNavbar />
-        <ProductosHero />
+        <ProductosLanding />
       </>
     );
   }
@@ -333,7 +333,7 @@ export function HomeExperience() {
             sin ningún gate de opacidad, siempre visible como parte normal
             de la Pantalla 2. */}
         <ScreenTwoNavbar />
-        <ProductosHero />
+        <ProductosLanding />
       </div>
     </>
   );

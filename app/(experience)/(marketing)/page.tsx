@@ -1,21 +1,20 @@
 // app/page.tsx
 'use client';
 
-import { HeroContent } from '@/components/landing/HeroContent';
+import { ProductosLanding } from '@/components/landing/ProductosLanding';
 import { HomeExperience } from '@/components/landing/HomeExperience';
 import { useViewportTier } from '@/core/hooks/useQuality';
 
 export default function Home() {
-  // Mismo hook/breakpoint que ya usa Experience.tsx para decidir el robot
-  // 3D (showRobot3D = tier === 'desktop') — el Home partido en 2 momentos
-  // (HomeExperience) es exclusivo de esa misma franja. Mobile/tablet no
-  // cambian nada: siguen viendo solo <HeroContent/>, una sola pantalla,
-  // como siempre (esa franja ya tiene su propia intro con timers, ver
-  // MobileTextIntro/MobileWordmarkScene en Experience.tsx).
+  // Desktop: el Home partido en 2 momentos (HomeExperience) — Pantalla 1
+  // (intro) + Pantalla 2 (la landing completa). Mobile/tablet: sin cortina,
+  // la misma landing directo (la intro 3D mobile la maneja Experience.tsx:
+  // MobileTextIntro + MobileWordmarkScene, y revela este contenido al
+  // terminar).
   const tier = useViewportTier();
 
   if (tier !== 'desktop') {
-    return <HeroContent />;
+    return <ProductosLanding />;
   }
 
   return <HomeExperience />;

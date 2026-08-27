@@ -29,7 +29,7 @@ export function ProductosHero() {
 
       {/* Bloque 1: SOLO el título — ocupa la primera pantalla completa. */}
       <div className="relative z-10 flex min-h-screen lg:min-h-[calc(100vh-6rem)] items-center">
-        <h1 className="nexora-headline w-full max-w-3xl text-6xl font-normal leading-[1.05] tracking-tight text-white md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72">
+        <h1 className="nexora-headline w-full max-w-3xl text-4xl font-normal leading-[1.05] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72">
           A 1 click de...
           <br />
           <RotatingWords className="mt-3" />
