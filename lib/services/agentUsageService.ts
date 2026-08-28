@@ -6,17 +6,32 @@
 // del negocio) — mismo criterio que `businessBrandingService.ts`.
 import { createAdminClient } from "@/lib/supabase/server";
 
+export interface AgentTurnUsage {
+  /** Tokens de entrada NO cacheados (Anthropic los reporta aparte de cache). */
+  inputTokens: number;
+  outputTokens: number;
+  /** Tokens leídos del cache de prompt (se cobran a 0,1×). */
+  cacheReadTokens: number;
+  /** Tokens escritos al cache de prompt (se cobran a 1,25×). */
+  cacheCreationTokens: number;
+}
+
+// Un turno del agente puede ser varias llamadas a la API (rondas de tool):
+// `usage` ya viene sumado desde runAgentTurn. Guardar el desglose de cache
+// aparte es lo que permite calcular el costo real (input a 1×, cache_read a
+// 0,1×, cache_creation a 1,25×) para calibrar los precios en créditos.
 export async function logAgentUsage(
   businessId: string,
-  inputTokens: number,
-  outputTokens: number,
+  usage: AgentTurnUsage,
   model: string
 ): Promise<void> {
   const admin = createAdminClient();
   const { error } = await admin.from("agent_usage_log").insert({
     business_id: businessId,
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
+    input_tokens: usage.inputTokens,
+    output_tokens: usage.outputTokens,
+    cache_read_input_tokens: usage.cacheReadTokens,
+    cache_creation_input_tokens: usage.cacheCreationTokens,
     model,
   });
 

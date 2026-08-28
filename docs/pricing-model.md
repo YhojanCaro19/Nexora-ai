@@ -229,12 +229,12 @@ Por definir: ¿vencen a los 12 meses o nunca?
 
 | # | Palanca | Impacto | Estado |
 |---|---|---|---|
-| 1 | **Prompt caching en `agentEngineService`** — separar base fija + tools (cacheable) de la personalización dinámica | −30–40% costo del agente | ❌ no implementado |
+| 1 | **Prompt caching en `agentEngineService`** — `buildSystemPrompt` devuelve bloque estable (base + config del negocio) con `cache_control` + bloque volátil (datos del cliente) sin cache; el breakpoint cubre también las `tools` | −30–40% costo del agente | ✅ hecho (2026-08-28) — falta medir |
 | 2 | **Haiku 4.5 para el agente** (o ruteo Haiku FAQ / Sonnet pedidos) | hasta −50% | por probar calidad |
 | 3 | **Recortar resultado de tools** — `listActiveProducts` vuelca 30 filas JSON con `image_url` y `description` completa; bajar a ~15 filas y campos mínimos | −costo en turnos con catálogo | fácil |
 | 4 | **Batch API** para copy de campañas (no urgente) | −50% en copy | fácil |
 | 5 | **Proveedor de imágenes barato** (Gemini Flash batch / FLUX schnell) en vez de gpt-image-1 | evita markup negativo | decisión pendiente |
-| 6 | **`agent_usage_log` casi seguro subcuenta** — `runAgentTurn` loguea `finalMessage.usage` (una sola vez por turno). Ese `usage` es el de la **última** respuesta del `toolRunner`, no la suma de las iteraciones: en turnos con tool no cuenta la llamada que decidió la tool ni los tokens del resultado reinyectado. Calibrar precios sobre estos datos crudos = **underpricing** | crítico para no mal-tarifar | ❌ confirmar en el SDK y corregir el logging |
+| 6 | **`agent_usage_log` subcontaba** — se confirmó: el `BetaToolRunner` es async-iterable (una vuelta = una llamada a la API); `await runner` devolvía solo la última. Ahora `runAgentTurn` itera y suma `usage` de cada llamada, y guarda el desglose de cache aparte (`cache_read_input_tokens`, `cache_creation_input_tokens`) para calcular el costo real | crítico para no mal-tarifar | ✅ hecho (2026-08-28) — requiere `ALTER TABLE agent_usage_log` (ver setup doc) |
 | 7 | Historial acotado (`MAX_HISTORY_PAIRS = 10`) y `max_tokens: 1024` | ya limitan el gasto | ✅ ya está |
 | 8 | Vencimiento mensual de créditos del plan | evita pasivo acumulado | ✅ decidido |
 | 9 | WhatsApp directo por Meta Cloud API, sin BSP | evita $0,003–0,01/msg de markup | decisión pendiente |

@@ -113,12 +113,28 @@ WOMPI_INTEGRITY_SECRET=test_integrity_...
 
 ---
 
-## 3. SQL de Supabase — módulo de créditos
+## 3a. Migración pequeña — `agent_usage_log` (segura, aplicar ya)
 
-> ⚠️ **NO APLICAR TODAVÍA.** Antes necesito ver la definición actual de la
-> tabla `subscriptions` que ya existe (en el editor de Supabase, o
-> `\d subscriptions`) para decidir si la extiendo o si `business_subscriptions`
-> va aparte. El resto se revisa y se aplica junto.
+Necesaria para el fix de conteo de tokens del agente (commit 2026-08-28).
+Solo agrega 2 columnas con default 0 — no toca datos ni RLS.
+
+```sql
+alter table public.agent_usage_log
+  add column if not exists cache_read_input_tokens     integer not null default 0,
+  add column if not exists cache_creation_input_tokens integer not null default 0;
+```
+
+> El código nuevo ya está desplegado y `logAgentUsage` traga sus propios
+> errores — si esta migración no se ha corrido, el agente sigue respondiendo
+> pero el registro de uso falla en silencio hasta que se apliquen las columnas.
+
+---
+
+## 3b. SQL de Supabase — módulo de créditos
+
+> ⚠️ **NO APLICAR TODAVÍA.** Revisar en persona antes de correrlo. Schema de
+> `subscriptions` ya confirmado (2026-08-28) → se extiende esa tabla, no se
+> crea una nueva.
 
 Usa `is_business_member()` / `is_business_admin()` que ya existen en el proyecto.
 
@@ -175,17 +191,30 @@ create index if not exists credit_ledger_business_created_idx
   on public.credit_ledger (business_id, created_at desc);
 
 -- 5. Suscripción activa por negocio --------------------------------
--- (Placeholder — decidir vs. extender `subscriptions` cuando vea su schema.)
-create table if not exists public.business_subscriptions (
-  business_id        uuid primary key references public.businesses(id) on delete cascade,
-  plan_id            uuid not null references public.plans(id),
-  billing_period     text not null check (billing_period in ('monthly','annual')),
-  status             text not null check (status in ('active','past_due','canceled')) default 'active',
-  current_period_end timestamptz not null,
-  wompi_reference    text,
-  created_at         timestamptz not null default now(),
-  updated_at         timestamptz not null default now()
-);
+-- La tabla `subscriptions` YA EXISTE (id, business_id, status text 'active',
+-- plan text, next_payment_date date, created_at, updated_at). Nada del
+-- código la usa hoy. Se EXTIENDE en vez de crear una tabla nueva:
+alter table public.subscriptions
+  add column if not exists plan_id        uuid references public.plans(id),
+  add column if not exists billing_period text,   -- 'monthly' | 'annual'
+  add column if not exists wompi_reference text;
+
+-- Un solo registro de suscripción por negocio (si no existe ya el constraint).
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'subscriptions_business_id_key'
+      and conrelid = 'public.subscriptions'::regclass
+  ) then
+    alter table public.subscriptions add constraint subscriptions_business_id_key unique (business_id);
+  end if;
+end $$;
+
+-- `next_payment_date` (ya existe) hace de fin de ciclo / fecha de renovación.
+-- `status` (ya existe) admite 'active' | 'past_due' | 'canceled' — sin CHECK
+-- para no chocar con datos existentes; lo valida la app.
+-- `plan` (texto, legado) se deja hasta que `plan_id` esté poblado en todos.
 
 -- ============================================================
 -- FUNCIONES (SECURITY DEFINER — solo las llama el backend con service role)
@@ -325,11 +354,11 @@ grant execute on function public.deduct_credits(uuid,integer,text,text,text)    
 grant execute on function public.grant_credits(uuid,integer,text,text,text,text)    to service_role;
 grant execute on function public.reset_plan_credits(uuid,integer,timestamptz)       to service_role;
 
-alter table public.plans                  enable row level security;
-alter table public.credit_prices          enable row level security;
-alter table public.credit_wallets         enable row level security;
-alter table public.credit_ledger          enable row level security;
-alter table public.business_subscriptions enable row level security;
+alter table public.plans          enable row level security;
+alter table public.credit_prices  enable row level security;
+alter table public.credit_wallets enable row level security;
+alter table public.credit_ledger  enable row level security;
+alter table public.subscriptions  enable row level security;
 
 -- plans y credit_prices: lectura pública (la landing muestra precios)
 create policy plans_read  on public.plans         for select using (true);
@@ -343,8 +372,8 @@ create policy wallet_read on public.credit_wallets for select
 create policy ledger_read on public.credit_ledger for select
   using (public.is_business_admin(business_id));
 
--- suscripción: el negocio ve la suya
-create policy sub_read on public.business_subscriptions for select
+-- suscripción: el negocio ve la suya (revisar si ya tenía RLS/policies antes)
+create policy sub_read on public.subscriptions for select
   using (public.is_business_member(business_id));
 
 -- Sin políticas de INSERT/UPDATE/DELETE para usuarios: todo pasa por las
@@ -397,7 +426,7 @@ on conflict (key) do nothing;
 | 5 | Corregir el conteo de tokens en `agent_usage_log` (hoy subcuenta las iteraciones del toolRunner) | bajo | sumar el `usage` de cada iteración, no solo `finalMessage`. |
 | 6 | Panel de saldo/consumo para el admin (`/(dashboard)/admin/...`) | bajo | patrón existente: layout valida rol, page consulta. |
 | 7 | Checkout Wompi — **pago único** primero (plan mensual) | **alto** | firma de integridad, `amount_in_cents`, referencia única por negocio. |
-| 8 | Webhook `/api/webhooks/wompi` — validar firma, idempotencia, `grant_credits` + crear/renovar `business_subscriptions` | **alto** | nunca acreditar sin validar la firma del evento. |
+| 8 | Webhook `/api/webhooks/wompi` — validar firma, idempotencia, `grant_credits` + crear/renovar la fila de `subscriptions` | **alto** | nunca acreditar sin validar la firma del evento. |
 | 9 | Packs extra (top-ups) — mismo checkout, `grant_credits(bucket='topup')` | medio | |
 | 10 | Cron mensual → `reset_plan_credits` para cada suscripción activa | medio | Supabase cron / edge function. |
 | 11 | Cobro recurrente con fuente de pago tokenizada | alto | último — el pago manual mensual funciona mientras tanto. |
