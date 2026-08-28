@@ -383,22 +383,24 @@ create policy sub_read on public.subscriptions for select
 -- SEED
 -- ============================================================
 
+-- Precios en créditos (v3, 2026-08-28). Ver docs/pricing-model.md §5.
 insert into public.credit_prices(action_key, credits, description) values
-  ('agent_reply',          3,  'Una respuesta del agente a un cliente'),
+  ('agent_reply',          4,  'Una respuesta del agente a un cliente'),
   ('copy',                 2,  'Generar un texto / copy'),
   ('strategy',             8,  'Generar una estrategia de marketing'),
-  ('image_standard',      10,  'Generar una imagen estándar'),
-  ('image_hd',            25,  'Generar una imagen HD'),
-  ('campaign_publish',     5,  'Publicar / lanzar una campaña'),
-  ('wa_marketing_message', 3,  'Enviar un mensaje de marketing por WhatsApp')
+  ('image_standard',      15,  'Generar una imagen estándar (Gemini)'),
+  ('image_hd',            35,  'Generar una imagen HD'),
+  ('campaign_publish',     8,  'Publicar / lanzar una campaña'),
+  ('wa_marketing_message', 4,  'Enviar un mensaje de marketing por WhatsApp')
 on conflict (action_key) do nothing;
 
 -- Precios en centavos COP — AJUSTAR a la TRM del día + colchón 10–15%.
--- Ejemplo con TRM ~4.100: $39 ≈ 160.000 COP = 16.000.000 centavos.
+-- Ejemplo con TRM ~4.000: $39 ≈ 160.000 COP = 16.000.000 centavos.
+-- Anual = ×10 meses (2 gratis).
 insert into public.plans(key, name, price_monthly_cop, price_annual_cop, monthly_credits, max_businesses, sort_order) values
-  ('atencion',    'Atención',     16000000,  160000000,  3000, 1, 1),
-  ('crecimiento', 'Crecimiento',  40000000,  400000000,  9000, 1, 2),
-  ('escala',      'Escala',      102000000, 1020000000, 25000, 3, 3)
+  ('atencion',    'Atención',     16000000,  160000000,  7000, 1, 1),
+  ('crecimiento', 'Crecimiento',  40000000,  400000000, 20000, 1, 2),
+  ('escala',      'Escala',      100000000, 1000000000, 55000, 3, 3)
 on conflict (key) do nothing;
 ```
 

@@ -2,6 +2,7 @@
 
 import { LogOut } from 'lucide-react';
 import { Sidebar } from './Sidebar';
+import { CreditsBadge } from './CreditsBadge';
 import { logout } from '@/app/(experience)/(auth)/actions';
 import { ADMIN_NAV, SUPERADMIN_NAV, getColaboradorNav } from '@/lib/constants/nav-items';
 
@@ -24,10 +25,13 @@ interface DashboardShellProps {
   // avatar propio) o para cualquiera que no haya subido foto todavía —
   // el Sidebar cae al fallback de iniciales en ambos casos.
   avatarUrl?: string | null;
+  // Saldo de créditos del negocio. `undefined` = no aplica (superadmin);
+  // `null` = el módulo de créditos aún no está en la DB; número = saldo.
+  credits?: number | null;
   children: React.ReactNode;
 }
 
-export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = null, children }: DashboardShellProps) => {
+export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = null, credits, children }: DashboardShellProps) => {
   const groups =
     role === 'admin' ? ADMIN_NAV : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
 
@@ -78,16 +82,24 @@ export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = n
             AVENTHRA
           </span>
 
-          <form action={logout}>
-            <button
-              type="submit"
-              title={`Cerrar sesión (${userName})`}
-              className="flex items-center gap-2 text-[13px] font-light text-[var(--nexora-ink-dim)] transition-colors duration-200 hover:text-[var(--nexora-ink)]"
-            >
-              <LogOut size={15} strokeWidth={1.5} />
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </form>
+          <div className="flex items-center gap-3 md:gap-4">
+            {credits !== undefined && (
+              <CreditsBadge
+                credits={credits}
+                href={role === 'admin' ? '/admin/creditos' : null}
+              />
+            )}
+            <form action={logout}>
+              <button
+                type="submit"
+                title={`Cerrar sesión (${userName})`}
+                className="flex items-center gap-2 text-[13px] font-light text-[var(--nexora-ink-dim)] transition-colors duration-200 hover:text-[var(--nexora-ink)]"
+              >
+                <LogOut size={15} strokeWidth={1.5} />
+                <span className="hidden sm:inline">Cerrar sesión</span>
+              </button>
+            </form>
+          </div>
         </header>
         {/* pb-24 en móvil: dejar espacio para que la tab bar fija de abajo
             (MobileBottomNav, ~56px + safe-area) no tape el final del

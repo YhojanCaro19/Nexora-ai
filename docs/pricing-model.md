@@ -153,59 +153,57 @@ decisión más sensible del marketing.
 
 ---
 
-## 5. Costo en créditos por acción (propuesta)
+## 5. Costo en créditos por acción (v3 — 2026-08-28)
 
-**1 crédito = US$0,01.** Objetivo: cobrar cada acción a **4–6× el costo real.**
+**1 crédito = US$0,01.** Proveedor de imágenes ya elegido: **Gemini** (~$0,04).
 
 | Acción | Costo real | **Créditos** | Retail | Markup |
 |---|---|---|---|---|
-| Agente: 1 respuesta | ~$0,008 | **3** | $0,03 | ~4× |
-| Generar copy (1 pieza) | ~$0,003 | **2** | $0,02 | ~7× |
+| **Agente: 1 respuesta** | ~$0,008–0,011 | **4** | $0,04 | ~4–5× |
+| Generar copy (1 pieza) | ~$0,004 | **2** | $0,02 | ~5× |
 | Generar estrategia | ~$0,02 | **8** | $0,08 | ~4× |
-| Generar imagen estándar | ~$0,04 | **10** | $0,10 | ~2,5× ⚠️ |
-| Generar imagen HD | ~$0,06–0,19 | **25** | $0,25 | 1,3–4× ⚠️ |
-| Publicar / lanzar campaña | ~$0,002 | **5** | $0,05 | — |
-| Enviar 1 mensaje marketing WhatsApp | ~$0,0125 | **3** | $0,03 | ~2,4× |
+| Generar imagen (Gemini estándar) | ~$0,04 | **15** | $0,15 | ~4× |
+| Generar imagen HD | ~$0,06–0,08 | **35** | $0,35 | ~4–6× |
+| Publicar / lanzar campaña | ~$0,002 | **8** | $0,08 | — |
+| Enviar 1 mensaje marketing WhatsApp | ~$0,0125 | **4** | $0,04 | ~3× |
 
-⚠️ **Imágenes:** el markup depende 100% del proveedor. Con gpt-image-1 *high*
-($0,19) perdemos plata a 25 créditos. Con Gemini Flash batch ($0,02) el markup
-es 5×. **Hay que fijar proveedor barato/estándar y solo cobrar HD real como
-premium.**
+Campaña completa ≈ estrategia (8) + 5 copies (10) + 3 imágenes (45) + publicar (8) = **~70 créditos**.
 
 ---
 
-## 6. Planes — propuesta v2 (peor caso = ganamos)
+## 6. Planes — v3 (más créditos en la entrada, pedido del dueño)
 
 | | **Atención** | **Crecimiento** ★ | **Escala** |
 |---|---|---|---|
 | Para quién | Negocio chico, solo agente | Negocio que quiere vender más | Varios negocios / agencia chica |
 | **Mensual** | **US$39** | **US$99** | **US$249** |
 | **Anual** (×10 meses) | US$390 | US$990 | US$2.490 |
-| Créditos incluidos/mes | 3.000 | 9.000 | 25.000 |
-| Valor retail de esos créditos | $30 | $90 | $250 |
-| ≈ Respuestas de agente | ~1.000 | ~3.000 | ~8.300 |
-| ≈ Conversaciones (~10 msg) | ~200 | ~600 | ~1.650 |
+| Créditos incluidos/mes | **7.000** | **20.000** | **55.000** |
+| ≈ Respuestas de agente | ~1.750 | ~5.000 | ~13.750 |
+| ≈ Conversaciones (~25 msg) | **~140** | **~400** | **~1.100** |
 | Negocios vinculados | 1 | 1 | 3 |
-| Campañas/mes (guía) | 5 | 20 | 60 |
-| Imágenes | estándar | estándar + HD | estándar + HD |
+| Campañas/mes (guía) | ~5 | ~20 | ~60 |
 | Cola de IA | normal | normal | prioritaria |
 
 Créditos del plan se renuevan cada ciclo; **lo no usado se pierde.**
 
-### Chequeo de margen (peor caso, 100% de créditos quemados)
+### Chequeo de margen (peor caso: 100% de créditos quemados SOLO en chat)
 
-| Plan | Ingreso | Costo real IA (créditos ÷ ~4) | Margen bruto |
+Con **prompt caching activo** (~$0,007/respuesta):
+
+| Plan | Ingreso | Costo IA peor caso | Margen |
 |---|---|---|---|
-| Atención $39 | $39 | ~$7,50 | **~81%** |
-| Crecimiento $99 | $99 | ~$22,50 | **~77%** |
-| Escala $249 | $249 | ~$62 | **~75%** |
+| Atención $39 | $39 | ~$12 | **~69%** |
+| Crecimiento $99 | $99 | ~$35 | **~65%** |
+| Escala $249 | $249 | ~$96 | **~61%** |
 
-Utilización real esperada 50–70% → márgenes de 85–90%. Resta la infra fija
-(~$3–8/cliente a 30+ clientes). **Ningún plan pierde plata ni quemado al 100%.**
+Sin caching (~$0,011/respuesta) el peor caso baja a **~45–55%** en Crecimiento/Escala.
+Utilización real 50–70% → margen efectivo **~78–85%**. Marketing (imágenes a 4×)
+mejora la mezcla. **Ningún plan pierde plata; el peor caso es un chat-only al 100%.**
 
-> Nota: el $29 que se había propuesto para Atención **sí era muy barato** —
-> cubría ~$18 de costo LLM de un negocio activo dejando <40% de margen. $39 con
-> 3.000 créditos (tope real de uso) lo corrige.
+> ⚠️ El costo de la respuesta ($0,007–0,011) sigue sin medirse — `agent_usage_log`
+> ya registra bien (fix + cache 2026-08-28). Medir 1–2 semanas y ajustar
+> `credit_prices` (es config, un `UPDATE`).
 
 ---
 
