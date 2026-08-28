@@ -6,17 +6,15 @@
 // las acciones de seguridad ya existentes (PasswordSection,
 // SignOutAllDevices, ActiveSessionsPreview) sin tocar su lógica interna.
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, KeyRound, LogOut, Monitor, type LucideIcon } from "lucide-react";
-import { PasswordSection } from "./password-section";
+import { ChevronLeft, ChevronRight, LogOut, Monitor, type LucideIcon } from "lucide-react";
 import { SignOutAllDevices } from "./sign-out-all-devices";
 import { ActiveSessionsPreview } from "./active-sessions-preview";
 import type { LoginEvent } from "@/lib/services/loginEventService";
 
-type SectionKey = "password" | "sign-out-all" | "active-sessions";
+type SectionKey = "sign-out-all" | "active-sessions";
 type View = "list" | SectionKey;
 
 const SECTIONS: { key: SectionKey; label: string; icon: LucideIcon }[] = [
-  { key: "password", label: "Cambiar contraseña", icon: KeyRound },
   { key: "sign-out-all", label: "Cerrar sesión en todos los dispositivos", icon: LogOut },
   { key: "active-sessions", label: "Historial de inicios de sesión", icon: Monitor },
 ];
@@ -68,7 +66,6 @@ export function SecurityPanel({ loginEvents }: SecurityPanelProps) {
         {SECTIONS.find((s) => s.key === view)?.label}
       </h3>
 
-      {view === "password" && <PasswordSection />}
       {view === "sign-out-all" && <SignOutAllDevices />}
       {view === "active-sessions" && <ActiveSessionsPreview events={loginEvents} />}
     </div>

@@ -9,28 +9,13 @@ import {
   uploadPlatformAdminAvatar,
   deletePlatformAdminAvatar,
 } from "@/lib/services/profileService";
-// Password/logout no dependen de business_id (ya lo comprueban internamente
-// en admin/perfil/actions.ts), así que la MISMA lógica sirve para
-// superadmin tal cual. Un archivo "use server" exige que TODO lo exportado
-// sea directamente una función async (Next.js no permite re-exportar un
-// binding tal cual) — por eso son wrappers delgados más abajo, no
-// duplican lógica, solo delegan.
-import {
-  requestPasswordOtpAction as adminRequestPasswordOtpAction,
-  verifyPasswordOtpAction as adminVerifyPasswordOtpAction,
-  updateOwnPasswordAction as adminUpdateOwnPasswordAction,
-  signOutAllDevicesAction as adminSignOutAllDevicesAction,
-} from "@/app/(dashboard)/admin/perfil/actions";
+// signOutAllDevices no depende de business_id (lo comprueba internamente en
+// admin/perfil/actions.ts), así que la MISMA lógica sirve para superadmin
+// tal cual. Un archivo "use server" exige que TODO lo exportado sea
+// directamente una función async (Next.js no permite re-exportar un
+// binding tal cual) — por eso es un wrapper delgado, no duplica lógica.
+import { signOutAllDevicesAction as adminSignOutAllDevicesAction } from "@/app/(dashboard)/admin/perfil/actions";
 
-export async function requestPasswordOtpAction() {
-  return adminRequestPasswordOtpAction();
-}
-export async function verifyPasswordOtpAction(code: string) {
-  return adminVerifyPasswordOtpAction(code);
-}
-export async function updateOwnPasswordAction(password: string) {
-  return adminUpdateOwnPasswordAction(password);
-}
 export async function signOutAllDevicesAction() {
   return adminSignOutAllDevicesAction();
 }

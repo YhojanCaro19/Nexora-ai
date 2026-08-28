@@ -321,7 +321,7 @@ function RevealedContent({
 // confirmó "nada me debe llevar a la Pantalla 1", así que los accesos de
 // "Contáctanos"/"Iniciar sesión" del propio ScreenTwoNavbar tampoco pueden
 // aterrizar en el robot + navbar genérico).
-const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/soluciones', '/precios', '/clientes', '/sobre-nosotros', '/contacto', '/login'];
+const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/soluciones', '/precios', '/clientes', '/sobre-nosotros', '/contacto', '/login', '/solicitar-acceso'];
 
 // Gate EXTRA, exclusivo de desktop, en las rutas de arriba: esas páginas ya
 // traen su propio navbar (ScreenTwoNavbar.tsx, montado por cada una de

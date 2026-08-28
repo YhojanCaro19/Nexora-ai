@@ -20,7 +20,7 @@ Tabla puente usuario ↔ negocio ↔ rol. Aquí viven **admin** y **colaborador*
 | `full_name` | text | nombre mostrado (prioriza sobre metadata de auth) |
 | `phone` | text | |
 | `permissions` | jsonb | array de módulos, ej. `["pedidos"]`. Default `[]` |
-| `must_change_password` | boolean | default `false`. `true` al crear cuenta nueva |
+| `must_change_password` | boolean | **obsoleto** — sin uso desde "Autenticación solo con Google". No dropeada aún. |
 | `created_by` | uuid | quién creó esta fila (admin que invitó al colaborador) |
 | `is_active` | boolean | default `true` |
 | `created_at` | timestamptz | |
@@ -166,5 +166,5 @@ exists (
 
 ## Reglas al modificar el esquema
 
-- Nunca agregar una policy de "cada quien edita su propia fila" en `business_members` — permitiría a un colaborador reescribir su propio `role` o `permissions`. Para escrituras puntuales sobre la propia fila (ej. apagar `must_change_password`), usar service role desde un server action, tocando solo la columna necesaria.
+- Nunca agregar una policy de "cada quien edita su propia fila" en `business_members` — permitiría a un colaborador reescribir su propio `role` o `permissions`. Para escrituras puntuales sobre la propia fila, usar service role desde un server action, tocando solo la columna necesaria.
 - Toda tabla nueva con datos de negocio debe llevar `business_id NOT NULL` y su policy de RLS correspondiente desde el primer commit, no después.

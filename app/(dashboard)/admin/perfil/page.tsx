@@ -35,7 +35,7 @@ export default async function PerfilPage() {
         <Card>
           <CardHeader className="text-center">
             <CardTitle>Seguridad</CardTitle>
-            <CardDescription>Contraseña y sesiones activas de tu cuenta.</CardDescription>
+            <CardDescription>Sesiones activas de tu cuenta.</CardDescription>
           </CardHeader>
           <CardContent>
             <SecurityPanel loginEvents={loginEvents} />

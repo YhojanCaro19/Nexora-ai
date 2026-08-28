@@ -47,7 +47,7 @@ export function RequestsTable({
     Object.fromEntries(requests.filter((r) => r.industry_type).map((r) => [r.id, r.industry_type as string]))
   );
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<{ email: string; tempPassword: string } | null>(null);
+  const [credentials, setCredentials] = useState<{ email: string } | null>(null);
   const [rejected, setRejected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,15 +113,16 @@ export function RequestsTable({
               CUENTA CREADA EXITOSAMENTE
             </CardTitle>
             <CardDescription>
-              Copia estas credenciales temporales, no se volverán a mostrar:
+              La persona entra con &ldquo;Continuar con Google&rdquo; usando este correo:
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
               Correo: <span className="font-mono-data">{credentials.email}</span>
             </p>
-            <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
-              Contraseña temporal: <span className="font-mono-data">{credentials.tempPassword}</span>
+            <p className="mt-1 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Debe usar la cuenta de Google asociada a este correo. Si su Google
+              es otro correo, avísale que escriba de nuevo por Contáctanos.
             </p>
             <Button
               variant="outline"

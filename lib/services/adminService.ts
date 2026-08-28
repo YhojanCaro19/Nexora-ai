@@ -1,5 +1,4 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { generateTempPassword } from "@/lib/services/passwordService";
 import { translateError } from "@/lib/errors/translate";
 import { getIndustryTemplate } from "@/lib/services/agentTemplateService";
 import { getAgentUsageByBusiness } from "@/lib/services/agentUsageService";
@@ -61,16 +60,16 @@ export async function createAccountFromRequest(
     return { error: "Solicitud no encontrada", data: null };
   }
 
-  const tempPassword = generateTempPassword();
-
+  // Sin `password`: la cuenta solo se usa vía Google OAuth con este mismo
+  // correo. `email_confirm: true` deja el correo verificado para que
+  // Supabase vincule la identidad de Google al iniciar sesión (ver
+  // docs/decisions.md — "Autenticación solo con Google").
   const { data: newUser, error: createError } =
     await admin.auth.admin.createUser({
       email: request.email,
-      password: tempPassword,
-      email_confirm: true, // el admin ya validó al cliente por fuera, no requiere reconfirmar correo
+      email_confirm: true,
       user_metadata: {
         full_name: request.full_name,
-        must_change_password: true,
       },
     });
 
@@ -111,14 +110,12 @@ export async function createAccountFromRequest(
   // se inserta el negocio, ANTES de que este código siga corriendo — así
   // que en vez de insertar una fila nueva (que duplicaría o chocaría con
   // la del trigger), se completa la que el trigger ya dejó con el resto de
-  // los datos: nombre, teléfono, y el must_change_password que de verdad
-  // importa para forzar el cambio de la contraseña temporal.
+  // los datos: nombre y teléfono.
   const { error: memberError } = await admin
     .from("business_members")
     .update({
       full_name: request.full_name,
       phone: request.phone,
-      must_change_password: true,
       created_by: createdBy,
     })
     .eq("business_id", business.id)
@@ -179,7 +176,6 @@ export async function createAccountFromRequest(
     error: null,
     data: {
       email: request.email,
-      tempPassword,
     },
   };
 }

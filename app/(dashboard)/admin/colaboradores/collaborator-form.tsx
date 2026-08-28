@@ -50,9 +50,7 @@ export function CollaboratorForm({
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [credentials, setCredentials] = useState<{ email: string; tempPassword: string } | null>(
-    null
-  );
+  const [credentials, setCredentials] = useState<{ email: string } | null>(null);
 
   function togglePermission(key: ModuleKey, checked: boolean) {
     setPermissions((prev) =>
@@ -108,15 +106,15 @@ export function CollaboratorForm({
           <CardHeader className="text-center">
             <CardTitle style={{ color: 'var(--nexora-signal)' }}>Colaborador creado</CardTitle>
             <CardDescription>
-              Copia estas credenciales ahora, no se volverán a mostrar:
+              Entra con &ldquo;Continuar con Google&rdquo; usando este correo:
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
               Correo: <span className="font-mono-data">{credentials.email}</span>
             </p>
-            <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
-              Contraseña temporal: <span className="font-mono-data">{credentials.tempPassword}</span>
+            <p className="mt-1 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Debe iniciar sesión con la cuenta de Google de ese correo.
             </p>
             <Button
               variant="outline"
@@ -147,7 +145,7 @@ export function CollaboratorForm({
           <CardTitle>{isEditing ? "Editar colaborador" : "Nuevo colaborador"}</CardTitle>
           {!isEditing && (
             <CardDescription>
-              Se creará una cuenta con contraseña temporal; el colaborador deberá cambiarla en su primer inicio de sesión.
+              El colaborador entrará con su cuenta de Google usando este mismo correo.
             </CardDescription>
           )}
         </CardHeader>

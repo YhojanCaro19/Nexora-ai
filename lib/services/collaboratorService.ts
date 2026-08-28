@@ -1,5 +1,4 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { generateTempPassword } from "@/lib/services/passwordService";
 import {
   collaboratorSchema,
   collaboratorUpdateSchema,
@@ -9,8 +8,10 @@ import {
 import { translateError } from "@/lib/errors/translate";
 
 /**
- * Crea un colaborador: usuario de Supabase Auth + fila en business_members
- * con role = 'colaborador' y must_change_password = true.
+ * Crea un colaborador: usuario de Supabase Auth (con su correo, SIN
+ * contraseña) + fila en business_members con role = 'colaborador'. El
+ * colaborador entra con "Continuar con Google" usando ese mismo correo
+ * (ver docs/decisions.md — "Autenticación solo con Google").
  *
  * Usa service role (ver docs/architecture.md — "Cuándo usar service role vs
  * cliente normal"): no existe (ni debe existir) una policy de "cada quien
@@ -31,12 +32,13 @@ export async function createCollaborator(
   }
 
   const admin = createAdminClient();
-  const tempPassword = generateTempPassword();
 
+  // Sin `password`: la cuenta solo se puede usar vía Google OAuth con este
+  // mismo correo. `email_confirm: true` deja el correo verificado para que
+  // Supabase vincule la identidad de Google al iniciar sesión.
   const { data: newUser, error: createError } = await admin.auth.admin.createUser({
     email: parsed.data.email,
-    password: tempPassword,
-    email_confirm: true, // el admin ya conoce/valida al colaborador, no requiere reconfirmar correo
+    email_confirm: true,
     user_metadata: {
       full_name: parsed.data.full_name,
     },
@@ -53,7 +55,6 @@ export async function createCollaborator(
     full_name: parsed.data.full_name,
     phone: parsed.data.phone || null,
     permissions: parsed.data.permissions,
-    must_change_password: true,
     created_by: createdBy,
   });
 
@@ -70,7 +71,6 @@ export async function createCollaborator(
     error: null,
     data: {
       email: parsed.data.email,
-      tempPassword,
     },
   };
 }

@@ -43,7 +43,7 @@ Aunque RLS ya bloquearía la mayoría de estos casos a nivel de base de datos, e
 await supabaseAdmin.auth.admin.signOut(userId, "global");
 ```
 
-Esto debería correr automáticamente cada vez que se rota una contraseña por seguridad (no en un cambio voluntario normal del usuario, ahí no hace falta) — agregarlo a `passwordService.ts` o donde centralicemos la lógica de rotación forzada.
+Ya expuesto como acción "Cerrar sesión en todos los dispositivos" en Perfil → Seguridad. Con "Autenticación solo con Google" ya no hay rotación de contraseñas propia — la revocación de sesiones ante un compromiso la maneja Google del lado de la cuenta.
 
 ---
 

@@ -15,12 +15,12 @@ SaaS multi-tenant. Cada negocio (`business`) es un tenant aislado. Tres roles:
 ```
 app/
 ├── (auth)/
-│   ├── login/page.tsx           # login único para los 3 roles
-│   └── actions.ts               # login, signInWithGoogle, logout, redirectByRole
-├── auth/callback/route.ts       # canjea code de Supabase (OAuth y recuperación de password)
+│   ├── login/page.tsx           # login único para los 3 roles — solo botón "Continuar con Google"
+│   └── actions.ts               # signInWithGoogle, logout
+├── auth/callback/route.ts       # canjea el code de Google OAuth; correo sin acceso → /solicitar-acceso
 ├── (dashboard)/
 │   ├── admin/
-│   │   ├── layout.tsx           # guard: role === 'admin' + mustChangePassword
+│   │   ├── layout.tsx           # guard: role === 'admin'
 │   │   ├── page.tsx             # Inicio
 │   │   ├── pedidos/page.tsx
 │   │   ├── catalogo/page.tsx
@@ -29,10 +29,10 @@ app/
 │   │   ├── reportes/page.tsx
 │   │   └── perfil/page.tsx
 │   ├── colaborador/
-│   │   ├── layout.tsx           # guard: role === 'colaborador' + mustChangePassword
+│   │   ├── layout.tsx           # guard: role === 'colaborador'
 │   │   └── page.tsx
 │   └── superadmin/
-│       ├── layout.tsx           # guard: role === 'superadmin' + mustChangePassword
+│       ├── layout.tsx           # guard: role === 'superadmin'
 │       ├── page.tsx
 │       ├── negocios/page.tsx
 │       ├── solicitudes/         # aprueba contact_requests, crea cuenta de admin
@@ -40,17 +40,14 @@ app/
 │       └── configuracion/page.tsx
 ├── (marketing)/
 │   ├── contacto/                # formulario público → contact_requests (INSERT libre)
+│   ├── solicitar-acceso/        # correo de Google sin acceso a la plataforma
 │   └── sobre-nosotros/
-├── cambiar-password/            # cambio FORZADO de password temporal (primer login)
-├── actualizar-password/         # después del link de "olvidé mi contraseña"
-└── recuperar-password/          # solicita el link de recuperación
 ```
 
 Patrón fijo de cada `layout.tsx` de rol:
 ```typescript
 const profile = await getSessionProfile();
 if (!profile || profile.role !== '<rol>') redirect('/login');
-if (profile.mustChangePassword) redirect('/cambiar-password');
 ```
 
 ## Sesión y autenticación
@@ -77,7 +74,7 @@ Resuelve el rol así: primero busca en `platform_admins` (→ superadmin), si no
 ## Cuándo usar service role vs cliente normal
 
 - Cliente normal (`@/lib/supabase/server`, sujeto a RLS): para cualquier lectura/escritura que un usuario hace sobre sus propios datos permitidos por política.
-- Service role (`@supabase/supabase-js` con `SUPABASE_SERVICE_ROLE_KEY`, salta RLS): SOLO para operaciones puntuales que RLS no puede permitir de forma segura sin abrir una puerta de escalación de privilegios. Ejemplos ya implementados: crear usuario de Auth + fila en `business_members` al aprobar una solicitud o crear un colaborador; apagar el flag `must_change_password` de la propia fila del usuario (no hay policy de "cada quien edita su fila" porque abriría edición de `role`/`permissions`).
+- Service role (`@supabase/supabase-js` con `SUPABASE_SERVICE_ROLE_KEY`, salta RLS): SOLO para operaciones puntuales que RLS no puede permitir de forma segura sin abrir una puerta de escalación de privilegios. Ejemplo ya implementado: crear usuario de Auth (sin contraseña) + fila en `business_members` al aprobar una solicitud o crear un colaborador (no hay policy de "cada quien edita su fila" porque abriría edición de `role`/`permissions`).
 - Nunca se expone la service role key al cliente/navegador. Solo dentro de archivos `"use server"`.
 
 ## Registro público
@@ -86,7 +83,7 @@ No existe signup público. Las únicas puertas de entrada son:
 1. Formulario de contacto (`/contacto`) → `contact_requests` → superadmin aprueba → se crea cuenta admin.
 2. Admin crea colaborador desde `/admin/colaboradores` → se crea cuenta colaborador.
 
-Ambas usan credenciales temporales de un solo uso + `must_change_password = true`.
+Ambas crean el usuario de Auth con el correo registrado y **sin contraseña**. La persona entra con "Continuar con Google" usando ese mismo correo (ver `decisions.md` — "Autenticación solo con Google").
 
 ## Motor conversacional del agente
 

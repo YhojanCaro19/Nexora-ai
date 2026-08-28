@@ -7,7 +7,6 @@ import { DashboardShell } from '@/components/dashboard/shared/DashboardShell';
 export default async function ColaboradorLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
   if (!profile || profile.role !== 'colaborador') redirect('/login');
-  if (profile.mustChangePassword) redirect('/cambiar-password');
 
   const avatarUrl = await getAvatarUrl(profile.userId, profile.businessId);
 

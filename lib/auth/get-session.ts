@@ -9,7 +9,6 @@ export interface SessionProfile {
   role: UserRole;
   businessId: string | null;
   permissions: string[];
-  mustChangePassword: boolean;
 }
 
 export const getSessionProfile = cache(async (): Promise<SessionProfile | null> => {
@@ -34,13 +33,12 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
       role: 'superadmin',
       businessId: null,
       permissions: [],
-      mustChangePassword: false,
     };
   }
 
   const { data: membership } = await supabase
     .from('business_members')
-    .select('role, business_id, full_name, permissions, must_change_password, businesses(is_active)')
+    .select('role, business_id, full_name, permissions, businesses(is_active)')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .maybeSingle();
@@ -59,7 +57,6 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
       role: membership.role as UserRole,
       businessId: membership.business_id,
       permissions: (membership.permissions as string[]) ?? [],
-      mustChangePassword: membership.must_change_password ?? false,
     };
   }
 

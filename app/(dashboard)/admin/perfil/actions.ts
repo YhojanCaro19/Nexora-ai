@@ -1,133 +1,19 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { createClient } from "@/lib/supabase/server";
-import { translateError } from "@/lib/errors/translate";
-import { strongPasswordSchema } from "@/lib/validators/passwordSchema";
 import { ownProfileSchema } from "@/lib/validators/profileSchema";
-import { signOtpVerification, isOtpVerificationValid, OTP_COOKIE } from "@/lib/services/otpService";
 import { updateOwnProfile, signOutAllSessions, uploadAvatar, deleteAvatar } from "@/lib/services/profileService";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
-export async function requestPasswordOtpAction() {
-  const profile = await getSessionProfile();
-  if (!profile) return { error: "No autorizado" };
-
-  // Mismo namespace de rate limit que usan colaboradores/actions.ts y
-  // superadmin/negocios/actions.ts para este mismo mecanismo de OTP — a
-  // propósito compartido por usuario en vez de acotado a esta pantalla,
-  // así nadie lo esquiva disparando el flujo desde otra pantalla.
-  const limit = checkRateLimit(`otp-request:${profile.userId}`, 3, 5 * 60 * 1000);
-  if (!limit.allowed) {
-    return { error: `Demasiados intentos. Espera ${limit.retryAfterSeconds}s y vuelve a intentarlo.` };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return { error: "No encontramos un correo asociado a tu cuenta" };
-
-  // No crea una cuenta nueva ni inicia sesión de verdad — solo dispara el
-  // envío del código a un usuario que YA existe y ya está logueado.
-  const { error } = await supabase.auth.signInWithOtp({
-    email: user.email,
-    options: { shouldCreateUser: false },
-  });
-
-  if (error) {
-    console.error("[requestPasswordOtpAction] error:", {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-    });
-    return { error: translateError(error) };
-  }
-  return { error: null };
-}
-
-export async function verifyPasswordOtpAction(code: string) {
-  const profile = await getSessionProfile();
-  if (!profile) return { error: "No autorizado" };
-
-  const limit = checkRateLimit(`otp-verify:${profile.userId}`, 5, 5 * 60 * 1000);
-  if (!limit.allowed) {
-    return { error: `Demasiados intentos. Espera ${limit.retryAfterSeconds}s y vuelve a intentarlo.` };
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return { error: "No encontramos un correo asociado a tu cuenta" };
-
-  const { error } = await supabase.auth.verifyOtp({
-    email: user.email,
-    token: code,
-    type: "email",
-  });
-
-  if (error) {
-    console.error("[verifyPasswordOtpAction] error:", {
-      message: error.message,
-      status: error.status,
-      code: error.code,
-    });
-    return { error: "Código incorrecto o vencido, pide uno nuevo." };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(OTP_COOKIE.name, signOtpVerification(user.id, "password-change"), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: OTP_COOKIE.maxAgeSeconds,
-    path: "/",
-  });
-
-  return { error: null };
-}
-
-export async function updateOwnPasswordAction(password: string) {
-  const profile = await getSessionProfile();
-  if (!profile) return { error: "No autorizado" };
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "No autorizado" };
-
-  const cookieStore = await cookies();
-  const otpCookie = cookieStore.get(OTP_COOKIE.name)?.value;
-  if (!isOtpVerificationValid(otpCookie, user.id, "password-change")) {
-    return { error: "Verifica el código enviado a tu correo antes de cambiar la contraseña." };
-  }
-
-  const parsed = strongPasswordSchema.safeParse(password);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
-  const { error } = await supabase.auth.updateUser({ password: parsed.data });
-  if (error) return { error: translateError(error) };
-
-  // Un solo uso — no se reutiliza la misma verificación para un segundo cambio.
-  cookieStore.delete(OTP_COOKIE.name);
-
-  // No bloquea la respuesta si falla — es un log de auditoría, la
-  // contraseña ya quedó cambiada. businessId puede faltar en teoría (esta
-  // action no lo exige como los otros), así que solo se loguea si existe.
-  if (profile.businessId) {
-    await logProfileSecurityEvent(profile.userId, profile.businessId, "password_changed");
-  }
-
-  return { error: null };
-}
+// AVENTHRA solo autentica con Google — no hay contraseña que cambiar. El
+// flujo de OTP para cambio de contraseña que vivía acá se eliminó junto
+// con /cambiar-password, /recuperar-password y /actualizar-password (ver
+// docs/decisions.md — "Autenticación solo con Google"). El OTP como paso
+// de re-verificación para acciones destructivas sigue vivo en
+// colaboradores/actions.ts y superadmin/negocios/actions.ts.
 
 export async function updateOwnProfileAction(input: { fullName: string; phone: string }) {
   const profile = await getSessionProfile();

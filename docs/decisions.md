@@ -8,11 +8,22 @@ Un colaborador no necesita un identificador especial para ver solo los datos de 
 ## No hay signup público
 Las cuentas solo se crean desde flujos controlados (aprobación de solicitud por superadmin, o creación de colaborador por admin), ambos usando la Admin API de Supabase con service role. Evita cuentas huérfanas sin negocio asociado.
 
+## Autenticación solo con Google
+Decisión explícita de seguridad: AVENTHRA **no maneja contraseñas ni correos propios**. El único método de inicio de sesión es "Continuar con Google". Al aprovisionar una cuenta (aprobación de solicitud, o alta de colaborador) se crea el usuario en Supabase Auth con el correo registrado y **sin `password`**, con `email_confirm: true` para que Supabase vincule la identidad de Google al iniciar sesión con ese mismo correo. Esto elimina todo el frente de ataque de contraseñas (reset, tokens de recuperación, enumeración de usuarios, contraseñas temporales en tránsito) y delega MFA y detección de anomalías a Google.
+
+Se eliminaron: `login()` con `signInWithPassword`, las rutas `/cambiar-password`, `/recuperar-password`, `/actualizar-password`, `passwordService.ts`, `passwordSchema.ts`, `PasswordField.tsx`, y la sección "Cambiar contraseña" de Perfil. La columna `business_members.must_change_password` queda **sin uso** (no se dropea todavía, para no arriesgar una migración).
+
+Si alguien entra con Google usando un correo que no tiene acceso (ni `platform_admins` ni `business_members`), el callback cierra la sesión y lo manda a `/solicitar-acceso`.
+
+El OTP por correo como paso de re-verificación para acciones destructivas (eliminar colaborador, eliminar negocio) **sigue vivo** — es independiente de las contraseñas.
+
 ## Enforcement de permisos: doble capa, no una sola
 Se decidió no confiar solo en RLS ni solo en checks de servidor. RLS es la garantía real (protege incluso si un desarrollador olvida un check en un endpoint nuevo); los checks de servidor son para dar mejor UX (mensaje de error claro en vez de fila vacía sin explicación).
 
 ## `must_change_password` vive en `business_members`, no en `user_metadata` de auth
-Se detectó y corrigió un bug donde el flujo de cambio de contraseña escribía en `user_metadata` (que nadie lee) en vez de la columna real que consulta `getSessionProfile()`. Cualquier lógica nueva que dependa de este flag debe leer/escribir la columna de `business_members`, nunca el metadata de auth.
+Se detectó y corrigió un bug donde el flujo de cambio de contraseña escribía en `user_metadata` (que nadie lee) en vez de la columna real que consulta `getSessionProfile()`.
+
+**Obsoleto desde "Autenticación solo con Google":** ya no hay contraseñas ni flujo de cambio forzado. La columna sigue en la tabla pero nada la lee ni la escribe. No usar este flag para lógica nueva.
 
 ## Personalización del agente: nunca reemplaza la capa de seguridad base
 `agent_configs` permite personalizar nombre, personalidad/tono, y varios campos más (`system_prompt_extra`, `use_emojis`, `response_length`, `language`, `priority_products`, `restrictions`) del agente de cada negocio. El motor conversacional real (`lib/services/agentEngineService.ts`) ya existe y aplica esta regla tal cual se decidió: la personalización del admin se inyecta en el prompt como una capa ADICIONAL sobre una instrucción base fija y no editable (sin groserías, nada ilegal, no salirse de los límites del rol de agente de negocio) — nunca la reemplaza ni la anula. Ningún campo de personalización debe poder desactivar o sobrescribir esa base.

@@ -3,6 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getClientIp, getUserAgent } from "@/lib/utils/request";
 import { logLoginEvent } from "@/lib/services/loginEventService";
 
+// Callback de Google OAuth — único método de autenticación de AVENTHRA.
+// Intercambia el `code` por una sesión, resuelve el rol y manda al panel.
+// Si el correo de la cuenta de Google NO tiene acceso (no es superadmin ni
+// miembro de ningún negocio), cierra la sesión y lo manda a
+// /solicitar-acceso — puede ser un correo distinto al que se registró en
+// Contáctanos, o alguien que nunca pidió acceso.
+
 const ROLE_PREFIX: Record<string, string> = {
   superadmin: "/superadmin",
   admin: "/admin",
@@ -34,42 +41,38 @@ async function resolveRoleAndBusiness(
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      // Log informativo de "Sesiones activas" (Perfil → Seguridad) — este
-      // callback también crea una sesión real (Google OAuth, magic link,
-      // recuperación de contraseña), así que queda registrado igual que
-      // login() con email/contraseña. Nunca bloquea el flujo si falla.
-      if (user) {
-        const ip = await getClientIp();
-        const userAgent = await getUserAgent();
-        const { businessId } = await resolveRoleAndBusiness(supabase, user.id);
-        await logLoginEvent(user.id, businessId, ip, userAgent);
-      }
-
-      // Si el link traía un destino explícito (ej. recuperación de contraseña
-      // -> /actualizar-password), respetamos ese destino primero.
-      // Solo aceptamos rutas relativas propias, para evitar open-redirect.
-      if (next && next.startsWith("/")) {
-        return NextResponse.redirect(`${origin}${next}`);
-      }
-
-      if (user) {
-        const { role } = await resolveRoleAndBusiness(supabase, user.id);
-        const prefix = role ? ROLE_PREFIX[role] : undefined;
-        return NextResponse.redirect(`${origin}${prefix ?? "/login"}`);
-      }
-    }
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?error=No se pudo iniciar sesión`);
   }
 
-  return NextResponse.redirect(`${origin}/login?error=No se pudo iniciar sesión`);
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error) {
+    return NextResponse.redirect(`${origin}/login?error=No se pudo iniciar sesión`);
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.redirect(`${origin}/login?error=No se pudo iniciar sesión`);
+  }
+
+  const { role, businessId } = await resolveRoleAndBusiness(supabase, user.id);
+
+  // Correo de Google sin acceso a la plataforma.
+  if (!role) {
+    await supabase.auth.signOut();
+    const email = user.email ? `?email=${encodeURIComponent(user.email)}` : "";
+    return NextResponse.redirect(`${origin}/solicitar-acceso${email}`);
+  }
+
+  // Log informativo de "Sesiones activas" (Perfil → Seguridad). Nunca
+  // bloquea el flujo si falla.
+  const ip = await getClientIp();
+  const userAgent = await getUserAgent();
+  await logLoginEvent(user.id, businessId, ip, userAgent);
+
+  return NextResponse.redirect(`${origin}${ROLE_PREFIX[role] ?? "/login"}`);
 }

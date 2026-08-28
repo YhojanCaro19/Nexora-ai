@@ -9,10 +9,8 @@
 // robot, sin <Navbar/> genérico, mismo criterio que /soluciones,
 // /precios, /clientes, /sobre-nosotros, /contacto.
 import Link from "next/link";
-import { login, signInWithGoogle } from "../actions";
+import { signInWithGoogle } from "../actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -107,38 +105,7 @@ export default async function LoginPage({
               </p>
             )}
 
-            <form action={login} className="space-y-3 md:space-y-4">
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="email" className="text-white/60 text-xs tracking-wide">Correo</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="tu@negocio.com"
-                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
-                />
-              </div>
-              <div className="space-y-1.5 md:space-y-2">
-                <Label htmlFor="password" className="text-white/60 text-xs tracking-wide">Contraseña</Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="bg-white/[0.03] border-white/10 text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-[#4CC2E8] text-black hover:bg-[#4CC2E8]/90 font-medium"
-              >
-                Iniciar sesión
-              </Button>
-            </form>
-
-            <form action={signInWithGoogle} className="mt-3">
+            <form action={signInWithGoogle}>
               <Button
                 type="submit"
                 variant="outline"
@@ -149,10 +116,8 @@ export default async function LoginPage({
               </Button>
             </form>
 
-            <p className="mt-3 text-center text-sm">
-              <Link href="/recuperar-password" className="underline text-white/35 hover:text-white/60 transition-colors">
-                ¿Olvidaste tu contraseña?
-              </Link>
+            <p className="mt-4 text-center text-xs text-white/30">
+              Usa el mismo correo con el que solicitaste acceso.
             </p>
 
             <p className="mt-4 text-center text-sm text-white/35">
