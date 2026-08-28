@@ -1,17 +1,18 @@
 // app/(dashboard)/admin/marketing/page.tsx
 //
-// Marketing IA — por ahora solo el probador de generación de imágenes
-// (valida el proveedor Gemini + el cobro en créditos). La estrategia,
-// copy y campañas son fase aparte. El rol ya lo validó el layout de /admin.
-import { MarketingPanel } from "./marketing-panel";
+// "Mis estrategias" — la lista. El rol ya lo validó el layout de /admin.
+import { getSessionProfile } from "@/lib/auth/get-session";
+import { listStrategies, getMarketingKpis } from "@/lib/services/marketingService";
+import { EstrategiasView } from "./estrategias-view";
 
-export default function MarketingPage() {
-  return (
-    <div className="space-y-8">
-      <h1 className="font-nexora text-xl text-center" style={{ color: "var(--nexora-ink)" }}>
-        Marketing IA
-      </h1>
-      <MarketingPanel />
-    </div>
-  );
+export default async function MarketingPage() {
+  const profile = await getSessionProfile();
+  if (!profile?.businessId) return null;
+
+  const [strategies, kpis] = await Promise.all([
+    listStrategies(profile.businessId),
+    getMarketingKpis(profile.businessId),
+  ]);
+
+  return <EstrategiasView strategies={strategies} kpis={kpis} />;
 }

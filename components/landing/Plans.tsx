@@ -41,8 +41,8 @@ const PLANS: Plan[] = [
     Icon: MessageCircle,
     monthlyPrice: 39,
     annualPrice: 390,
-    credits: '7.000 créditos / mes',
-    creditsNote: '≈ 140 conversaciones con tus clientes',
+    credits: '3.000 créditos / mes',
+    creditsNote: '≈ 12 estrategias completas, o 1.000 respuestas del agente',
     features: [
       '1 negocio vinculado',
       'Agente 24/7 en WhatsApp e Instagram',
@@ -58,8 +58,8 @@ const PLANS: Plan[] = [
     highlighted: true,
     monthlyPrice: 99,
     annualPrice: 990,
-    credits: '20.000 créditos / mes',
-    creditsNote: '≈ 400 conversaciones o 15 campañas completas',
+    credits: '10.000 créditos / mes',
+    creditsNote: '≈ 40 estrategias completas + campañas y atención',
     features: [
       'Todo lo de Atención',
       '1 negocio vinculado',
@@ -74,8 +74,8 @@ const PLANS: Plan[] = [
     Icon: Rocket,
     monthlyPrice: 249,
     annualPrice: 2490,
-    credits: '55.000 créditos / mes',
-    creditsNote: '≈ 1.100 conversaciones + campañas para varios negocios',
+    credits: '30.000 créditos / mes',
+    creditsNote: '≈ 120 estrategias, para operar varios negocios a la vez',
     features: [
       'Todo lo de Crecimiento',
       '3 negocios vinculados',
