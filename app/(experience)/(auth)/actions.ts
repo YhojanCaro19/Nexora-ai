@@ -20,6 +20,10 @@ export async function signInWithGoogle() {
     provider: "google",
     options: {
       redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/callback`,
+      // Fuerza el selector de cuenta de Google en cada login — si no,
+      // cuando hay una sola sesión de Google activa Google se lo salta y
+      // mete directo, sin dejar elegir otra cuenta.
+      queryParams: { prompt: "select_account" },
     },
   });
 
