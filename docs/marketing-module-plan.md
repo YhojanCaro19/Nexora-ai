@@ -139,15 +139,107 @@ lee el backend con service role — nunca llegan al cliente.
 | `campaign_publish` | 8 |
 | `wa_marketing_message` | 4 |
 
-## 7. Decisiones abiertas (para arrancar Fase 1)
+## 7. Decisiones tomadas (2026-08-28)
 
-- [ ] ¿El wizard de estrategia hace preguntas al admin, o infiere todo del
-      negocio (catálogo, industria) y el admin solo ajusta?
-- [ ] ¿Los creativos los compone la IA entera (texto dentro de la imagen), o
-      la IA hace el fondo/producto y AVENTHRA superpone titular + testimonios
-      con plantillas? (la 2da da más control y consistencia de marca)
-- [ ] ¿El "CRM" es solo ventas atribuidas a campañas, o un CRM de leads
-      completo (etapas, seguimiento)? — cambia mucho el alcance
-- [ ] ¿Primera plataforma de anuncios a integrar: Meta? (es la más común para
-      PYMEs en LatAm)
-- [ ] Moneda de la inversión de pauta: COP (Wompi/mercado local) vs USD
+- **Estrategia:** wizard con 4-6 preguntas al admin → la IA genera con eso.
+- **Creativos:** la IA compone todo (imagen + textos adentro). MVP; editor de
+  capas queda para después.
+- **CRM:** solo ventas atribuidas a campañas — reusa `orders` + un campo de
+  atribución. CRM de leads completo es otra decisión.
+- **Primera API de anuncios:** Meta Ads.
+- Moneda de inversión: por definir (COP vs USD).
+
+## 8. Conexiones y publicación de pauta — cómo funciona
+
+### El modelo: el cliente conecta SU propia cuenta ("bring your own account")
+
+AVENTHRA **no** corre los anuncios bajo cuentas propias. El admin conecta su
+cuenta de Meta/Google/TikTok vía OAuth, y AVENTHRA **orquesta** con el token
+del cliente: las campañas se crean en la cuenta del cliente, y **la tarjeta
+del cliente en Meta/Google paga la pauta**. AVENTHRA nunca toca el dinero de
+anuncios directo. (Es lo que hacen AdCreative, Metricool, Hootsuite, etc.)
+
+El modelo "agencia" (AVENTHRA corre todo bajo cuentas propias y cobra la pauta
+aparte por Wompi) se descarta: te vuelve el anunciante legal, tienes que
+frontear la plata, y Meta/Google te exigen ser reseller registrado.
+
+### Setup de AVENTHRA (una vez, lo hace el dueño)
+
+**Meta:**
+1. App en developers.facebook.com → productos "Facebook Login for Business" +
+   "Marketing API"
+2. **Business Verification** del Business Manager de AVENTHRA
+3. Solicitar **Advanced Access** para `ads_management`, `business_management`
+   → **App Review** (screencast del flujo + política de privacidad). **1-4
+   semanas**, puede rebotar con cambios.
+4. App ID + App Secret + redirect URI de OAuth
+
+> **Durante el review**: con "Standard Access" el API solo funciona para
+> cuentas de anuncios donde los devs/testers de la app son admin. O sea:
+> **se puede construir y probar todo con TU propia cuenta de Meta Ads antes
+> de la aprobación.**
+
+### Flujo de conexión del cliente (en `/admin/marketing/conexiones`)
+
+1. Admin → "Conectar Meta Ads" → redirect a OAuth de Meta
+   (`scope=ads_management,business_management,pages_show_list,pages_read_engagement`)
+2. Meta muestra el consentimiento: "AVENTHRA quiere gestionar tus anuncios" →
+   el cliente elige qué Business / Ad Account / Página autorizar
+3. Callback → AVENTHRA canjea `code` → token corto → **token largo (60 días)**
+   o mejor un **System User token** (no expira)
+4. Se guarda **cifrado** en `ad_accounts`: token, `ad_account_id`, `page_id`,
+   expiración. Se muestra el estado conectado.
+
+### Publicar una campaña (cuando el admin aprueba)
+
+Backend de AVENTHRA, con el token guardado, llama a la Marketing API de Meta:
+```
+POST /act_<ad_account_id>/adimages        -- sube el creativo
+POST /act_<ad_account_id>/campaigns        -- objetivo, status=PAUSED
+POST /act_<ad_account_id>/adsets           -- presupuesto, fechas, targeting
+                                              (ubicación, idioma, intereses),
+                                              optimization_goal, billing_event
+POST /act_<ad_account_id>/adcreatives      -- titular, cuerpo, CTA, link, page_id
+POST /act_<ad_account_id>/ads              -- une adset + creative
+```
+- Se crea **PAUSED**. AVENTHRA le muestra al admin el resumen exacto
+  (presupuesto diario/total, duración, alcance estimado) → **el admin confirma
+  el gasto** → se activa (status=ACTIVE). **La confirmación se loguea.**
+- Se guarda el `external_id` (id de campaña de Meta) en `campaigns`.
+
+### Métricas (cron diario)
+
+```
+GET /<campaign_id>/insights?fields=impressions,reach,clicks,spend,actions
+```
+→ se escribe en `campaign_metrics`.
+
+### Tokens
+
+- Token largo expira a 60 días → cron que refresca antes, o System User token.
+- Si un token muere → `ad_accounts.status='expired'` + avisar al admin que
+  reconecte. Nunca publicar con un token vencido.
+
+### Google Ads / TikTok Ads (Fase 3)
+
+Mismo patrón (OAuth + guardar token cifrado + orquestar). Diferencias:
+- **Google Ads:** además del OAuth, hace falta un **developer token** de un
+  Google Ads Manager (MCC) — se aplica y Google lo aprueba (días-semanas).
+- **TikTok Ads:** TikTok for Business developer account + app review.
+
+### Orden real
+
+| Paso | Quién | Cuándo |
+|---|---|---|
+| Crear app de Meta + Business Verification + enviar App Review | dueño | ya, corre en paralelo |
+| Construir `ad_accounts` + OAuth + publish flow (probado con tu cuenta) | dev | Fase 2 |
+| Aprobación de Meta | Meta | 1-4 semanas |
+| Clientes conectan sus cuentas | — | post-aprobación |
+
+## 9. Siguiente
+
+1. **Recargar Anthropic + Gemini** → desbloquea Fase 1 (estrategias, copy,
+   creativos, campañas en borrador).
+2. **Empezar la app de Meta** (dev account + Business Verification) → corre en
+   paralelo, es el cuello de botella de la Fase 2.
+3. Construir Fase 1 mientras Meta revisa.
