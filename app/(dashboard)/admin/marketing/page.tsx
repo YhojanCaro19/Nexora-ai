@@ -1,20 +1,17 @@
 // app/(dashboard)/admin/marketing/page.tsx
-import { getSessionProfile } from "@/lib/auth/get-session";
-import { getMarketingImages } from "@/lib/services/marketingImageService";
+//
+// Marketing IA — por ahora solo el probador de generación de imágenes
+// (valida el proveedor Gemini + el cobro en créditos). La estrategia,
+// copy y campañas son fase aparte. El rol ya lo validó el layout de /admin.
 import { MarketingPanel } from "./marketing-panel";
 
-export default async function MarketingPage() {
-  const profile = await getSessionProfile();
-  if (!profile || !profile.businessId) return null;
-
-  const images = await getMarketingImages(profile.businessId);
-
+export default function MarketingPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
-        Marketing
+    <div className="space-y-8">
+      <h1 className="font-nexora text-xl text-center" style={{ color: "var(--nexora-ink)" }}>
+        Marketing IA
       </h1>
-      <MarketingPanel images={images} />
+      <MarketingPanel />
     </div>
   );
 }

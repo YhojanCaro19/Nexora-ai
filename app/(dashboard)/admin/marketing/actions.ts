@@ -1,27 +1,30 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
-import { generateMarketingImage, type ImageQuality } from "@/lib/services/marketingImageService";
+import { generateImage, type ImageQuality, type GenerateImageResult } from "@/lib/services/imageService";
 
-// Generar imágenes cuesta dinero real de la cuenta de OpenAI del proyecto
-// — el límite acá no es solo anti-abuso de UI, es control de gasto.
-export async function generateMarketingImageAction(prompt: string, quality: ImageQuality) {
+// Generación de imagen de prueba desde el panel de Marketing IA. Todavía
+// no se guarda en ningún lado — es para validar el proveedor (Gemini) y el
+// cobro en créditos. El módulo de marketing completo (estrategia, copy,
+// campañas) es fase aparte.
+export async function generateImageAction(
+  prompt: string,
+  quality: ImageQuality
+): Promise<GenerateImageResult> {
   const profile = await getSessionProfile();
-  if (!profile || !profile.businessId || profile.role !== "admin") {
-    return { error: "No autorizado", image: null };
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { ok: false, reason: "provider_error", message: "No autorizado" };
   }
 
-  const limit = checkRateLimit(`marketing-image:${profile.businessId}`, 10, 60 * 60 * 1000);
+  const limit = checkRateLimit(`generar-imagen:${profile.userId}`, 10, 60 * 1000);
   if (!limit.allowed) {
     return {
-      error: `Llegaste al límite de generación por hora. Espera ${Math.ceil(limit.retryAfterSeconds / 60)} min.`,
-      image: null,
+      ok: false,
+      reason: "provider_error",
+      message: `Demasiadas imágenes seguidas. Espera ${limit.retryAfterSeconds}s.`,
     };
   }
 
-  const result = await generateMarketingImage(profile.businessId, prompt, quality);
-  revalidatePath("/admin/marketing");
-  return result;
+  return generateImage(profile.businessId, prompt, quality);
 }
