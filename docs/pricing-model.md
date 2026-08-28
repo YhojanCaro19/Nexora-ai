@@ -265,3 +265,68 @@ nuestra. No cobran el chat — solo generación de creativos.
 Nuestro modelo (crédito fino, unifica agente + marketing) es más flexible pero
 obliga a vigilar que el agente no dispare el consumo — de ahí las palancas de
 la sección 8.
+
+**SaleADS.ai** (2026): PRO $59/mes = **400 créditos → 15 imágenes estándar** +
+8 campañas/mes + 1 negocio + biblioteca de +20 estrategias. BUSINESS $119/mes =
+**3.180 créditos → 30 imágenes ULTRA HD o 138 básicas** + 30 campañas/mes +
+3 negocios + velocidad prioritaria + data comparativa.
+
+Lo clave de SaleADS: **cobran el ENTREGABLE, no el costo de API.** $59 por 15
+imágenes = **~$3,93 por imagen** (nuestro costo real ~$0,04). El "crédito" no
+vale nada solo — el valor está en el nº de campañas y en que la imagen sale
+lista para anuncio. Y meten **tope de campañas** aparte de los créditos.
+
+---
+
+## 11. Precios v4 — cobrar el entregable (2026-08-28)
+
+La v3 estaba **~10× regalada en marketing**: imagen a 15 créditos ($0,15)
+cuando el mercado la cobra a $2–4. Corrección: la parte de marketing se cobra
+como **entregable**, no costo + margen. El agente sí sigue barato (alto
+volumen, el cliente es sensible a que baje "solo por conversar").
+
+### Costo en créditos v4
+
+| Acción | Créditos | ≈ USD | Racional |
+|---|---|---|---|
+| **Respuesta del agente** | 3 | $0,03 | alto volumen, barato a propósito |
+| **Estrategia completa** (wizard + IA: posicionamiento, ángulos, plan) | 250 | $2,50 | entregable |
+| **Pieza** (imagen lista para anuncio + copy) | 200 | $2,00 | entregable |
+| Imagen suelta estándar | 40 | $0,40 | à la carte |
+| Imagen HD | 90 | $0,90 | à la carte |
+| Copy suelto | 15 | $0,15 | à la carte |
+| Lanzar campaña (a Meta/Google/TikTok) | 100 | $1,00 | orquestación + valor |
+| Mensaje marketing WhatsApp | 5 | $0,05 | passthrough Meta + margen |
+
+### Planes v4
+
+| | Atención | Crecimiento ★ | Escala |
+|---|---|---|---|
+| Mensual | $39 | $99 | $249 |
+| Créditos/mes | **3.000** | **10.000** | **30.000** |
+| ≈ Estrategias completas | ~12 | ~40 | ~120 |
+| ≈ Piezas | ~15 | ~50 | ~150 |
+| ≈ Conversaciones agente (25 msg, con lo que sobre) | ~40 | ~130 | ~400 |
+| Negocios vinculados | 1 | 1 | 3 |
+
+Un cliente elige cómo repartir su saldo. 3.000 créditos = 12 estrategias **o**
+1.000 respuestas del agente **o** una mezcla.
+
+### Margen (peor caso, 100% quemado en la acción más barata para nosotros)
+
+| Plan | Ingreso | Costo IA si todo va al agente (3 cr, ~$0,008/turno cacheado) | Margen |
+|---|---|---|---|
+| Atención $39 | $39 | ~$8 | **~79%** |
+| Crecimiento $99 | $99 | ~$27 | **~73%** |
+| Escala $249 | $249 | ~$80 | **~68%** |
+
+Si el saldo va a marketing (imágenes ~$0,04, estrategia ~$0,03 de costo) el
+margen sube a **>90%**. **Ventaja sobre SaleADS:** AVENTHRA además trae el
+**agente conversacional** (atención por WhatsApp/IG) que SaleADS no tiene —
+más producto por el mismo precio, o margen para subir.
+
+### Nota
+
+`credit_prices` y `plans` en la DB tienen la v3 seedeada con `on conflict do
+nothing`. Para pasar a v4 hay que correr los `UPDATE` explícitos (ver
+`docs/sql/pricing-v4.sql`).
