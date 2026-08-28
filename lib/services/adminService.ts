@@ -1,6 +1,12 @@
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
+import { grantCredits } from "@/lib/services/creditService";
 import { getIndustryTemplate } from "@/lib/services/agentTemplateService";
+
+// Créditos de cortesía al aprobar un negocio nuevo — le alcanzan para
+// probar el agente y algo de marketing mientras no hay plan pagado.
+// Ajustable sin migración.
+const TRIAL_CREDITS = 1500;
 import { getAgentUsageByBusiness } from "@/lib/services/agentUsageService";
 import { AGENT_TOOLS, sanitizeToolKeys } from "@/lib/config/agentTools";
 import { logPlatformAdminAction } from "@/lib/services/auditLogService";
@@ -169,6 +175,16 @@ export async function createAccountFromRequest(
     .from("contact_requests")
     .update({ status: "approved" })
     .eq("id", requestId);
+
+  // Créditos de prueba para que el negocio pueda usar el agente antes de
+  // tener un plan pagado (Wompi es fase aparte). Van al bucket 'topup'
+  // porque no dependen de un ciclo de plan. No es fatal si falla — el
+  // negocio queda creado igual, el superadmin puede recargar a mano.
+  try {
+    await grantCredits(business.id, TRIAL_CREDITS, "topup", "trial", "signup", requestId);
+  } catch (creditError) {
+    console.error("[createAccountFromRequest] no se pudieron acreditar los créditos de prueba:", creditError);
+  }
 
   await logPlatformAdminAction(createdBy, "request_approved", business.id, business.name);
 
