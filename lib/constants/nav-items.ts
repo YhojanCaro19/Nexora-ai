@@ -13,6 +13,7 @@ import {
   Zap,
   Sparkles,
   ShieldCheck,
+  Coins,
 } from 'lucide-react';
 
 export type NavItem = { label: string; href: string; icon: LucideIcon };
@@ -56,6 +57,7 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     label: 'Negocio',
     items: [
+      { label: 'Créditos', href: '/admin/creditos', icon: Coins },
       { label: 'Colaboradores', href: '/admin/colaboradores', icon: Users },
       { label: 'Reportes', href: '/admin/reportes', icon: FileBarChart },
       { label: 'Perfil', href: '/admin/perfil', icon: UserCircle },

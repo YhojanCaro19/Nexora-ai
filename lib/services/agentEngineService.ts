@@ -18,6 +18,7 @@ import { getAgentConfig, type AgentConfig, type FaqEntry } from "@/lib/services/
 import { getOrCreateCustomer } from "@/lib/services/customerService";
 import { getOrCreateConversation, appendConversationTurn } from "@/lib/services/conversationService";
 import { logAgentUsage } from "@/lib/services/agentUsageService";
+import { getCreditPrice, deductCredits } from "@/lib/services/creditService";
 import { createOrder, getCustomerOrderStats, type CustomerOrderStats } from "@/lib/services/orderService";
 import { generateEmbedding } from "@/lib/services/embeddingService";
 import { SUPPORTED_TOOL_KEYS, type AgentToolKey } from "@/lib/config/agentTools";
@@ -107,9 +108,34 @@ export async function runAgentTurn(
   await Promise.all([
     appendConversationTurn(conversation.id, conversation.messages, userMessage, replyText),
     logAgentUsage(businessId, usage, MODEL),
+    chargeAgentReply(businessId, conversation.id),
   ]);
 
   return { reply: replyText, error: null };
+}
+
+// Descuenta el costo en créditos de una respuesta del agente DESPUÉS de
+// haberla enviado. Nunca rompe la respuesta al cliente:
+//   - módulo de créditos no aplicado / acción sin precio → no cobra
+//   - saldo insuficiente → la respuesta ya salió, solo se loguea (el bloqueo
+//     por saldo se agrega cuando Wompi esté vivo, ver docs/pricing-model.md)
+async function chargeAgentReply(businessId: string, conversationId: string): Promise<void> {
+  try {
+    const price = await getCreditPrice("agent_reply");
+    if (!price) return;
+    const newBalance = await deductCredits(
+      businessId,
+      price,
+      "agent_reply",
+      "conversation",
+      conversationId
+    );
+    if (newBalance === null) {
+      console.warn(`[chargeAgentReply] negocio ${businessId} sin créditos — respuesta enviada igual`);
+    }
+  } catch (err) {
+    console.error("[chargeAgentReply] error:", err);
+  }
 }
 
 async function getBusinessName(businessId: string): Promise<string> {
