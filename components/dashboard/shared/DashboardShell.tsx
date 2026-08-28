@@ -1,6 +1,7 @@
 'use client';
 
-import { LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { LogOut, ArrowUpCircle } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { CreditsBadge } from './CreditsBadge';
 import { logout } from '@/app/(experience)/(auth)/actions';
@@ -88,6 +89,17 @@ export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = n
                 credits={credits}
                 href={role === 'admin' ? '/admin/creditos' : null}
               />
+            )}
+            {role === 'admin' && (
+              <Link
+                href="/admin/creditos"
+                className="hidden items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium transition-colors sm:flex"
+                style={{ color: 'var(--nexora-ink-dim)' }}
+                title="Mejorar plan / comprar créditos"
+              >
+                <ArrowUpCircle size={15} strokeWidth={1.75} />
+                Mejorar plan
+              </Link>
             )}
             <form action={logout}>
               <button
