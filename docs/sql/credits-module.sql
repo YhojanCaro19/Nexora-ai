@@ -62,7 +62,8 @@ create index if not exists credit_ledger_business_created_idx
   on public.credit_ledger (business_id, created_at desc);
 
 
--- ---- 5. Extender `subscriptions` (ya existe) -------------------
+-- ---- 5. Extender `subscriptions` (ya existe, ya tiene RLS + 3 policies) ----
+-- Solo se le agregan columnas. Su RLS y sus policies NO se tocan.
 alter table public.subscriptions
   add column if not exists plan_id         uuid references public.plans(id),
   add column if not exists billing_period  text,               -- 'monthly' | 'annual'
@@ -282,18 +283,16 @@ grant execute on function public.grant_credits(uuid,integer,text,text,text,text)
 grant execute on function public.reset_plan_credits(uuid,integer,timestamptz)     to service_role;
 
 
--- ---- 9. RLS ---------------------------------------------------
+-- ---- 9. RLS (solo tablas nuevas — subscriptions NO se toca) ----
 alter table public.plans          enable row level security;
 alter table public.credit_prices  enable row level security;
 alter table public.credit_wallets enable row level security;
 alter table public.credit_ledger  enable row level security;
-alter table public.subscriptions  enable row level security;
 
-drop policy if exists plans_read        on public.plans;
-drop policy if exists prices_read       on public.credit_prices;
-drop policy if exists wallet_read       on public.credit_wallets;
-drop policy if exists ledger_read       on public.credit_ledger;
-drop policy if exists subscription_read on public.subscriptions;
+drop policy if exists plans_read  on public.plans;
+drop policy if exists prices_read on public.credit_prices;
+drop policy if exists wallet_read on public.credit_wallets;
+drop policy if exists ledger_read on public.credit_ledger;
 
 -- plans y credit_prices: lectura pública (la landing/precios los mostrarán)
 create policy plans_read  on public.plans         for select using (true);
@@ -306,10 +305,6 @@ create policy wallet_read on public.credit_wallets for select
 -- ledger: solo el admin del negocio ve su historial
 create policy ledger_read on public.credit_ledger for select
   using (public.is_business_admin(business_id));
-
--- suscripción: el negocio ve la suya
-create policy subscription_read on public.subscriptions for select
-  using (public.is_business_member(business_id));
 
 -- Sin políticas de INSERT/UPDATE/DELETE para usuarios en estas tablas:
 -- todo pasa por las funciones SECURITY DEFINER (service_role).
