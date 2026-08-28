@@ -6,6 +6,17 @@
 - Nunca uses la service role key fuera de server actions marcados "use server".
 - Al crear una página nueva bajo app/(dashboard)/, sigue el patrón ya existente: layout.tsx valida rol y mustChangePassword, page.tsx hace la consulta de datos.
 
+## Antes de desplegar a producción — bloqueadores duros
+No se puede sacar AVENTHRA a producción hasta tener TODO esto funcionando de verdad, probado y configurado. Si en algún momento se habla de desplegar/lanzar, recordar esta lista y no proceder sin ella:
+- **Cuentas de IA con saldo real:** Anthropic (agente + estrategias + copy) y Gemini (imágenes) recargadas, con auto-reload y alertas de presupuesto. El agente y el marketing deben responder de punta a punta.
+- **Dominio propio verificado:** para Resend (OTP + reportes a destinatarios reales) y para las URLs de producción. Hoy Resend está en sandbox — ver `docs/` y la memoria del bloqueador de Resend.
+- **Meta Ads:** app de Meta creada, Business Verification hecha, App Review de `ads_management` APROBADO, OAuth y publicación de pauta probados end-to-end con una cuenta real.
+- **Google Ads:** developer token aprobado, OAuth y publicación probados.
+- **TikTok Ads:** app aprobada, OAuth y publicación probados. (Si TikTok se pospone al post-lanzamiento, decidirlo explícitamente y marcarlo en la landing como "en camino").
+- **Segundo factor:** confirmado que "MFA = la 2FA de Google" es suficiente, o TOTP propio construido — ver la memoria de MFA.
+- **Pagos:** Wompi en producción (no sandbox), verificación del comercio hecha, webhook validando firma, y el ciclo completo probado (comprar plan → acreditar créditos → renovar mes).
+- Todo "aprendido y configurado" — nadie despliega una integración que no entiende cómo opera ni cómo se corrige si falla.
+
 ## Nunca sin confirmación explícita
 - Nunca modifiques contraseñas o credenciales de cuentas reales existentes sin pedir permiso primero, incluso para debugging. Si necesitas una cuenta de prueba, créala nueva — no reutilices ni sobrescribas una existente.
 
