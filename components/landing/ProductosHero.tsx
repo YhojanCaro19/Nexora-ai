@@ -40,13 +40,12 @@ export function ProductosHero() {
           Palabras clave en blanco pleno, relleno en gris (estilo saleads). */}
       <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center pb-28 text-center lg:pb-40">
         <p className="aventhra-copy text-base font-normal leading-relaxed text-white/45 md:text-xl md:leading-relaxed">
-          <span className="text-white">AVENTHRA</span> gestiona tus mensajes.
-          Te damos un <span className="text-white">agente</span> que{' '}
-          <span className="text-white">contesta</span>,{' '}
-          <span className="text-white">ofrece</span> y{' '}
-          <span className="text-white">vende</span> por ti —{' '}
-          <span className="text-white">a toda hora</span>, sin que muevas un
-          dedo.
+          <span className="text-white">AVENTHRA</span> hace tu{' '}
+          <span className="text-white">marketing</span> y{' '}
+          <span className="text-white">atiende</span> a tus clientes. Consigue
+          que te <span className="text-white">escriban</span>, responde cada
+          mensaje y <span className="text-white">cierra la venta</span> — a toda
+          hora.
         </p>
 
         <OrbitButton href="/contacto" className="mt-10">
