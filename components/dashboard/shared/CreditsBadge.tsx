@@ -19,20 +19,20 @@ interface CreditsBadgeProps {
 export function CreditsBadge({ credits, href = null }: CreditsBadgeProps) {
   const inner = (
     <>
-      <CreditCoin className="h-5 w-5 drop-shadow-[0_0_6px_rgba(129,140,248,0.55)]" />
+      <CreditCoin className="h-7 w-7 drop-shadow-[0_0_9px_rgba(129,140,248,0.6)]" />
       <span
-        className="text-sm font-semibold tabular-nums"
+        className="text-base font-semibold tabular-nums"
         style={{ color: "var(--nexora-ink)" }}
       >
         {credits === null ? "—" : credits.toLocaleString("es-CO")}
       </span>
-      <span className="hidden text-xs sm:inline" style={{ color: "var(--nexora-ink-dim)" }}>
+      <span className="hidden text-[13px] sm:inline" style={{ color: "var(--nexora-ink-dim)" }}>
         créditos
       </span>
     </>
   );
 
-  const cls = "flex items-center gap-2 rounded-full border px-3 py-1.5";
+  const cls = "flex items-center gap-2.5 rounded-full border px-4 py-2";
   const style = { borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" };
 
   if (href) {
