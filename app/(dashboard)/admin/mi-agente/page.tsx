@@ -4,10 +4,7 @@ import { getAgentConfig } from "@/lib/services/agentConfigService";
 import { getProducts } from "@/lib/services/productService";
 import { AGENT_TOOLS } from "@/lib/config/agentTools";
 import { MiAgentePanel } from "./mi-agente-panel";
-// TestAgentChat ("Probar tu agente") se dejó de mostrar a pedido explícito
-// del usuario — el componente y sus actions siguen intactos en
-// ./test-agent-chat, solo se quitó de esta página. Reactivar es un
-// one-liner: reponer el import + el JSX de abajo.
+import { TestAgentChat } from "./test-agent-chat";
 
 const DEFAULT_AGENT_CONFIG = {
   name: "Tu Agente",
@@ -44,6 +41,10 @@ export default async function MiAgentePage() {
         Mi Agente
       </h1>
       <MiAgentePanel agentConfig={agentConfig} catalog={AGENT_TOOLS} products={products} />
+
+      <div className="border-t pt-10" style={{ borderColor: 'var(--nexora-line)' }}>
+        <TestAgentChat />
+      </div>
     </div>
   );
 }
