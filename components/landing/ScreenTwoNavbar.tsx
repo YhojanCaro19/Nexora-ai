@@ -99,16 +99,17 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
           "que medio se vea lo que pasa atrás") + blur para que el texto
           siga legible. `pointer-events-auto` solo acá — el resto de la
           barra deja pasar el contenido. */}
-      <nav className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-black/50 py-2 pl-5 pr-2 shadow-2xl backdrop-blur-xl">
+      <nav className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 py-2 pr-2 pl-8 shadow-2xl backdrop-blur-xl">
         {/* Logo — aventhra-logo (Space Grotesk, ver Navbar.tsx), más chico
-            para la isla. */}
+            para la isla. `pl-8` para que el borde curvo del pill no quede
+            pegado a la "A". */}
         <Link href="/" className="shrink-0" onClick={handleLogoClick}>
-          <span className="aventhra-logo text-lg tracking-[0.18em] text-white">
+          <span className="aventhra-logo text-base tracking-[0.18em] text-white">
             AVENTHRA
           </span>
         </Link>
 
-        <span aria-hidden className="mx-1 h-4 w-px bg-white/15" />
+        <span aria-hidden className="mx-2 h-4 w-px shrink-0 bg-white/15" />
 
         {/* Navegación por sección de la landing larga. En hover/focus:
             línea fina abajo + texto más blanco, sin "card" alrededor
@@ -118,25 +119,25 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
             key={section.key}
             type="button"
             onClick={() => goToSection(section.id)}
-            className="group relative px-2 py-1.5 text-sm font-light text-white/60 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
+            className="group relative shrink-0 px-2.5 py-1.5 text-sm font-light text-white/60 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
           >
             {t(section.key)}
             <span
               aria-hidden
-              className="pointer-events-none absolute bottom-0 left-2 right-2 h-px origin-center scale-x-0 bg-white transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
+              className="pointer-events-none absolute bottom-0 left-2.5 right-2.5 h-px origin-center scale-x-0 bg-white transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
             />
           </button>
         ))}
 
-        <span aria-hidden className="mx-1 h-4 w-px bg-white/15" />
+        <span aria-hidden className="mx-2 h-4 w-px shrink-0 bg-white/15" />
 
-        <LocaleToggle className="px-1" />
+        <LocaleToggle className="shrink-0 px-1" />
 
         {/* Acceso — píldora con el anillo de degradado girando, vía el
             componente probado OrbitFrame (el mismo que usan las cards de
             Plans). */}
         <OrbitFrame
-          className="ml-1 inline-block rounded-full"
+          className="ml-1 inline-block shrink-0 rounded-full"
           innerClassName="rounded-full bg-[#0b0b0f]"
           ringSize="h-[280px] w-[280px]"
         >

@@ -8,7 +8,6 @@
 // es una ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin
 // robot, sin <Navbar/> genérico, mismo criterio que /productos,
 // /contacto y /solicitar-acceso.
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { signInWithGoogle } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -124,13 +123,6 @@ export default async function LoginPage({
 
             <p className="mt-4 text-center text-xs text-white/30">
               {t("emailHint")}
-            </p>
-
-            <p className="mt-4 text-center text-sm text-white/35">
-              {t("noAccount")}{" "}
-              <Link href="/contacto" className="underline text-white/60 hover:text-white transition-colors">
-                {t("contact")}
-              </Link>
             </p>
           </CardContent>
         </Card>

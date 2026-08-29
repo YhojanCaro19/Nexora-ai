@@ -218,5 +218,10 @@
       "noAccount": "¿Aún no tienes cuenta?",
       "contact": "Contáctanos"
     }
+  },
+  "whatsapp": {
+    "cta": "¿Tienes dudas? Escríbenos",
+    "aria": "Hablar con AVENTHRA por WhatsApp",
+    "prefill": "Hola, tengo una duda sobre AVENTHRA."
   }
 }
