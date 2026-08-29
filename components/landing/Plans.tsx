@@ -98,7 +98,7 @@ const PLANS: Plan[] = [
 function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
   const { Icon } = plan;
   return (
-    <div className="flex h-full flex-col p-7 md:p-8">
+    <div className="flex h-full w-full flex-col p-7 md:p-8">
       {/* Logo y título centrados; el resto de la card alineado a la izquierda. */}
       <span
         className={`mx-auto flex h-11 w-11 items-center justify-center rounded-xl border ${
