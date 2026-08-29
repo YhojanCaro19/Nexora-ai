@@ -107,7 +107,7 @@ function PlanBody({
         </p>
       )}
       <div className={`${annual ? 'mt-1' : 'mt-6'} flex items-baseline gap-2`}>
-        <span className="nexora-headline text-4xl font-semibold text-white">
+        <span className="aventhra-iridescent nexora-headline text-4xl font-semibold">
           {annual ? fmt(meta.annualPrice) : fmt(meta.monthlyPrice)}
         </span>
         <span className="text-sm text-white/40">
