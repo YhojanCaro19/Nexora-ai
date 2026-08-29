@@ -24,7 +24,7 @@ export const SUPERADMIN_NAV: NavGroup[] = [
     label: 'Plataforma',
     items: [
       { label: 'Negocios', href: '/superadmin/negocios', icon: Building2 },
-      { label: 'Solicitudes', href: '/superadmin/solicitudes', icon: ClipboardList },
+      { label: 'Registros', href: '/superadmin/registros', icon: ClipboardList },
       { label: 'Reportes', href: '/superadmin/reportes', icon: FileBarChart },
     ],
   },
