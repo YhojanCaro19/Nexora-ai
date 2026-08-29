@@ -47,6 +47,98 @@ function buildDailyReportEmailHtml(businessName: string, summary: DailySalesSumm
   `;
 }
 
+// Wrapper mínimo de envío — comparte el mismo criterio que el resto del
+// archivo: no lanza, devuelve { error }.
+async function sendEmail(params: {
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<{ error: string | null }> {
+  const fromAddress = process.env.RESEND_FROM_EMAIL;
+  if (!fromAddress) {
+    return { error: "RESEND_FROM_EMAIL no está configurada" };
+  }
+  try {
+    const resend = getResendClient();
+    const { error } = await resend.emails.send({
+      from: fromAddress,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    });
+    if (error) {
+      console.error("[sendEmail] error de Resend:", error);
+      return { error: error.message || "No se pudo enviar el correo" };
+    }
+    return { error: null };
+  } catch (err) {
+    console.error("[sendEmail] excepción:", err);
+    return { error: err instanceof Error ? err.message : "No se pudo enviar el correo" };
+  }
+}
+
+function emailShell(bodyHtml: string): string {
+  return `
+    <div style="font-family: Helvetica, Arial, sans-serif; color: #111827; max-width: 480px; margin: 0 auto; line-height: 1.6;">
+      ${bodyHtml}
+      <p style="color: #9ca3af; font-size: 12px; margin-top: 28px;">AVENTHRA</p>
+    </div>
+  `;
+}
+
+// Correo con el link para activar la cuenta tras pagar un plan. El link
+// va SIEMPRE al correo con el que se pagó — abrirlo es la prueba de que la
+// persona tiene acceso a ese correo (no hay OTP aparte). Ese mismo correo
+// será su acceso con "Continuar con Google".
+export async function sendRegistrationLinkEmail(
+  to: string,
+  data: { link: string; planName: string; expiresAt: string }
+): Promise<{ error: string | null }> {
+  const expira = new Date(data.expiresAt).toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return sendEmail({
+    to,
+    subject: "Activa tu cuenta de AVENTHRA",
+    html: emailShell(`
+      <h2 style="margin-bottom: 4px;">¡Gracias por tu compra!</h2>
+      <p>Recibimos tu pago del plan <strong>${data.planName}</strong>. Para
+      activar tu cuenta, entra al siguiente enlace <strong>desde este mismo
+      correo</strong> y completa los datos de tu negocio:</p>
+      <p style="margin: 20px 0;">
+        <a href="${data.link}" style="background: #4CC2E8; color: #000; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; display: inline-block;">Activar mi cuenta</a>
+      </p>
+      <p style="color: #6b7280; font-size: 13px;">Este correo (<strong>${to}</strong>)
+      será tu forma de iniciar sesión con "Continuar con Google", así que
+      asegúrate de tener acceso a él. El enlace vence el ${expira}.</p>
+      <p style="color: #9ca3af; font-size: 12px;">Si no reconoces esta compra, ignora este mensaje.</p>
+    `),
+  });
+}
+
+// Confirmación de que la cuenta quedó lista y cómo entrar.
+export async function sendAccountReadyEmail(
+  to: string,
+  data: { businessName: string }
+): Promise<{ error: string | null }> {
+  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/login`;
+  return sendEmail({
+    to,
+    subject: `Tu cuenta de AVENTHRA para ${data.businessName} está lista`,
+    html: emailShell(`
+      <h2 style="margin-bottom: 4px;">Tu cuenta está lista</h2>
+      <p>Ya creamos la cuenta de <strong>${data.businessName}</strong>. Entra
+      cuando quieras:</p>
+      <p style="margin: 20px 0;">
+        <a href="${loginUrl}" style="background: #4CC2E8; color: #000; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; display: inline-block;">Iniciar sesión</a>
+      </p>
+      <p style="color: #6b7280; font-size: 13px;">Usa "Continuar con Google" con el correo <strong>${to}</strong>.</p>
+    `),
+  });
+}
+
 // No lanza — cualquier falla (key faltante, from sin verificar, Resend
 // caído) se devuelve como { error } para que el caller decida si
 // reintenta en la siguiente pasada del cron, nunca tumba el proceso.
