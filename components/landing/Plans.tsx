@@ -223,7 +223,7 @@ export function Plans() {
   return (
     <section
       id="planes"
-      className="relative w-full px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36"
+      className="relative w-full scroll-mt-24 px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36"
     >
       <h2 className="nexora-headline mx-auto max-w-3xl text-center text-3xl font-normal leading-[1.15] tracking-tight text-white md:text-4xl lg:text-5xl">
         {t.rich('title', {

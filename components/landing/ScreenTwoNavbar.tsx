@@ -36,6 +36,7 @@ import { LogIn } from 'lucide-react';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
 import { useSectionNav } from '@/components/landing/useSectionNav';
 import { LocaleToggle } from '@/components/i18n/LocaleToggle';
+import { OrbitFrame } from '@/components/landing/OrbitFrame';
 
 // El navbar quedó reducido a las 3 vistas que realmente importan, todas
 // dentro de la MISMA landing larga (ProductosLanding):
@@ -94,79 +95,64 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
     <div
       className={`pointer-events-none hidden lg:flex sticky top-0 inset-x-0 h-24 z-40 items-center justify-center px-6 ${className}`}
     >
-      {/* Fondo translúcido a propósito (pedido del usuario: "que medio se
-          vea lo que pasa atrás"): opacidad baja + blur medio — el
-          contenido se percibe pasando por detrás pero el texto sigue
-          legible. */}
-      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-[#0b0b12]/45 py-2.5 pl-6 pr-2.5 shadow-[0_12px_44px_-12px_rgba(0,0,0,0.6)] backdrop-blur-lg">
-        {/* Logo — mismo tratamiento tipográfico que el resto del sitio
-            (aventhra-logo, Space Grotesk vía Navbar.tsx), más chico para
-            la isla. */}
-        <Link
-          href="/"
-          className="shrink-0 pr-1"
-          onClick={handleLogoClick}
-        >
-          <span className="aventhra-logo text-[1.15rem] tracking-[0.2em] text-white">
+      {/* Isla flotante. Fondo translúcido a propósito (pedido del usuario:
+          "que medio se vea lo que pasa atrás") + blur para que el texto
+          siga legible. `pointer-events-auto` solo acá — el resto de la
+          barra deja pasar el contenido. */}
+      <nav className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-black/50 py-2 pl-5 pr-2 shadow-2xl backdrop-blur-xl">
+        {/* Logo — aventhra-logo (Space Grotesk, ver Navbar.tsx), más chico
+            para la isla. */}
+        <Link href="/" className="shrink-0" onClick={handleLogoClick}>
+          <span className="aventhra-logo text-lg tracking-[0.18em] text-white">
             AVENTHRA
           </span>
         </Link>
 
-        <span aria-hidden className="mx-2 h-4 w-px bg-white/10" />
+        <span aria-hidden className="mx-1 h-4 w-px bg-white/15" />
 
-        {/* Navegación por sección de la landing larga. En hover/focus no
-            se dibuja una "card" alrededor (pedido del usuario): solo una
-            línea fina abajo + el texto un poco más blanco. */}
-        <nav className="flex items-center gap-1">
-          {NAV_SECTIONS.map((section) => (
-            <button
-              key={section.key}
-              type="button"
-              onClick={() => goToSection(section.id)}
-              className="group relative px-2.5 py-2 text-sm font-light text-white/55 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
-            >
-              {t(section.key)}
-              <span
-                aria-hidden
-                className="pointer-events-none absolute -bottom-0.5 left-2.5 right-2.5 h-px origin-center scale-x-0 bg-white/85 transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
-              />
-            </button>
-          ))}
-        </nav>
+        {/* Navegación por sección de la landing larga. En hover/focus:
+            línea fina abajo + texto más blanco, sin "card" alrededor
+            (pedido del usuario). */}
+        {NAV_SECTIONS.map((section) => (
+          <button
+            key={section.key}
+            type="button"
+            onClick={() => goToSection(section.id)}
+            className="group relative px-2 py-1.5 text-sm font-light text-white/60 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
+          >
+            {t(section.key)}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute bottom-0 left-2 right-2 h-px origin-center scale-x-0 bg-white transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
+            />
+          </button>
+        ))}
 
-        <span aria-hidden className="mx-2 h-4 w-px bg-white/10" />
+        <span aria-hidden className="mx-1 h-4 w-px bg-white/15" />
 
-        <LocaleToggle className="px-1.5" />
+        <LocaleToggle className="px-1" />
 
-        {/* Acceso — píldora con el anillo de degradado girando (misma
-            técnica confirmada del navbar anterior: un <span> grande con
-            el conic-gradient de fondo, centrado por `transform`, recortado
-            por `overflow-hidden` a la píldora; nunca mezclar con las
-            utilidades `translate-*` de Tailwind v4). Fondo sólido, así que
-            no necesita la variante SVG de OrbitRing.tsx. */}
-        <span className="relative ml-1 inline-flex overflow-hidden rounded-full p-[1.5px]">
-          <span
-            aria-hidden
-            className="nexora-navlogin-orbit pointer-events-none absolute left-1/2 top-1/2 h-[240px] w-[240px] will-change-transform"
-            style={{
-              transform: 'translate(-50%, -50%)',
-              background:
-                'conic-gradient(from 0deg, #4CC2E8 0%, #A78BFA 45%, #ffffff 50%, #A78BFA 55%, #4CC2E8 100%)',
-            }}
-          />
+        {/* Acceso — píldora con el anillo de degradado girando, vía el
+            componente probado OrbitFrame (el mismo que usan las cards de
+            Plans). */}
+        <OrbitFrame
+          className="ml-1 inline-block rounded-full"
+          innerClassName="rounded-full bg-[#0b0b0f]"
+          ringSize="h-[280px] w-[280px]"
+        >
           <Link
             href="/login"
-            className="group relative z-10 inline-flex w-fit items-center gap-2 rounded-full bg-[#0b0b12] px-5 py-2 text-sm text-white/80 transition-colors duration-300 hover:bg-white/5 hover:text-white"
+            className="group flex items-center gap-2 rounded-full px-5 py-2 text-sm text-white/85 transition-colors duration-200 hover:text-white"
           >
             <LogIn
               size={15}
               strokeWidth={1.5}
-              className="text-white/50 transition-colors duration-300 group-hover:text-white"
+              className="text-white/55 transition-colors duration-200 group-hover:text-white"
             />
             {t('login')}
           </Link>
-        </span>
-      </div>
+        </OrbitFrame>
+      </nav>
     </div>
   );
 }

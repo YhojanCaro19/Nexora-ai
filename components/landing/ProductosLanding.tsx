@@ -254,7 +254,7 @@ function Faq() {
   const items = t.raw('items') as { q: string; a: string }[];
 
   return (
-    <section id="faq" className={SECTION}>
+    <section id="faq" className={`${SECTION} scroll-mt-24`}>
       <h2 className={TITLE}>{t('title')}</h2>
 
       <div className="mx-auto mt-12 max-w-2xl divide-y divide-white/[0.08] border-y border-white/[0.08]">
