@@ -154,7 +154,7 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
             </p>
           );
         })}
-        <p className="border-t border-white/[0.06] pt-2 text-[11px] text-white/35">
+        <p className="border-t border-white/[0.06] pt-2 text-center text-[11px] text-white/35">
           Con opción de compra de créditos
         </p>
       </div>
@@ -239,16 +239,16 @@ export function Plans() {
         </div>
       </div>
 
-      <div className="mx-auto mt-14 grid max-w-5xl items-start gap-5 lg:grid-cols-3">
+      <div className="mx-auto mt-14 grid max-w-5xl items-stretch gap-5 lg:grid-cols-3">
         {PLANS.map((plan) =>
           plan.highlighted ? (
-            <div key={plan.name} className="relative lg:-translate-y-3">
+            <div key={plan.name} className="relative h-full lg:-translate-y-3">
               <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA)] px-3 py-1 text-[11px] font-medium text-black">
                 Más popular
               </span>
               <OrbitFrame
-                className="block w-full rounded-2xl"
-                innerClassName="rounded-[15px] bg-[#0b0b0f]"
+                className="block h-full w-full rounded-2xl"
+                innerClassName="h-full rounded-[15px] bg-[#0b0b0f]"
                 ringSize="h-[880px] w-[880px]"
                 spinDuration="3s"
               >
@@ -258,7 +258,7 @@ export function Plans() {
           ) : (
             <div
               key={plan.name}
-              className="rounded-2xl border border-white/[0.08] bg-white/[0.03]"
+              className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.03]"
             >
               <PlanBody plan={plan} annual={annual} />
             </div>
