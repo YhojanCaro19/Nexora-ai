@@ -19,8 +19,8 @@ export default function ExperienceLayout({
     <>
       <Experience>{children}</Experience>
       {/* Botón flotante de WhatsApp (abajo a la derecha) — común a landing
-          y auth. Se auto-oculta si NEXT_PUBLIC_WHATSAPP_NUMBER no está
-          configurada. */}
+          y auth. En prod se oculta si NEXT_PUBLIC_WHATSAPP_NUMBER no está
+          seteada; en dev usa un placeholder para verlo. */}
       <WhatsAppFab />
     </>
   );
