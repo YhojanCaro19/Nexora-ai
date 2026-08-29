@@ -100,13 +100,13 @@ function PlanBody({
       </h3>
       <p className="aventhra-copy mt-2 text-sm text-white/45">{copy.tagline}</p>
 
-      {/* Precio */}
-      <div className="mt-6 flex items-baseline gap-2">
-        {annual && (
-          <span className="text-lg text-white/25 line-through">
-            {fmt(meta.monthlyPrice * 12)}
-          </span>
-        )}
+      {/* Precio. En anual, el precio "de lista" (×12) va encima, tachado. */}
+      {annual && (
+        <p className="mt-6 text-sm text-white/25 line-through">
+          {fmt(meta.monthlyPrice * 12)}
+        </p>
+      )}
+      <div className={`${annual ? 'mt-1' : 'mt-6'} flex items-baseline gap-2`}>
         <span className="nexora-headline text-4xl font-semibold text-white">
           {annual ? fmt(meta.annualPrice) : fmt(meta.monthlyPrice)}
         </span>
@@ -117,36 +117,17 @@ function PlanBody({
       <p className="mt-1 text-xs text-white/35">
         {annual
           ? t('annualSavingNote', {
-              monthly: fmt(Math.round(meta.annualPrice / 12)),
               saved: fmt(meta.monthlyPrice * 12 - meta.annualPrice),
             })
           : t('monthlyAltNote', { annual: fmt(meta.annualPrice) })}
       </p>
 
-      {/* Cupos incluidos — en lenguaje claro */}
-      <div className="mt-5 space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
-        {copy.included.map((line) => {
-          const [num, ...rest] = line.split(' ');
-          return (
-            <p key={line} className="text-sm text-white/70">
-              <span className="aventhra-iridescent nexora-headline font-semibold">{num}</span>{' '}
-              {rest.join(' ')}
-            </p>
-          );
-        })}
-        <p className="border-t border-white/[0.06] pt-2 text-center text-[11px] text-white/35">
-          {t('creditsOption')}
-        </p>
-      </div>
-
+      {/* Cupos + qué incluye, todo en una sola lista (sin card interna). */}
       <ul className="mt-6 flex-1 space-y-3">
-        {copy.features.map((f) => (
-          <li
-            key={f}
-            className="flex gap-3 text-sm leading-relaxed text-white/70"
-          >
+        {[...copy.included, t('creditsOption'), ...copy.features].map((line) => (
+          <li key={line} className="flex gap-3 text-sm leading-relaxed text-white/70">
             <Check size={16} className="mt-0.5 shrink-0 text-[#4CC2E8]" />
-            {f}
+            {line}
           </li>
         ))}
       </ul>
