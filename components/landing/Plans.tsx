@@ -4,14 +4,13 @@
 // /contacto ("Solicitar acceso"); cuando se integre Wompi pasa a ser el
 // flujo de pago real.
 //
-// Precios de lanzamiento (USD) y créditos según docs/pricing-model.md
-// (propuesta v2, 2026-08-28). Toggle mensual/anual: el plan anual se paga
-// 10 meses y se usan 12 (≈17% off). Los créditos del plan NO se acumulan
-// de un mes al otro.
+// Modelo v5 (docs/pricing-model.md §12): cada plan trae CUPOS mensuales
+// (conversaciones del agente, campañas, imágenes) + un colchón de créditos
+// para pasarse del cupo. Nada se acumula de un mes al otro.
+// Toggle mensual/anual: el anual se paga 10 meses (2 gratis).
 //
 // El plan recomendado (Crecimiento) lleva el borde de degradado que gira
-// (OrbitFrame) — el mismo efecto del botón "Iniciar sesión" — en la card y
-// en su CTA. Solo alrededor: sin resplandor hacia adentro.
+// (OrbitFrame) en la card y en su CTA.
 'use client';
 
 import { useState } from 'react';
@@ -28,8 +27,10 @@ interface Plan {
   monthlyPrice: number;
   /** Precio anual total en USD (= monthlyPrice × 10). */
   annualPrice: number;
-  credits: string;
-  creditsNote: string;
+  /** Cupos incluidos por mes, en lenguaje claro. */
+  included: string[];
+  /** El colchón de créditos para pasarse del cupo. */
+  overflowNote: string;
   features: string[];
   highlighted?: boolean;
 }
@@ -41,8 +42,8 @@ const PLANS: Plan[] = [
     Icon: MessageCircle,
     monthlyPrice: 39,
     annualPrice: 390,
-    credits: '3.000 créditos / mes',
-    creditsNote: 'para que el agente atienda tus mensajes todo el mes',
+    included: ['250 conversaciones del agente al mes'],
+    overflowNote: '+ 500 créditos para pasarte del cupo',
     features: [
       '1 negocio vinculado',
       'Agente 24/7 en WhatsApp e Instagram',
@@ -58,14 +59,18 @@ const PLANS: Plan[] = [
     highlighted: true,
     monthlyPrice: 99,
     annualPrice: 990,
-    credits: '10.000 créditos / mes',
-    creditsNote: '≈ 40 estrategias completas + campañas y atención',
+    included: [
+      '700 conversaciones del agente al mes',
+      '15 campañas de marketing al mes',
+      '60 imágenes con IA al mes',
+    ],
+    overflowNote: '+ 1.500 créditos para pasarte del cupo',
     features: [
       'Todo lo de Atención',
-      '1 negocio vinculado',
-      'Estrategia de marketing para tu negocio',
-      'Copys e imágenes generados con IA',
+      'Estrategia de marketing generada por IA',
+      'Copys e imágenes listos para anuncio',
       'Publicación orgánica en tus redes',
+      '1 negocio vinculado',
     ],
   },
   {
@@ -74,8 +79,12 @@ const PLANS: Plan[] = [
     Icon: Rocket,
     monthlyPrice: 249,
     annualPrice: 2490,
-    credits: '30.000 créditos / mes',
-    creditsNote: '≈ 120 estrategias, para operar varios negocios a la vez',
+    included: [
+      '2.500 conversaciones del agente al mes',
+      '40 campañas de marketing al mes',
+      '200 imágenes con IA al mes',
+    ],
+    overflowNote: '+ 5.000 créditos para pasarte del cupo',
     features: [
       'Todo lo de Crecimiento',
       '3 negocios vinculados',
@@ -86,13 +95,13 @@ const PLANS: Plan[] = [
   },
 ];
 
-
 function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
   const { Icon } = plan;
   return (
     <div className="flex h-full flex-col p-7 md:p-8">
+      {/* Logo y título centrados; el resto de la card alineado a la izquierda. */}
       <span
-        className={`flex h-11 w-11 items-center justify-center rounded-xl border ${
+        className={`mx-auto flex h-11 w-11 items-center justify-center rounded-xl border ${
           plan.highlighted
             ? 'border-white/15 bg-white/[0.06]'
             : 'border-white/[0.08] bg-white/[0.04]'
@@ -105,7 +114,7 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
       </span>
 
       <h3
-        className={`nexora-headline mt-5 text-xl font-semibold ${
+        className={`nexora-headline mt-5 text-center text-xl font-semibold ${
           plan.highlighted ? 'aventhra-iridescent' : 'text-white'
         }`}
       >
@@ -134,12 +143,20 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
           : `o $${plan.annualPrice.toLocaleString('es-CO')}/año — 2 meses gratis`}
       </p>
 
-      {/* Créditos incluidos */}
-      <div className="mt-5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-4 py-3">
-        <p className="aventhra-iridescent nexora-headline text-base font-semibold">
-          {plan.credits}
+      {/* Cupos incluidos — en lenguaje claro */}
+      <div className="mt-5 space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
+        {plan.included.map((line) => {
+          const [num, ...rest] = line.split(' ');
+          return (
+            <p key={line} className="text-sm text-white/70">
+              <span className="aventhra-iridescent nexora-headline font-semibold">{num}</span>{' '}
+              {rest.join(' ')}
+            </p>
+          );
+        })}
+        <p className="border-t border-white/[0.06] pt-2 text-[11px] text-white/35">
+          Con opción de compra de créditos
         </p>
-        <p className="mt-0.5 text-xs text-white/40">{plan.creditsNote}</p>
       </div>
 
       <ul className="mt-6 flex-1 space-y-3">
@@ -191,8 +208,8 @@ export function Plans() {
         <span className="aventhra-iridescent">otro nivel</span>
       </h2>
       <p className="aventhra-copy mx-auto mt-5 max-w-xl text-center text-white/45">
-        Todo funciona con créditos: cada respuesta del agente, cada copy, cada
-        imagen. Empieza por donde lo necesites y sube cuando quieras.
+        Cada plan trae un cupo mensual de conversaciones, campañas e imágenes. Si
+        te pasas, sigues con créditos. Nada se acumula al siguiente mes.
       </p>
 
       {/* Toggle mensual / anual */}
@@ -216,7 +233,7 @@ export function Plans() {
           >
             Anual
             <span className="rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA)] px-2 py-0.5 text-[10px] font-medium text-black">
-              −17%
+              2 meses gratis
             </span>
           </button>
         </div>
@@ -250,9 +267,8 @@ export function Plans() {
       </div>
 
       <p className="mx-auto mt-10 max-w-lg text-center text-xs text-white/30">
-        Precios de lanzamiento en USD. Los créditos incluidos se renuevan cada
-        mes y lo que no uses no se acumula. Si se te acaban, puedes comprar packs
-        extra en cualquier momento.
+        Precios de lanzamiento en USD. El cupo se renueva cada mes y lo que no
+        uses no se acumula. Si te pasas, puedes comprar créditos extra.
       </p>
     </section>
   );
