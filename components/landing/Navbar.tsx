@@ -2,35 +2,34 @@
 
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, Users, MessageCircle, LogIn } from "lucide-react";
+import { Menu, Package, HelpCircle, CreditCard, LogIn } from "lucide-react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
+import { useSectionNav } from "@/components/landing/useSectionNav";
+import { LocaleToggle } from "@/components/i18n/LocaleToggle";
 
-const navItems = [
-  {
-    label: "Sobre nosotros",
-    href: "/sobre-nosotros",
-    icon: Users,
-  },
-  {
-    label: "Contáctanos",
-    href: "/contacto",
-    icon: MessageCircle,
-  },
-];
-
-// Los mismos 2 links de arriba + "Iniciar sesión" (que en desktop vive
-// aparte, como botón propio) unificados en un solo arreglo — el menú
-// mobile/tablet los muestra a los 3 en una sola fila, en este orden fijo
-// de izquierda a derecha. Mismos íconos que ya usa el aside de escritorio
-// (Users/MessageCircle/LogIn), no se inventó ninguno nuevo.
-const mobileMenuItems = [
-  { label: "Sobre nosotros", href: "/sobre-nosotros", icon: Users },
-  { label: "Contáctanos", href: "/contacto", icon: MessageCircle },
-  { label: "Iniciar sesión", href: "/login", icon: LogIn },
-];
+// El navbar quedó reducido a 3 vistas de la landing larga
+// (ProductosLanding) + "Iniciar sesión". Producto / Preguntas frecuentes /
+// Planes no son rutas: son secciones (ids 'productos' / 'faq' / 'planes'),
+// la navegación la resuelve useSectionNav (scroll suave si ya estamos en
+// la landing, si no /productos#<id>). Se eliminaron Sobre nosotros y
+// Contáctanos (y sus páginas placeholder) — ese contenido vive hoy en la
+// landing.
+const SECTION_ITEMS = [
+  { key: "product", id: "productos", icon: Package },
+  { key: "faq", id: "faq", icon: HelpCircle },
+  { key: "plans", id: "planes", icon: CreditCard },
+] as const;
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const t = useTranslations("nav");
+  const goToSection = useSectionNav();
+
+  const handleSection = (id: string) => {
+    setIsOpen(false);
+    goToSection(id);
+  };
 
   return (
     <>
@@ -60,30 +59,25 @@ export const Navbar = () => {
           </h1>
 
           <p className="mt-2 w-fit max-w-[170px] text-center text-[10px] uppercase tracking-[0.35em] text-white/35 leading-5">
-            Tu empleado virtual
+            {t("tagline")}
           </p>
 
         </Link>
 
-        {/* Menú + Iniciar sesión, agrupados a la derecha (mismo bloque
-            único que antes, solo que ahora en fila en vez de columna). */}
-        <div className="flex items-center gap-10">
+        {/* Navegación por sección + idioma + Iniciar sesión, agrupados a la
+            derecha (mismo bloque único que antes, en fila). */}
+        <div className="flex items-center gap-8">
 
           <nav className="flex items-center gap-8">
 
-            {navItems.map((item) => {
+            {SECTION_ITEMS.map((item) => {
               const Icon = item.icon;
 
               return (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  // hover:-translate-y-0.5 en vez del hover:translate-x-1
-                  // original — ese desplazamiento horizontal tenía sentido
-                  // en una lista vertical (el link "avanza" hacia la
-                  // derecha); en una fila horizontal el equivalente natural
-                  // es un leve levantamiento. Mismo color/opacidad/duración
-                  // que antes, no es un estilo nuevo.
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => handleSection(item.id)}
                   className="group flex items-center gap-2 text-[15px] font-light text-white/55 transition-all duration-300 hover:text-white hover:-translate-y-0.5"
                 >
                   <Icon
@@ -91,12 +85,14 @@ export const Navbar = () => {
                     strokeWidth={1.5}
                     className="text-white/35 transition-colors duration-300 group-hover:text-white/70"
                   />
-                  {item.label}
-                </Link>
+                  {t(item.key)}
+                </button>
               );
             })}
 
           </nav>
+
+          <LocaleToggle />
 
           <Link
             href="/login"
@@ -107,7 +103,7 @@ export const Navbar = () => {
               strokeWidth={1.5}
               className="text-white/50 transition-colors duration-300 group-hover:text-white"
             />
-            Iniciar sesión
+            {t("login")}
           </Link>
 
         </div>
@@ -148,7 +144,7 @@ export const Navbar = () => {
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="justify-self-end"
-            aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-label={isOpen ? t("closeMenu") : t("openMenu")}
           >
             {/* Siempre el ícono de hamburguesa, abierto o cerrado — pedido
                 explícito del usuario (antes cambiaba a X al abrir). */}
@@ -197,29 +193,58 @@ export const Navbar = () => {
               }}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-3 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+              className="pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
             >
 
-              {mobileMenuItems.map((item) => {
-                const Icon = item.icon;
+              {/* Fila propia para el toggle de idioma, centrada arriba del
+                  grid de accesos. */}
+              <motion.div
+                variants={{ hidden: { opacity: 0, scale: 0.6 }, visible: { opacity: 1, scale: 1 } }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="mb-3 flex justify-center"
+              >
+                <LocaleToggle className="text-sm" />
+              </motion.div>
 
-                return (
-                  <motion.div
-                    key={item.label}
-                    variants={{ hidden: { opacity: 0, scale: 0.6 }, visible: { opacity: 1, scale: 1 } }}
-                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                    className="flex justify-center"
-                  >
-                    <Link
-                      href={item.href}
-                      className="flex flex-col items-center gap-1.5 px-4 py-1 text-white/70 transition-colors hover:text-white"
+              {/* 3 secciones de la landing + Iniciar sesión, en una fila. */}
+              <div className="grid grid-cols-4">
+                {SECTION_ITEMS.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <motion.div
+                      key={item.key}
+                      variants={{ hidden: { opacity: 0, scale: 0.6 }, visible: { opacity: 1, scale: 1 } }}
+                      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                      className="flex justify-center"
                     >
-                      <Icon size={20} strokeWidth={1.5} />
-                      <span className="text-[11px] font-light tracking-wide">{item.label}</span>
-                    </Link>
-                  </motion.div>
-                );
-              })}
+                      <button
+                        type="button"
+                        onClick={() => handleSection(item.id)}
+                        className="flex flex-col items-center gap-1.5 px-2 py-1 text-white/70 transition-colors hover:text-white"
+                      >
+                        <Icon size={20} strokeWidth={1.5} />
+                        <span className="text-center text-[11px] font-light leading-tight tracking-wide">{t(item.key)}</span>
+                      </button>
+                    </motion.div>
+                  );
+                })}
+
+                <motion.div
+                  variants={{ hidden: { opacity: 0, scale: 0.6 }, visible: { opacity: 1, scale: 1 } }}
+                  transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                  className="flex justify-center"
+                >
+                  <Link
+                    href="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="flex flex-col items-center gap-1.5 px-2 py-1 text-white/70 transition-colors hover:text-white"
+                  >
+                    <LogIn size={20} strokeWidth={1.5} />
+                    <span className="text-[11px] font-light tracking-wide">{t("login")}</span>
+                  </Link>
+                </motion.div>
+              </div>
 
             </motion.div>
 

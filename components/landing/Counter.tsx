@@ -7,6 +7,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import { useLocale } from 'next-intl';
+
+// Mapea el locale de la app (es / en) a un BCP-47 para el formato de
+// miles: 3000 → "3.000" en español, "3,000" en inglés.
+const NUMBER_LOCALE: Record<string, string> = { es: 'es-CO', en: 'en-US' };
 
 interface CounterProps {
   to: number;
@@ -28,6 +33,8 @@ export function Counter({
   const ref = useRef<HTMLSpanElement>(null);
   const [value, setValue] = useState(0);
   const prefersReducedMotion = useReducedMotion();
+  const locale = useLocale();
+  const numberLocale = NUMBER_LOCALE[locale] ?? 'es-CO';
 
   useEffect(() => {
     const el = ref.current;
@@ -67,7 +74,7 @@ export function Counter({
   return (
     <span ref={ref} className={className}>
       {prefix}
-      {value.toLocaleString('es-CO', {
+      {value.toLocaleString(numberLocale, {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       })}

@@ -6,9 +6,10 @@
 // monta sin importar la ruta) — llegar acá desde "Iniciar sesión" del
 // navbar de Pantalla 2 se sentía como si regenerara la Pantalla 1. Ahora
 // es una ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin
-// robot, sin <Navbar/> genérico, mismo criterio que /soluciones,
-// /precios, /clientes, /sobre-nosotros, /contacto.
+// robot, sin <Navbar/> genérico, mismo criterio que /productos,
+// /contacto y /solicitar-acceso.
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { signInWithGoogle } from "../actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
+  const t = await getTranslations("auth.login");
 
   return (
     <>
@@ -59,14 +61,18 @@ export default async function LoginPage({
     <ScreenTwoNavbar />
     {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
         ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que
-        este bloque + el navbar sumen exactamente 100vh — mismo criterio
-        que /sobre-nosotros. */}
-    <div className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
+        este bloque + el navbar sumen exactamente 100vh. `justify-center`:
+        la card va centrada — ya no hay robot 3D a un lado que obligara a
+        empujarla a la izquierda. */}
+    <div className="w-full flex items-center justify-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
       {/* 20% más grande, y luego 10% más chica sobre ese resultado:
           1.2 × 0.9 = 1.08 de base. Al enfocar un campo pasa a 1.08 × 1.05 =
           1.134 — no se suman los transforms, así que ya incluye la base. */}
       <FocusGlowCard
-        className="w-full max-w-sm ml-0 md:ml-20 lg:ml-32 xl:ml-40 2xl:ml-52"
+        // mx-auto: FocusGlowCard envuelve el contenido en un <div w-full>
+        // propio, así que sin esto la card queda pegada a la izquierda de
+        // ese wrapper aunque el padre sea flex + justify-center.
+        className="w-full max-w-sm mx-auto"
         // El 20%/8% de más era el tamaño pensado para desktop (espacio de
         // sobra al lado del robot) — aplicado también en mobile, la card
         // quedaba desbordando un viewport angosto y se sentía "demasiado
@@ -88,9 +94,9 @@ export default async function LoginPage({
               se sobreescribe la custom property en este uso puntual). */}
           <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
           <CardHeader className="text-center">
-            <CardTitle className="text-xl md:text-2xl text-white font-normal">Iniciar sesión</CardTitle>
+            <CardTitle className="text-xl md:text-2xl text-white font-normal">{t("title")}</CardTitle>
             <CardDescription className="text-white/45">
-              Entra a tu panel de AVENTHRA
+              {t("description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -112,18 +118,18 @@ export default async function LoginPage({
                 className="w-full gap-2 bg-transparent border-white/15 text-white/80 hover:bg-white/5 hover:text-white"
               >
                 <GoogleLogo />
-                Continuar con Google
+                {t("google")}
               </Button>
             </form>
 
             <p className="mt-4 text-center text-xs text-white/30">
-              Usa el mismo correo con el que solicitaste acceso.
+              {t("emailHint")}
             </p>
 
             <p className="mt-4 text-center text-sm text-white/35">
-              ¿Aún no tienes cuenta?{" "}
+              {t("noAccount")}{" "}
               <Link href="/contacto" className="underline text-white/60 hover:text-white transition-colors">
-                Contáctanos
+                {t("contact")}
               </Link>
             </p>
           </CardContent>

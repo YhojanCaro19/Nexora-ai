@@ -1,8 +1,10 @@
 // components/landing/Plans.tsx
 //
-// Sección de planes de la landing. VISUAL — el CTA todavía lleva a
-// /contacto ("Solicitar acceso"); cuando se integre Wompi pasa a ser el
-// flujo de pago real.
+// Sección de planes de la landing. El CTA de cada plan inicia el pago:
+// llama a `startCheckout` (app/actions/checkout.ts), que crea la fila
+// `checkout_sessions` y redirige al Web Checkout de Wompi. El alta de la
+// cuenta la dispara el webhook (app/api/webhooks/wompi) cuando el pago
+// queda aprobado — no hay signup previo.
 //
 // Modelo v5 (docs/pricing-model.md §12): cada plan trae CUPOS mensuales
 // (conversaciones del agente, campañas, imágenes) + un colchón de créditos
@@ -11,141 +13,119 @@
 //
 // El plan recomendado (Crecimiento) lleva el borde de degradado que gira
 // (OrbitFrame) en la card y en su CTA.
+//
+// TEXTO: todo el copy vive en messages/<locale>.json bajo `landing.plans`
+// (útil para ES/EN). Acá solo quedan los DATOS que no se traducen: precio,
+// ícono y cuál es el plan destacado. El orden del array PLAN_META debe
+// coincidir con el de `landing.plans.items`.
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import { useActionState, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Check, MessageCircle, TrendingUp, Rocket } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { OrbitFrame } from '@/components/landing/OrbitFrame';
+import { startCheckout } from '@/app/actions/checkout';
 
-interface Plan {
-  name: string;
-  tagline: string;
+interface PlanMeta {
   Icon: LucideIcon;
+  /** `plans.key` en la base — lo que recibe el checkout de Wompi. */
+  planKey: string;
   /** Precio mensual en USD (facturación mes a mes). */
   monthlyPrice: number;
   /** Precio anual total en USD (= monthlyPrice × 10). */
   annualPrice: number;
-  /** Cupos incluidos por mes, en lenguaje claro. */
-  included: string[];
-  /** El colchón de créditos para pasarse del cupo. */
-  overflowNote: string;
-  features: string[];
   highlighted?: boolean;
 }
 
-const PLANS: Plan[] = [
-  {
-    name: 'Atención',
-    tagline: 'El agente que responde y vende por ti.',
-    Icon: MessageCircle,
-    monthlyPrice: 39,
-    annualPrice: 390,
-    included: ['250 conversaciones del agente al mes'],
-    overflowNote: '+ 500 créditos para pasarte del cupo',
-    features: [
-      '1 negocio vinculado',
-      'Agente 24/7 en WhatsApp e Instagram',
-      'Responde, recomienda y toma pedidos',
-      'Catálogo, precios y reglas configurables',
-      'Nunca inventa: responde solo con tu información',
-    ],
-  },
-  {
-    name: 'Crecimiento',
-    tagline: 'Atención + marketing que trae clientes.',
-    Icon: TrendingUp,
-    highlighted: true,
-    monthlyPrice: 99,
-    annualPrice: 990,
-    included: [
-      '700 conversaciones del agente al mes',
-      '15 campañas de marketing al mes',
-      '60 imágenes con IA al mes',
-    ],
-    overflowNote: '+ 1.500 créditos para pasarte del cupo',
-    features: [
-      'Todo lo de Atención',
-      'Estrategia de marketing generada por IA',
-      'Copys e imágenes listos para anuncio',
-      'Publicación orgánica en tus redes',
-      '1 negocio vinculado',
-    ],
-  },
-  {
-    name: 'Escala',
-    tagline: 'El embudo completo, anuncios incluidos.',
-    Icon: Rocket,
-    monthlyPrice: 249,
-    annualPrice: 2490,
-    included: [
-      '2.500 conversaciones del agente al mes',
-      '40 campañas de marketing al mes',
-      '200 imágenes con IA al mes',
-    ],
-    overflowNote: '+ 5.000 créditos para pasarte del cupo',
-    features: [
-      'Todo lo de Crecimiento',
-      '3 negocios vinculados',
-      'Anuncios en Meta, Google y TikTok Ads',
-      'Imágenes en HD',
-      'Cola de IA prioritaria + reportes por canal',
-    ],
-  },
+/** Texto de un plan, tal como viene de `landing.plans.items[i]`. */
+interface PlanCopy {
+  name: string;
+  tagline: string;
+  included: string[];
+  overflowNote: string;
+  features: string[];
+}
+
+// El orden coincide con `landing.plans.items` en messages/<locale>.json y
+// con `plans.sort_order` en la base.
+const PLAN_META: PlanMeta[] = [
+  { Icon: MessageCircle, planKey: 'atencion', monthlyPrice: 39, annualPrice: 390 },
+  { Icon: TrendingUp, planKey: 'crecimiento', monthlyPrice: 99, annualPrice: 990, highlighted: true },
+  { Icon: Rocket, planKey: 'escala', monthlyPrice: 249, annualPrice: 2490 },
 ];
 
-function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
-  const { Icon } = plan;
+const NUMBER_LOCALE: Record<string, string> = { es: 'es-CO', en: 'en-US' };
+
+function PlanBody({
+  meta,
+  copy,
+  annual,
+}: {
+  meta: PlanMeta;
+  copy: PlanCopy;
+  annual: boolean;
+}) {
+  const t = useTranslations('landing.plans');
+  const locale = useLocale();
+  const nf = NUMBER_LOCALE[locale] ?? 'es-CO';
+  const { Icon } = meta;
+
+  const [checkoutState, checkoutAction, checkoutPending] = useActionState(startCheckout, null);
+
+  const fmt = (n: number) => `$${n.toLocaleString(nf)}`;
+
   return (
     <div className="flex h-full w-full flex-col p-7 md:p-8">
       {/* Logo y título centrados; el resto de la card alineado a la izquierda. */}
       <span
         className={`mx-auto flex h-11 w-11 items-center justify-center rounded-xl border ${
-          plan.highlighted
+          meta.highlighted
             ? 'border-white/15 bg-white/[0.06]'
             : 'border-white/[0.08] bg-white/[0.04]'
         }`}
       >
         <Icon
           size={20}
-          className={plan.highlighted ? 'text-[#818CF8]' : 'text-white/70'}
+          className={meta.highlighted ? 'text-[#818CF8]' : 'text-white/70'}
         />
       </span>
 
       <h3
         className={`nexora-headline mt-5 text-center text-xl font-semibold ${
-          plan.highlighted ? 'aventhra-iridescent' : 'text-white'
+          meta.highlighted ? 'aventhra-iridescent' : 'text-white'
         }`}
       >
-        {plan.name}
+        {copy.name}
       </h3>
-      <p className="aventhra-copy mt-2 text-sm text-white/45">{plan.tagline}</p>
+      <p className="aventhra-copy mt-2 text-sm text-white/45">{copy.tagline}</p>
 
       {/* Precio */}
       <div className="mt-6 flex items-baseline gap-2">
         {annual && (
           <span className="text-lg text-white/25 line-through">
-            ${(plan.monthlyPrice * 12).toLocaleString('es-CO')}
+            {fmt(meta.monthlyPrice * 12)}
           </span>
         )}
         <span className="nexora-headline text-4xl font-semibold text-white">
-          ${annual ? plan.annualPrice.toLocaleString('es-CO') : plan.monthlyPrice}
+          {annual ? fmt(meta.annualPrice) : fmt(meta.monthlyPrice)}
         </span>
-        <span className="text-sm text-white/40">{annual ? '/ año' : '/ mes'}</span>
+        <span className="text-sm text-white/40">
+          {annual ? t('perYear') : t('perMonth')}
+        </span>
       </div>
       <p className="mt-1 text-xs text-white/35">
         {annual
-          ? `≈ $${Math.round(plan.annualPrice / 12)}/mes · te ahorras $${(
-              plan.monthlyPrice * 12 -
-              plan.annualPrice
-            ).toLocaleString('es-CO')} al año (2 meses gratis)`
-          : `o $${plan.annualPrice.toLocaleString('es-CO')}/año — 2 meses gratis`}
+          ? t('annualSavingNote', {
+              monthly: fmt(Math.round(meta.annualPrice / 12)),
+              saved: fmt(meta.monthlyPrice * 12 - meta.annualPrice),
+            })
+          : t('monthlyAltNote', { annual: fmt(meta.annualPrice) })}
       </p>
 
       {/* Cupos incluidos — en lenguaje claro */}
       <div className="mt-5 space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.03] p-4">
-        {plan.included.map((line) => {
+        {copy.included.map((line) => {
           const [num, ...rest] = line.split(' ');
           return (
             <p key={line} className="text-sm text-white/70">
@@ -155,12 +135,12 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
           );
         })}
         <p className="border-t border-white/[0.06] pt-2 text-center text-[11px] text-white/35">
-          Con opción de compra de créditos
+          {t('creditsOption')}
         </p>
       </div>
 
       <ul className="mt-6 flex-1 space-y-3">
-        {plan.features.map((f) => (
+        {copy.features.map((f) => (
           <li
             key={f}
             className="flex gap-3 text-sm leading-relaxed text-white/70"
@@ -171,45 +151,87 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
         ))}
       </ul>
 
-      <div className="mt-8 flex justify-center">
-        {plan.highlighted ? (
-          <OrbitFrame
-            className="inline-block rounded-full"
-            innerClassName="rounded-full bg-[#0b0b0f]"
-            ringSize="h-[280px] w-[280px]"
-          >
-            <Link
-              href="/contacto"
-              className="flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium text-white/80 transition-colors hover:text-white"
-            >
-              Solicitar acceso
-            </Link>
-          </OrbitFrame>
-        ) : (
-          <Link
-            href="/contacto"
-            className="rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/30 hover:text-white"
-          >
-            Solicitar acceso
-          </Link>
+      <form action={checkoutAction} className="mt-8 flex flex-col items-center gap-2">
+        <input type="hidden" name="planKey" value={meta.planKey} />
+        <input type="hidden" name="billingPeriod" value={annual ? 'annual' : 'monthly'} />
+        <CheckoutSubmit
+          label={t('ctaButton')}
+          loadingLabel={t('ctaLoading')}
+          highlighted={meta.highlighted}
+          pending={checkoutPending}
+        />
+        {checkoutState?.error && (
+          <p className="mt-1 text-xs text-red-400">{checkoutState.error}</p>
         )}
-      </div>
+      </form>
     </div>
   );
 }
 
-export function Plans() {
-  const [annual, setAnnual] = useState(false);
+// Botón de compra. `pending` viene del useActionState del plan: mientras
+// el server action crea la sesión y redirige a Wompi, muestra el estado
+// de carga.
+function CheckoutSubmit({
+  label,
+  loadingLabel,
+  highlighted,
+  pending,
+}: {
+  label: string;
+  loadingLabel: string;
+  highlighted?: boolean;
+  pending: boolean;
+}) {
+  const text = pending ? loadingLabel : label;
+
+  if (highlighted) {
+    return (
+      <OrbitFrame
+        className="inline-block rounded-full"
+        innerClassName="rounded-full bg-[#0b0b0f]"
+        ringSize="h-[280px] w-[280px]"
+      >
+        <button
+          type="submit"
+          disabled={pending}
+          className="flex items-center gap-2 rounded-full px-7 py-3 text-sm font-medium text-white/80 transition-colors hover:text-white disabled:opacity-60"
+        >
+          {text}
+        </button>
+      </OrbitFrame>
+    );
+  }
 
   return (
-    <section className="relative w-full px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36">
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-full border border-white/15 px-7 py-3 text-sm font-medium text-white/70 transition-colors hover:border-white/30 hover:text-white disabled:opacity-60"
+    >
+      {text}
+    </button>
+  );
+}
+
+export function Plans() {
+  const t = useTranslations('landing.plans');
+  const [annual, setAnnual] = useState(false);
+
+  const items = t.raw('items') as PlanCopy[];
+  const plans = PLAN_META.map((meta, i) => ({ meta, copy: items[i] }));
+
+  return (
+    <section
+      id="planes"
+      className="relative w-full px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36"
+    >
       <h2 className="nexora-headline mx-auto max-w-3xl text-center text-3xl font-normal leading-[1.15] tracking-tight text-white md:text-4xl lg:text-5xl">
-        Elige el plan que llevará tu negocio a{' '}
-        <span className="aventhra-iridescent">otro nivel</span>
+        {t.rich('title', {
+          hl: (chunks) => <span className="aventhra-iridescent">{chunks}</span>,
+        })}
       </h2>
       <p className="aventhra-copy mx-auto mt-5 max-w-xl text-center text-white/45">
-        Cada plan trae un cupo mensual de conversaciones, campañas e imágenes. Si
-        te pasas, sigues con créditos. Nada se acumula al siguiente mes.
+        {t('lead')}
       </p>
 
       {/* Toggle mensual / anual */}
@@ -222,7 +244,7 @@ export function Plans() {
               !annual ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
-            Mensual
+            {t('toggleMonthly')}
           </button>
           <button
             type="button"
@@ -231,20 +253,20 @@ export function Plans() {
               annual ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
-            Anual
+            {t('toggleAnnual')}
             <span className="rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA)] px-2 py-0.5 text-[10px] font-medium text-black">
-              2 meses gratis
+              {t('toggleBadge')}
             </span>
           </button>
         </div>
       </div>
 
       <div className="mx-auto mt-14 grid max-w-5xl items-stretch gap-5 lg:grid-cols-3">
-        {PLANS.map((plan) =>
-          plan.highlighted ? (
-            <div key={plan.name} className="relative h-full lg:-translate-y-3">
+        {plans.map(({ meta, copy }) =>
+          meta.highlighted ? (
+            <div key={copy.name} className="relative h-full lg:-translate-y-3">
               <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA)] px-3 py-1 text-[11px] font-medium text-black">
-                Más popular
+                {t('popularBadge')}
               </span>
               <OrbitFrame
                 className="block h-full w-full rounded-2xl"
@@ -252,23 +274,22 @@ export function Plans() {
                 ringSize="h-[880px] w-[880px]"
                 spinDuration="3s"
               >
-                <PlanBody plan={plan} annual={annual} />
+                <PlanBody meta={meta} copy={copy} annual={annual} />
               </OrbitFrame>
             </div>
           ) : (
             <div
-              key={plan.name}
+              key={copy.name}
               className="h-full rounded-2xl border border-white/[0.08] bg-white/[0.03]"
             >
-              <PlanBody plan={plan} annual={annual} />
+              <PlanBody meta={meta} copy={copy} annual={annual} />
             </div>
           )
         )}
       </div>
 
       <p className="mx-auto mt-10 max-w-lg text-center text-xs text-white/30">
-        Precios de lanzamiento en USD. El cupo se renueva cada mes y lo que no
-        uses no se acumula. Si te pasas, puedes comprar créditos extra.
+        {t('footerNote')}
       </p>
     </section>
   );

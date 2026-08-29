@@ -1,0 +1,222 @@
+{
+  "nav": {
+    "product": "Producto",
+    "faq": "Preguntas frecuentes",
+    "plans": "Planes",
+    "login": "Iniciar sesión",
+    "tagline": "Tu empleado virtual",
+    "openMenu": "Abrir menú",
+    "closeMenu": "Cerrar menú",
+    "language": "Idioma"
+  },
+  "landing": {
+    "hero": {
+      "clickPrefix": "A 1 click de...",
+      "words": [
+        "más ventas",
+        "más tiempo",
+        "más confianza",
+        "más clientes"
+      ],
+      "paragraph": "<b>AVENTHRA</b> hace tu <b>marketing</b> y <b>atiende</b> a tus clientes. Consigue que te <b>escriban</b>, responde cada mensaje y <b>cierra la venta</b> — a toda hora.",
+      "cta": "Empezar ahora"
+    },
+    "problema": {
+      "title": "Tú quieres vender, no tener un equipo gigante <hl>quitándote tus ganancias</hl>",
+      "lead": "Tener gente que responda tus redes y pagar una agencia para que te consiga clientes es caro y lento. Y aun así, la venta se pierde por no responder a tiempo.",
+      "cards": [
+        {
+          "label": "es lo que cobra al mes una agencia de marketing digital",
+          "headline": "Inviertes y sigues sin vender",
+          "body": "Pagar gente que responda tus redes y aparte una agencia sale caro. Y los primeros resultados llegan en meses, no en días.",
+          "sourceLabel": "WebFX — Marketing Agency Cost"
+        },
+        {
+          "label": "de los dueños de negocio le dedican menos de 5 horas por semana al marketing",
+          "headline": "No es que no quieras. No te alcanza el tiempo.",
+          "body": "Lo reconocen como su mayor motor de crecimiento, pero están vendiendo, atendiendo y operando al mismo tiempo.",
+          "sourceLabel": "Fiverr, encuesta 2025 (≈6.000 negocios)"
+        },
+        {
+          "label": "de los clientes le compra al primer negocio que le responde",
+          "headline": "Y además hay que contestar rápido",
+          "body": "Si respondes al día siguiente ya es tarde: para entonces la persona compró en otro lado.",
+          "sourceLabel": "Harvard Business Review"
+        }
+      ]
+    },
+    "comoFunciona": {
+      "eyebrow": "Marketing + atención, un solo sistema",
+      "title": "De la estrategia a la venta, <hl>sin agencia</hl>",
+      "lead": "Tú decides qué vendes y cómo quieres que el agente les hable a tus clientes. AVENTHRA arma el resto y te lo pone a aprobar.",
+      "steps": [
+        {
+          "title": "Conectas tus redes",
+          "body": "WhatsApp, Instagram, Facebook y TikTok. En minutos, sin instalar nada."
+        },
+        {
+          "title": "AVENTHRA arma tu plan",
+          "body": "A quién venderle, en qué red y con qué mensaje. Para tu caso, no una plantilla."
+        },
+        {
+          "title": "Te entrega los anuncios",
+          "body": "Textos e imágenes de cada publicación y cada anuncio. Tú apruebas los que te gusten."
+        },
+        {
+          "title": "Publica y pone la pauta",
+          "body": "Sube el contenido y lanza los anuncios en Meta, Google y TikTok. Un solo panel."
+        },
+        {
+          "title": "Responde y vende",
+          "body": "El agente contesta cada mensaje, recomienda productos y cierra el pedido. A toda hora."
+        }
+      ]
+    },
+    "dondeVender": {
+      "title": "Tú decides <hl>dónde vender</hl>",
+      "lead": "Conecta los canales que ya usas. AVENTHRA publica, pauta y responde en todos, desde el mismo panel.",
+      "ads": [
+        {
+          "name": "Meta Ads",
+          "body": "Llega a más de 3 mil millones de personas en Facebook e Instagram. Segmentación por intereses, comportamiento y audiencias similares."
+        },
+        {
+          "name": "Google Ads",
+          "body": "Aparece justo cuando te buscan. Búsqueda, display y YouTube para capturar demanda activa."
+        },
+        {
+          "name": "TikTok Ads",
+          "body": "Conecta con la generación que más compra online. Videos que se sienten nativos y generan engagement real."
+        }
+      ]
+    },
+    "numeros": {
+      "title": "¿Y si pudieras vender más <hl>sin contratar a nadie</hl>?",
+      "lead": "Los números de la IA aplicada a marketing y atención:",
+      "stat1Value": "US$4,52",
+      "stats": [
+        "de ingreso por cada US$1 invertido en anuncios con la IA de Meta — un 22% más que una campaña configurada a mano",
+        "más retorno de la inversión con campañas de compras con IA que configurando los anuncios manualmente",
+        "más clics cuando la imagen del anuncio la genera la IA",
+        "más probabilidad de calificar un lead si respondes en 5 minutos en vez de 30"
+      ],
+      "footnote": "Datos de Meta (pruebas A/B a gran escala) y Harvard Business Review."
+    },
+    "plans": {
+      "title": "Elige el plan que llevará tu negocio a <hl>otro nivel</hl>",
+      "lead": "Cada plan trae un cupo mensual de conversaciones, campañas e imágenes. Si te pasas, sigues con créditos. Nada se acumula al siguiente mes.",
+      "toggleMonthly": "Mensual",
+      "toggleAnnual": "Anual",
+      "toggleBadge": "2 meses gratis",
+      "popularBadge": "Más popular",
+      "perMonth": "/ mes",
+      "perYear": "/ año",
+      "annualSavingNote": "≈ {monthly}/mes · te ahorras {saved} al año (2 meses gratis)",
+      "monthlyAltNote": "o {annual}/año — 2 meses gratis",
+      "creditsOption": "Con opción de compra de créditos",
+      "ctaButton": "Comprar plan",
+      "footerNote": "Precios de lanzamiento en USD. El cupo se renueva cada mes y lo que no uses no se acumula. Si te pasas, puedes comprar créditos extra.",
+      "items": [
+        {
+          "name": "Atención",
+          "tagline": "El agente que responde y vende por ti.",
+          "included": [
+            "250 conversaciones del agente al mes"
+          ],
+          "overflowNote": "+ 500 créditos para pasarte del cupo",
+          "features": [
+            "1 negocio vinculado",
+            "Agente 24/7 en WhatsApp e Instagram",
+            "Responde, recomienda y toma pedidos",
+            "Catálogo, precios y reglas configurables",
+            "Nunca inventa: responde solo con tu información"
+          ]
+        },
+        {
+          "name": "Crecimiento",
+          "tagline": "Atención + marketing que trae clientes.",
+          "included": [
+            "700 conversaciones del agente al mes",
+            "15 campañas de marketing al mes",
+            "60 imágenes con IA al mes"
+          ],
+          "overflowNote": "+ 1.500 créditos para pasarte del cupo",
+          "features": [
+            "Todo lo de Atención",
+            "Estrategia de marketing generada por IA",
+            "Copys e imágenes listos para anuncio",
+            "Publicación orgánica en tus redes",
+            "1 negocio vinculado"
+          ]
+        },
+        {
+          "name": "Escala",
+          "tagline": "El embudo completo, anuncios incluidos.",
+          "included": [
+            "2.500 conversaciones del agente al mes",
+            "40 campañas de marketing al mes",
+            "200 imágenes con IA al mes"
+          ],
+          "overflowNote": "+ 5.000 créditos para pasarte del cupo",
+          "features": [
+            "Todo lo de Crecimiento",
+            "3 negocios vinculados",
+            "Anuncios en Meta, Google y TikTok Ads",
+            "Imágenes en HD",
+            "Cola de IA prioritaria + reportes por canal"
+          ]
+        }
+      ],
+      "ctaLoading": "Abriendo el pago…"
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "items": [
+        {
+          "q": "¿Qué es AVENTHRA?",
+          "a": "Un empleado virtual que atrae clientes y los atiende. Por un lado hace tu marketing (estrategia, contenido y anuncios); por el otro, un agente responde tus mensajes por WhatsApp e Instagram y cierra la venta."
+        },
+        {
+          "q": "¿La parte de marketing ya está disponible?",
+          "a": "La estamos activando negocio por negocio mientras la terminamos de pulir. El agente de atención sí está listo. Inicia sesión y te decimos en qué punto estás."
+        },
+        {
+          "q": "¿En qué canales trabaja?",
+          "a": "Atención por WhatsApp e Instagram. Publicación en WhatsApp, Instagram, Facebook y TikTok. Anuncios en Meta Ads, Google Ads y TikTok Ads."
+        },
+        {
+          "q": "¿Necesito saber de marketing o de tecnología?",
+          "a": "No. Le dices en español qué vendes, a quién y cómo quieres que hable. El resto lo arma AVENTHRA y tú apruebas."
+        },
+        {
+          "q": "¿El agente puede inventarse cosas?",
+          "a": "No responde nada fuera de la información que tú cargaste. Si no sabe algo, lo dice y te avisa."
+        },
+        {
+          "q": "¿Reemplaza a mi agencia?",
+          "a": "Para la mayoría de negocios pequeños, sí: cubre estrategia, contenido, pauta y atención. Si trabajas con una agencia, AVENTHRA le quita de encima el trabajo repetitivo."
+        },
+        {
+          "q": "¿Cómo empiezo?",
+          "a": "Inicia sesión con Google desde el botón de arriba. Revisamos tu caso y te damos acceso con tu cuenta."
+        }
+      ]
+    },
+    "cta": {
+      "title": "Mientras lo piensas, tu competencia <hl>ya está vendiendo</hl>",
+      "lead": "Cada día sin AVENTHRA es dinero que no estás ganando: en clientes que no supieron que existes y en mensajes que nadie respondió.",
+      "button": "Solicitar acceso",
+      "subnote": "Te respondemos rápido — irónicamente."
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Iniciar sesión",
+      "description": "Entra a tu panel de AVENTHRA",
+      "google": "Continuar con Google",
+      "emailHint": "Usa el mismo correo con el que solicitaste acceso.",
+      "noAccount": "¿Aún no tienes cuenta?",
+      "contact": "Contáctanos"
+    }
+  }
+}

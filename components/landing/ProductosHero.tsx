@@ -12,11 +12,22 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { RotatingWords } from '@/components/landing/RotatingWords';
 import { RobotHead } from '@/components/landing/RobotHead';
 import { OrbitButton } from '@/components/landing/OrbitButton';
 
 export function ProductosHero() {
+  const t = useTranslations('landing.hero');
+  // El titular en inglés ("One click away from...") es bastante más largo
+  // que en español y se chocaba con la cabeza del robot / se salía a 3
+  // líneas. En EN se usa una escala tipográfica un paso más chica y menos
+  // sangría izquierda.
+  const isEn = useLocale() === 'en';
+  const titleSize = isEn
+    ? 'text-3xl sm:text-4xl md:text-6xl lg:text-7xl lg:ml-24 xl:ml-36 2xl:ml-52'
+    : 'text-4xl sm:text-5xl md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72';
+
   return (
     <section
       id="productos"
@@ -31,8 +42,8 @@ export function ProductosHero() {
           "A 1 click de..." y la palabra que rota van separadas: más aire
           vertical + la palabra sangrada como una tabulación. */}
       <div className="relative z-10 flex min-h-screen lg:min-h-[calc(100vh-6rem)] items-center">
-        <h1 className="nexora-headline w-full max-w-3xl text-4xl font-normal leading-[1.15] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72">
-          <span className="[word-spacing:0.22em]">A 1 click de...</span>
+        <h1 className={`nexora-headline w-full max-w-3xl font-normal leading-[1.15] tracking-tight text-white ${titleSize}`}>
+          <span className="[word-spacing:0.22em]">{t('clickPrefix')}</span>
           <span className="mt-2 ml-3 block md:ml-6">
             <RotatingWords />
           </span>
@@ -43,16 +54,13 @@ export function ProductosHero() {
           Palabras clave en blanco pleno, relleno en gris (estilo saleads). */}
       <div className="relative z-10 mx-auto flex max-w-2xl flex-col items-center pb-28 text-center lg:pb-40">
         <p className="aventhra-copy text-base font-normal leading-relaxed text-white/45 md:text-xl md:leading-relaxed">
-          <span className="text-white">AVENTHRA</span> hace tu{' '}
-          <span className="text-white">marketing</span> y{' '}
-          <span className="text-white">atiende</span> a tus clientes. Consigue
-          que te <span className="text-white">escriban</span>, responde cada
-          mensaje y <span className="text-white">cierra la venta</span> — a toda
-          hora.
+          {t.rich('paragraph', {
+            b: (chunks) => <span className="text-white">{chunks}</span>,
+          })}
         </p>
 
-        <OrbitButton href="/contacto" className="mt-10">
-          Empezar ahora
+        <OrbitButton href="/login" className="mt-10">
+          {t('cta')}
           <ChevronRight
             size={16}
             className="transition-transform duration-300 group-hover:translate-x-1"

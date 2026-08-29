@@ -38,7 +38,7 @@ export const Experience = ({
   // solo miraba el tier, nunca la ruta) — eso es lo que se reportó como
   // "se buguea" al navegar a Productos/Soluciones/Precios/Clientes/Sobre
   // nosotros.
-  const isBareEnvironmentRoute = SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '') && pathname !== '/';
+  const isBareEnvironmentRoute = matchesScreenTwoNavbar(pathname ?? '') && pathname !== '/';
   const shouldHideRobot = isBareEnvironmentRoute;
   // <main> reserva pt-24 arriba SOLO para las rutas que usan el <Navbar/>
   // genérico (fixed, fuera del flujo normal) — las rutas con
@@ -46,7 +46,7 @@ export const Experience = ({
   // flujo normal (sticky en Home/HomeExperience.tsx, o simplemente el
   // primer hijo de la página en las demás), así que sumarle el pt-24 de
   // acá encima sería un hueco vacío duplicado.
-  const usesGenericNavbarSpacing = !SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '');
+  const usesGenericNavbarSpacing = !matchesScreenTwoNavbar(pathname ?? '');
 
   return (
     <QualityProvider>
@@ -306,22 +306,31 @@ function RevealedContent({
 }
 
 // Rutas que tienen su PROPIO navbar de desktop (ScreenTwoNavbar.tsx: logo +
-// Productos/Soluciones/Precios/Sobre nosotros/Clientes + Contáctanos/
-// Iniciar sesión) en vez del <Navbar/> genérico — Home ('/'), las páginas
-// placeholder que enlaza (Productos/Soluciones/Precios/Clientes), y
-// /sobre-nosotros (agregada después: pedido explícito del usuario — "el
-// robot y el fondo de la Pantalla 1 solo debe salir en el inicio, ya
-// cuando suba la Pantalla 2 es algo diferente", así que cualquier destino
-// del navbar de Pantalla 2 debe sentirse como la MISMA Pantalla 2, no
-// como si "regenerara" la Pantalla 1 con el navbar genérico viejo). Se
-// usa en dos lugares de este archivo (acá abajo y en `Experience`, para
-// decidir si <main> necesita el padding-top que reserva espacio para el
-// <Navbar/> genérico) — mantenida en un solo lugar para no desincronizar
-// ambos usos. Incluye /contacto y /login (agregadas después: el usuario
-// confirmó "nada me debe llevar a la Pantalla 1", así que los accesos de
-// "Contáctanos"/"Iniciar sesión" del propio ScreenTwoNavbar tampoco pueden
-// aterrizar en el robot + navbar genérico).
-const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/soluciones', '/precios', '/clientes', '/sobre-nosotros', '/contacto', '/login', '/solicitar-acceso'];
+// Producto / Preguntas frecuentes / Planes + toggle de idioma + Iniciar
+// sesión) en vez del <Navbar/> genérico — Home ('/'), /productos (la misma
+// landing larga), y los accesos (/contacto, /login, /solicitar-acceso).
+// Pedido explícito del usuario: "el robot y el fondo de la Pantalla 1
+// solo debe salir en el inicio", así que ningún destino del navbar de
+// Pantalla 2 puede "regenerar" la Pantalla 1 con el navbar genérico
+// viejo. Se usa en dos lugares de este archivo (acá abajo y en
+// `Experience`, para decidir si <main> necesita el padding-top que
+// reserva espacio para el <Navbar/> genérico) — mantenida en un solo
+// lugar para no desincronizar ambos usos.
+//
+// (Soluciones / Precios / Clientes / Sobre nosotros se eliminaron —
+// su contenido vive hoy en la landing larga.)
+const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/contacto', '/login', '/solicitar-acceso', '/gracias'];
+
+// Match de ruta contra la lista de arriba, con soporte para prefijos en las
+// rutas del flujo de compra que tienen segmentos dinámicos:
+//   /gracias            → "pago recibido" (redirect de Wompi)
+//   /registro/<token>   → formulario de alta tras pagar
+// Comparten el mismo criterio de "entorno aparte": su propio
+// ScreenTwoNavbar, sin robot ni fondo 3D.
+function matchesScreenTwoNavbar(pathname: string): boolean {
+  if (SCREEN_TWO_NAVBAR_ROUTES.includes(pathname)) return true;
+  return pathname.startsWith('/registro/');
+}
 
 // Gate EXTRA, exclusivo de desktop, en las rutas de arriba: esas páginas ya
 // traen su propio navbar (ScreenTwoNavbar.tsx, montado por cada una de
@@ -346,7 +355,7 @@ function HomeDesktopNavbarGate({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const hasOwnDesktopNavbar = showRobot3D && SCREEN_TWO_NAVBAR_ROUTES.includes(pathname ?? '');
+  const hasOwnDesktopNavbar = showRobot3D && matchesScreenTwoNavbar(pathname ?? '');
 
   if (hasOwnDesktopNavbar) {
     return null;

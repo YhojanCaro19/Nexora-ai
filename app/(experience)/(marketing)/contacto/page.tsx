@@ -64,9 +64,9 @@ export default async function ContactPage({
       // lg:min-h-[calc(100vh-6rem)] sí es nuevo — mismo ajuste que
       // HeroContent.tsx/sobre-nosotros: centrar contra el alto real
       // disponible debajo de esa barra, no contra el 100vh completo.
-      className="w-full flex items-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
+      className="w-full flex items-center justify-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16 pt-40 lg:pt-0 pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0"
     >
-      <FocusGlowCard className="w-full max-w-xl ml-0 lg:ml-8 xl:ml-12 2xl:ml-16">
+      <FocusGlowCard className="w-full max-w-xl mx-auto">
         {/* Mismo mecanismo de card.tsx (data-[size=sm]) para el padding
             interno solo en mobile, sin tocar el primitivo. spacing(2) se
             sentía "pegado" al borde → spacing(3) (spacing(3.5) se probó y

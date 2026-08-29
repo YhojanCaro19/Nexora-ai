@@ -16,13 +16,16 @@
 
 import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 
-const WORDS = ['más ventas', 'más tiempo', 'más confianza', 'más clientes'];
 const HOLD_MS = 2000; // cuánto se queda visible cada palabra
 const GAP_MS = 420; // hueco vacío entre una palabra y la siguiente
 const FADE_MS = 340;
 
 export function RotatingWords({ className = '' }: { className?: string }) {
+  const t = useTranslations('landing.hero');
+  const WORDS = t.raw('words') as string[];
+  const wordCount = WORDS.length;
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
   const prefersReducedMotion = useReducedMotion();
@@ -44,7 +47,7 @@ export function RotatingWords({ className = '' }: { className?: string }) {
           timers.push(
             window.setTimeout(() => {
               if (cancelled) return;
-              setIndex((i) => (i + 1) % WORDS.length); // cambia durante el hueco
+              setIndex((i) => (i + 1) % wordCount); // cambia durante el hueco
               setVisible(true); // reaparece
               scheduleCycle();
             }, GAP_MS)
@@ -58,7 +61,7 @@ export function RotatingWords({ className = '' }: { className?: string }) {
       cancelled = true;
       timers.forEach((t) => window.clearTimeout(t));
     };
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, wordCount]);
 
   return (
     <span className={`relative inline-grid align-bottom ${className}`} aria-live="polite">

@@ -165,7 +165,7 @@ export async function createCheckoutSession(
     const checkoutUrl = buildCheckoutUrl({
       reference,
       amountInCents,
-      redirectUrl: `${APP_URL()}/precios/gracias`,
+      redirectUrl: `${APP_URL()}/gracias`,
     });
     return { checkoutUrl, error: null };
   } catch (err) {

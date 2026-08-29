@@ -5,6 +5,8 @@ import { GeistMono } from "geist/font/mono";
 import { Space_Grotesk } from "next/font/google";
 import { JetBrains_Mono } from "next/font/google";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -33,18 +35,21 @@ export const metadata: Metadata = {
   description: "Siempre hay alguien cuidando tu negocio.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Idioma resuelto por next-intl desde la cookie `LOCALE` (i18n/request.ts).
+  const locale = await getLocale();
+
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${GeistSans.variable} ${GeistMono.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${jakarta.variable} h-full antialiased`}
     >
       <body className="min-h-screen flex flex-col bg-background text-foreground overflow-x-hidden">
-        {children}
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
   );
