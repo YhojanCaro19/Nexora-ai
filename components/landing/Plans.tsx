@@ -114,13 +114,14 @@ function PlanBody({
           {annual ? t('perYear') : t('perMonth')}
         </span>
       </div>
-      <p className="mt-1 text-xs text-white/35">
-        {annual
-          ? t('annualSavingNote', {
-              saved: fmt(meta.monthlyPrice * 12 - meta.annualPrice),
-            })
-          : t('monthlyAltNote', { annual: fmt(meta.annualPrice) })}
-      </p>
+      {/* Solo en anual: cuánto se ahorra. En mensual no va ninguna nota. */}
+      {annual && (
+        <p className="mt-1 text-xs text-white/35">
+          {t('annualSavingNote', {
+            saved: fmt(meta.monthlyPrice * 12 - meta.annualPrice),
+          })}
+        </p>
+      )}
 
       {/* Cupos + qué incluye, todo en una sola lista (sin card interna). */}
       <ul className="mt-6 flex-1 space-y-3">
