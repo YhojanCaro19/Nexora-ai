@@ -42,7 +42,7 @@ const PLANS: Plan[] = [
     monthlyPrice: 39,
     annualPrice: 390,
     credits: '3.000 créditos / mes',
-    creditsNote: '≈ 12 estrategias completas, o 1.000 respuestas del agente',
+    creditsNote: 'para que el agente atienda tus mensajes todo el mes',
     features: [
       '1 negocio vinculado',
       'Agente 24/7 en WhatsApp e Instagram',
@@ -86,11 +86,6 @@ const PLANS: Plan[] = [
   },
 ];
 
-/** Precio mensual mostrado: mensual directo, o el equivalente/mes del anual. */
-function monthlyDisplay(plan: Plan, annual: boolean): string {
-  const value = annual ? plan.annualPrice / 12 : plan.monthlyPrice;
-  return Number.isInteger(value) ? `$${value}` : `$${value.toFixed(1)}`;
-}
 
 function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
   const { Icon } = plan;
@@ -119,16 +114,24 @@ function PlanBody({ plan, annual }: { plan: Plan; annual: boolean }) {
       <p className="aventhra-copy mt-2 text-sm text-white/45">{plan.tagline}</p>
 
       {/* Precio */}
-      <div className="mt-6 flex items-baseline gap-1.5">
+      <div className="mt-6 flex items-baseline gap-2">
+        {annual && (
+          <span className="text-lg text-white/25 line-through">
+            ${(plan.monthlyPrice * 12).toLocaleString('es-CO')}
+          </span>
+        )}
         <span className="nexora-headline text-4xl font-semibold text-white">
-          {monthlyDisplay(plan, annual)}
+          ${annual ? plan.annualPrice.toLocaleString('es-CO') : plan.monthlyPrice}
         </span>
-        <span className="text-sm text-white/40">/ mes</span>
+        <span className="text-sm text-white/40">{annual ? '/ año' : '/ mes'}</span>
       </div>
       <p className="mt-1 text-xs text-white/35">
         {annual
-          ? `$${plan.annualPrice} al año · 2 meses gratis`
-          : `o $${plan.annualPrice} al año (2 meses gratis)`}
+          ? `≈ $${Math.round(plan.annualPrice / 12)}/mes · te ahorras $${(
+              plan.monthlyPrice * 12 -
+              plan.annualPrice
+            ).toLocaleString('es-CO')} al año (2 meses gratis)`
+          : `o $${plan.annualPrice.toLocaleString('es-CO')}/año — 2 meses gratis`}
       </p>
 
       {/* Créditos incluidos */}

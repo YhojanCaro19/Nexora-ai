@@ -32,7 +32,7 @@ export function ProductosHero() {
           vertical + la palabra sangrada como una tabulación. */}
       <div className="relative z-10 flex min-h-screen lg:min-h-[calc(100vh-6rem)] items-center">
         <h1 className="nexora-headline w-full max-w-3xl text-4xl font-normal leading-[1.15] tracking-tight text-white sm:text-5xl md:text-7xl lg:text-8xl lg:ml-40 xl:ml-52 2xl:ml-72">
-          A 1 click de...
+          <span className="[word-spacing:0.22em]">A 1 click de...</span>
           <span className="mt-6 ml-8 block md:mt-10 md:ml-16">
             <RotatingWords />
           </span>
