@@ -35,13 +35,6 @@ interface PlanMeta {
   monthlyPrice: number;
   /** Precio anual total en USD (= monthlyPrice × 10). */
   annualPrice: number;
-  /**
-   * Monto REAL que cobra Wompi, en pesos (Wompi es solo COP). Debe cuadrar
-   * con `plans.price_monthly_cop` / `price_annual_cop` en la base (ahí están
-   * en centavos: acá en pesos). Se muestra chiquito bajo el precio USD.
-   */
-  monthlyCop: number;
-  annualCop: number;
   highlighted?: boolean;
 }
 
@@ -57,12 +50,10 @@ interface PlanCopy {
 // El orden coincide con `landing.plans.items` en messages/<locale>.json y
 // con `plans.sort_order` en la base.
 const PLAN_META: PlanMeta[] = [
-  { Icon: MessageCircle, planKey: 'atencion', monthlyPrice: 39, annualPrice: 390, monthlyCop: 160000, annualCop: 1600000 },
-  { Icon: TrendingUp, planKey: 'crecimiento', monthlyPrice: 99, annualPrice: 990, monthlyCop: 400000, annualCop: 4000000, highlighted: true },
-  { Icon: Rocket, planKey: 'escala', monthlyPrice: 249, annualPrice: 2490, monthlyCop: 1000000, annualCop: 10000000 },
+  { Icon: MessageCircle, planKey: 'atencion', monthlyPrice: 39, annualPrice: 390 },
+  { Icon: TrendingUp, planKey: 'crecimiento', monthlyPrice: 99, annualPrice: 990, highlighted: true },
+  { Icon: Rocket, planKey: 'escala', monthlyPrice: 249, annualPrice: 2490 },
 ];
-
-const COP_FMT = new Intl.NumberFormat('es-CO');
 
 const NUMBER_LOCALE: Record<string, string> = { es: 'es-CO', en: 'en-US' };
 
@@ -130,11 +121,6 @@ function PlanBody({
               saved: fmt(meta.monthlyPrice * 12 - meta.annualPrice),
             })
           : t('monthlyAltNote', { annual: fmt(meta.annualPrice) })}
-      </p>
-      {/* Wompi cobra en pesos — se muestra el monto real bajo el precio USD. */}
-      <p className="mt-1 text-[11px] text-white/30">
-        {locale === 'en' ? 'Billed as ' : 'Se cobra '}
-        ${COP_FMT.format(annual ? meta.annualCop : meta.monthlyCop)} COP
       </p>
 
       {/* Cupos incluidos — en lenguaje claro */}
