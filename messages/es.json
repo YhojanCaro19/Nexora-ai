@@ -211,12 +211,11 @@
   },
   "auth": {
     "login": {
-      "title": "Iniciar sesión",
-      "description": "Entra a tu panel de AVENTHRA",
-      "google": "Continuar con Google",
-      "emailHint": "Usa el mismo correo con el que solicitaste acceso.",
-      "noAccount": "¿Aún no tienes cuenta?",
-      "contact": "Contáctanos"
+      "welcome": "Bienvenido",
+      "subtitle": "Entra a tu panel de AVENTHRA",
+      "purchaseTitle": "Usa el correo de tu compra",
+      "purchaseBody": "Inicia sesión con la misma cuenta de Google del correo con el que pagaste tu plan.",
+      "google": "Continuar con Google"
     }
   },
   "whatsapp": {

@@ -1,31 +1,21 @@
-// app/(auth)/login/page.tsx
+// app/(experience)/(auth)/login/page.tsx
 //
-// 🐛→✅ Agregado <ScreenTwoNavbar/> — pedido explícito del usuario: "nada
-// me debe llevar a la Pantalla 1" (robot + fondo 3D). Antes esta página
-// usaba el <Navbar/> genérico + seguía mostrando el robot de fondo (se
-// monta sin importar la ruta) — llegar acá desde "Iniciar sesión" del
-// navbar de Pantalla 2 se sentía como si regenerara la Pantalla 1. Ahora
-// es una ruta más de `SCREEN_TWO_NAVBAR_ROUTES` (Experience.tsx): sin
-// robot, sin <Navbar/> genérico, mismo criterio que /productos,
-// /contacto y /solicitar-acceso.
+// Login de AVENTHRA. Auth SOLO con Google (ver docs/decisions.md). Las
+// cuentas se crean después de pagar un plan (webhook de Wompi → correo con
+// link → /registro/[token]); acá la persona entra con la MISMA cuenta de
+// Google del correo con el que pagó.
+//
+// Ruta de "Pantalla 2" (SCREEN_TWO_NAVBAR_ROUTES en Experience.tsx): sin
+// robot 3D, con el navbar dedicado (ScreenTwoNavbar) y el fondo de puntos.
 import { getTranslations } from "next-intl/server";
+import { Mail } from "lucide-react";
 import { signInWithGoogle } from "../actions";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { FocusGlowCard } from "@/components/landing/FocusGlowCard";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
 import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
-import { OrbitRing } from "@/components/landing/OrbitRing";
 
 function GoogleLogo() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
       <path
         fill="#4285F4"
         d="M23.52 12.27c0-.82-.07-1.6-.2-2.36H12v4.46h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.88c2.27-2.09 3.57-5.17 3.57-8.73Z"
@@ -56,79 +46,65 @@ export default async function LoginPage({
 
   return (
     <>
-    <ScreenTwoBackground />
-    <ScreenTwoNavbar />
-    {/* lg:min-h-[calc(100vh-6rem)]: compensa el alto real que
-        ScreenTwoNavbar (h-24, en flujo normal) ya ocupó arriba, para que
-        este bloque + el navbar sumen exactamente 100vh. `justify-center`:
-        la card va centrada — ya no hay robot 3D a un lado que obligara a
-        empujarla a la izquierda. */}
-    <div className="w-full flex items-center justify-center min-h-screen lg:min-h-[calc(100vh-6rem)] px-6 md:px-10 lg:px-16">
-      {/* 20% más grande, y luego 10% más chica sobre ese resultado:
-          1.2 × 0.9 = 1.08 de base. Al enfocar un campo pasa a 1.08 × 1.05 =
-          1.134 — no se suman los transforms, así que ya incluye la base. */}
-      <FocusGlowCard
-        // mx-auto: FocusGlowCard envuelve el contenido en un <div w-full>
-        // propio, así que sin esto la card queda pegada a la izquierda de
-        // ese wrapper aunque el padre sea flex + justify-center.
-        className="w-full max-w-sm mx-auto"
-        // El 20%/8% de más era el tamaño pensado para desktop (espacio de
-        // sobra al lado del robot) — aplicado también en mobile, la card
-        // quedaba desbordando un viewport angosto y se sentía "demasiado
-        // grande". Se queda en 100% en mobile y solo crece desde md:.
-        baseScaleClass="scale-100 md:scale-[1.08]"
-        activeScaleClass="scale-[1.03] md:scale-[1.134]"
-      >
-        {/* Anillo girando alrededor de TODA la card — pedido explícito del
-            usuario, reconstruido con SVG puro (fill="none", ver el
-            comentario grande en OrbitRing.tsx) después de que la versión
-            con `mask-composite` causara un bug real de renderizado en
-            Safari (líneas diagonales enormes). radius={16}: rounded-2xl
-            de Tailwind = 1rem = 16px (no personalizado en este proyecto,
-            ver --radius-* en globals.css — solo van hasta xl). */}
-        <OrbitRing radius={16} className="w-full">
-          {/* [--card-spacing:...] reduce el padding interno de Card en
-              mobile (mismo mecanismo que ya usa components/ui/card.tsx
-              para su propia variante "sm" — no se toca el primitivo, solo
-              se sobreescribe la custom property en este uso puntual). */}
-          <Card className="liquid-glass w-full rounded-2xl border-0 shadow-[0_8px_40px_rgba(0,0,0,0.4)] [--card-spacing:--spacing(3)] md:[--card-spacing:--spacing(4)]">
-          <CardHeader className="text-center">
-            <CardTitle className="text-xl md:text-2xl text-white font-normal">{t("title")}</CardTitle>
-            <CardDescription className="text-white/45">
-              {t("description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      <ScreenTwoBackground />
+      <ScreenTwoNavbar />
+
+      {/* Centrado real: en desktop contra el alto que queda bajo el navbar
+          (h-24), en mobile contra la pantalla con aire arriba para la
+          barra superior mobile. */}
+      <div className="flex min-h-screen w-full items-center justify-center px-6 pt-24 pb-16 lg:min-h-[calc(100vh-6rem)] lg:pt-0 lg:pb-0">
+        <div className="w-full max-w-sm">
+          {/* "Bienvenido" — FUERA de la card */}
+          <div className="text-center">
+            <h1 className="nexora-headline text-3xl font-normal tracking-tight text-white sm:text-4xl">
+              <span className="aventhra-iridescent">{t("welcome")}</span>
+            </h1>
+            <p className="aventhra-copy mt-3 text-sm text-white/45">
+              {t("subtitle")}
+            </p>
+          </div>
+
+          {/* Card */}
+          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md sm:p-7">
             {params.error && (
-              <p className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-2 text-sm text-red-400">
+              <p className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-2.5 text-center text-sm text-red-300">
                 {params.error}
               </p>
             )}
             {params.message && (
-              <p className="mb-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-2 text-sm text-emerald-400">
+              <p className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-center text-sm text-emerald-300">
                 {params.message}
               </p>
             )}
 
-            <form action={signInWithGoogle}>
-              <Button
+            {/* Tarjetica: usa el correo de la compra */}
+            <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
+                <Mail size={15} className="text-[#4CC2E8]" />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-white/85">
+                  {t("purchaseTitle")}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-white/45">
+                  {t("purchaseBody")}
+                </p>
+              </div>
+            </div>
+
+            {/* Botón de Google */}
+            <form action={signInWithGoogle} className="mt-5">
+              <button
                 type="submit"
-                variant="outline"
-                className="w-full gap-2 bg-transparent border-white/15 text-white/80 hover:bg-white/5 hover:text-white"
+                className="group flex w-full items-center justify-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-medium text-white/90 transition-colors duration-200 hover:border-white/25 hover:bg-white/[0.12] hover:text-white"
               >
                 <GoogleLogo />
                 {t("google")}
-              </Button>
+              </button>
             </form>
-
-            <p className="mt-4 text-center text-xs text-white/30">
-              {t("emailHint")}
-            </p>
-          </CardContent>
-        </Card>
-        </OrbitRing>
-      </FocusGlowCard>
-    </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
