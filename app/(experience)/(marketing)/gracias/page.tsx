@@ -16,7 +16,7 @@ export default function GraciasPage() {
       <HideStarfield />
       <ScreenTwoBackground />
       <ScreenTwoNavbar />
-      <div className="flex min-h-screen w-full items-center justify-center px-6 md:px-10 lg:min-h-[calc(100vh-6rem)] lg:px-16">
+      <div className="flex min-h-screen w-full items-center justify-center px-6 py-28 md:px-10 lg:min-h-[calc(100vh-6rem)] lg:px-16 lg:py-0">
         <div className="mx-auto w-full max-w-xl text-center">
           <h1 className="nexora-headline text-3xl font-normal leading-tight text-white md:text-4xl">
             Estamos confirmando tu pago

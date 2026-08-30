@@ -33,21 +33,29 @@ export function ProductosHero() {
       id="productos"
       className="relative w-full overflow-hidden px-6 md:px-10 lg:px-16"
     >
-      {/* Video de la cabeza del robot — lado derecho, oculto en mobile. */}
+      {/* Video de la cabeza del robot — en desktop, lado derecho absoluto.
+          En mobile se muestra debajo del título, dentro del flujo (ver
+          Bloque 1). */}
       <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
         <RobotHead />
       </div>
 
-      {/* Bloque 1: SOLO el título — ocupa la primera pantalla completa.
+      {/* Bloque 1: título (+ robot en mobile) — ocupa la primera pantalla.
           "A 1 click de..." y la palabra que rota van separadas: más aire
-          vertical + la palabra sangrada como una tabulación. */}
-      <div className="relative z-10 flex min-h-screen lg:min-h-[calc(100vh-6rem)] items-center">
+          vertical + la palabra sangrada como una tabulación. En desktop
+          es solo el título (el robot va absoluto arriba); en mobile el
+          robot se apila debajo, centrado. */}
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 lg:min-h-[calc(100vh-6rem)] lg:flex-row lg:justify-start lg:gap-0">
         <h1 className={`nexora-headline w-full max-w-3xl font-normal leading-[1.15] tracking-tight text-white ${titleSize}`}>
           <span className="[word-spacing:0.22em]">{t('clickPrefix')}</span>
           <span className="mt-2 ml-3 block md:ml-6">
             <RotatingWords />
           </span>
         </h1>
+
+        <div className="pointer-events-none h-[32vh] max-h-72 w-full max-w-[240px] shrink-0 sm:max-w-xs lg:hidden">
+          <RobotHead />
+        </div>
       </div>
 
       {/* Bloque 2: gancho + CTA — CENTRADO, aparece al scrollear un poco.
