@@ -168,16 +168,15 @@ export const Experience = ({
               </main>
             </RevealedContent>
 
-            {/* Navbar (barra superior en desktop, barra + panel inferior en
-                mobile/tablet) — fuera del overflow-hidden de arriba, ver el
-                comentario del fix de iOS. Mismo gate de reveal que el
-                contenido: entra junto, no antes. HomeDesktopNavbarGate
-                (adentro) agrega el gate EXTRA, exclusivo de Home+desktop:
-                ver su comentario. */}
+            {/* Navbar genérico (Navbar.tsx). Mismo gate de reveal que el
+                contenido: entra junto, no antes. ScreenTwoNavbarGate
+                (adentro) lo suprime en las rutas que montan su propio
+                ScreenTwoNavbar — ahora tanto en desktop como en mobile
+                (la isla flotante pasó a ser responsive). */}
             <RevealedContent showRobot3D={showRobot3D}>
-              <HomeDesktopNavbarGate showRobot3D={showRobot3D}>
+              <ScreenTwoNavbarGate>
                 <Navbar />
-              </HomeDesktopNavbarGate>
+              </ScreenTwoNavbarGate>
             </RevealedContent>
 
           </div>
@@ -332,34 +331,18 @@ function matchesScreenTwoNavbar(pathname: string): boolean {
   return pathname.startsWith('/registro/');
 }
 
-// Gate EXTRA, exclusivo de desktop, en las rutas de arriba: esas páginas ya
-// traen su propio navbar (ScreenTwoNavbar.tsx, montado por cada una de
-// ellas — Home lo hace desde HomeExperience.tsx, gateado a su propia
-// Pantalla 2; las 3 placeholder lo muestran siempre, como cualquier
-// navbar de página normal) — mostrar ADEMÁS el <Navbar/> genérico de acá
-// duplicaría la barra superior. Por eso este gate directamente NO
-// renderiza nada (`return null`) en desktop para esas rutas — a
-// diferencia de RevealedContent (que solo cambia opacidad), acá no hace
-// falta ningún fundido: nunca debe aparecer.
+// Las rutas de `matchesScreenTwoNavbar` montan su PROPIO navbar
+// (ScreenTwoNavbar.tsx, la isla flotante — ahora responsive: fila inline
+// en desktop, pill + panel desplegable en mobile). Mostrar ADEMÁS el
+// <Navbar/> genérico duplicaría la barra, así que en esas rutas este gate
+// no renderiza nada. Antes solo aplicaba en desktop (la isla era
+// `hidden lg:flex`); ahora aplica en todos los anchos.
 //
-// Fuera de esas rutas (cualquier otra página), o en mobile/tablet (ahí
-// showRobot3D ya es `false` y esas páginas siguen sin tener un
-// ScreenTwoNavbar mobile — ver el comentario de ese archivo, no se
-// construyó a propósito) este componente es un no-op: no envuelve nada,
-// cero cambio de comportamiento ni de DOM respecto a como estaba antes.
-function HomeDesktopNavbarGate({
-  showRobot3D,
-  children,
-}: {
-  showRobot3D: boolean;
-  children: React.ReactNode;
-}) {
+// Home ('/') en mobile monta ScreenTwoNavbar desde su propia page.tsx
+// (rama `tier !== 'desktop'`); en desktop lo hace HomeExperience.tsx.
+// Fuera de esas rutas, este componente es un no-op.
+function ScreenTwoNavbarGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hasOwnDesktopNavbar = showRobot3D && matchesScreenTwoNavbar(pathname ?? '');
-
-  if (hasOwnDesktopNavbar) {
-    return null;
-  }
-
+  if (matchesScreenTwoNavbar(pathname ?? '')) return null;
   return <>{children}</>;
 }

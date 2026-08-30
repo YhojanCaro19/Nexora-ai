@@ -3,6 +3,7 @@
 
 import { ProductosLanding } from '@/components/landing/ProductosLanding';
 import { HomeExperience } from '@/components/landing/HomeExperience';
+import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { useViewportTier } from '@/core/hooks/useQuality';
 
 export default function Home() {
@@ -14,7 +15,16 @@ export default function Home() {
   const tier = useViewportTier();
 
   if (tier !== 'desktop') {
-    return <ProductosLanding />;
+    // La isla flotante (ScreenTwoNavbar) va acá porque en mobile el Home
+    // NO pasa por HomeExperience (que es quien la monta en desktop) y
+    // ProductosLanding no trae navbar propio. `Experience.tsx` ya suprime
+    // el <Navbar/> genérico en '/'.
+    return (
+      <>
+        <ScreenTwoNavbar />
+        <ProductosLanding />
+      </>
+    );
   }
 
   return <HomeExperience />;
