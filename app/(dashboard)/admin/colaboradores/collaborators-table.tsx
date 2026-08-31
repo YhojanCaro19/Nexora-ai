@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Trash2 } from "lucide-react";
 import {
   Table,
@@ -11,8 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { OtpInput } from "@/components/shared/OtpInput";
 import {
   requestDeleteCollaboratorOtpAction,
   verifyAndDeleteCollaboratorAction,
@@ -98,19 +99,40 @@ function StatusBadge({ active }: { active: boolean }) {
 
 // Borrado real (cuenta de Auth incluida) — por eso pide código de 6
 // dígitos al correo del admin antes de ejecutarlo, no solo un
-// "¿estás seguro?".
-type DeleteStep = "idle" | "confirming" | "otp-sent";
+// "¿estás seguro?". El flujo de dos pasos vive en un modal (portal a
+// document.body, mismo patrón que components/shared/AvatarCropper.tsx)
+// para no deformar la fila de la tabla mientras dura la verificación.
+type DeleteStep = "confirming" | "otp-sent";
 
-function DeleteCollaboratorButton({ id, name }: { id: string; name: string }) {
-  const [step, setStep] = useState<DeleteStep>("idle");
+function DeleteCollaboratorModal({
+  name,
+  onClose,
+  onSendCode,
+  onConfirm,
+}: {
+  name: string;
+  onClose: () => void;
+  onSendCode: () => Promise<{ error: string | null }>;
+  onConfirm: (code: string) => Promise<{ error: string | null }>;
+}) {
+  const [step, setStep] = useState<DeleteStep>("confirming");
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Cerrar con Escape, mismo gesto que cualquier overlay modal del panel.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   async function handleSendCode() {
     setLoading(true);
     setError(null);
-    const result = await requestDeleteCollaboratorOtpAction();
+    const result = await onSendCode();
     setLoading(false);
     if (result.error) {
       setError(result.error);
@@ -122,89 +144,124 @@ function DeleteCollaboratorButton({ id, name }: { id: string; name: string }) {
   async function handleConfirm() {
     setLoading(true);
     setError(null);
-    const result = await verifyAndDeleteCollaboratorAction(id, code);
+    const result = await onConfirm(code);
     setLoading(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setStep("idle");
+    onClose();
   }
 
-  if (step === "confirming") {
-    return (
-      <div className="flex flex-col items-end gap-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Te enviamos un código a tu correo para eliminar a {name}.
-          </span>
-          <Button type="button" disabled={loading} className="h-7 px-2 text-xs" onClick={handleSendCode}>
-            {loading ? "Enviando..." : "Enviar código"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-7 px-2 text-xs"
-            disabled={loading}
-            onClick={() => setStep("idle")}
-          >
-            Cancelar
-          </Button>
-        </div>
-        {error && <span className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</span>}
-      </div>
-    );
-  }
+  return createPortal(
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-xl ring-1 ring-foreground/10 p-6 sm:p-8 flex flex-col items-center gap-4 text-center"
+        style={{ background: "var(--nexora-panel)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="font-nexora text-sm" style={{ color: "var(--nexora-ink)" }}>
+          Eliminar colaborador
+        </p>
 
-  if (step === "otp-sent") {
-    return (
-      <div className="flex flex-col items-end gap-1.5">
-        <div className="flex items-center gap-2">
-          <Input
+        {step === "confirming" ? (
+          <p className="text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
+            Vas a eliminar a{" "}
+            <strong style={{ color: "var(--nexora-ink)" }}>{name}</strong> de forma
+            permanente, incluida su cuenta de acceso. Te enviaremos un código de
+            verificación a tu correo para confirmar.
+          </p>
+        ) : (
+          <p className="text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
+            Ingresa el código de {OTP_CODE_LENGTH} dígitos que enviamos a tu correo.
+          </p>
+        )}
+
+        {step === "otp-sent" && (
+          <OtpInput
             value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, OTP_CODE_LENGTH))}
-            inputMode="numeric"
-            maxLength={OTP_CODE_LENGTH}
-            placeholder="00000000"
-            className="h-7 w-28 text-center text-xs tracking-[0.2em]"
-          />
-          <Button
-            type="button"
-            variant="outline"
-            className="h-7 px-2 text-xs"
-            style={{ borderColor: 'rgba(248,113,113,0.4)', color: 'var(--nexora-alert)' }}
-            disabled={loading || code.length !== OTP_CODE_LENGTH}
-            onClick={handleConfirm}
-          >
-            {loading ? "Eliminando..." : "Confirmar"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-7 px-2 text-xs"
+            onChange={setCode}
+            length={OTP_CODE_LENGTH}
             disabled={loading}
-            onClick={() => setStep("idle")}
-          >
+            autoFocus
+          />
+        )}
+
+        {error && (
+          <span className="text-xs" style={{ color: "var(--nexora-alert)" }}>
+            {error}
+          </span>
+        )}
+
+        <div className="flex gap-2 justify-center pt-1">
+          <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
+          {step === "confirming" ? (
+            <Button type="button" onClick={handleSendCode} disabled={loading}>
+              {loading ? "Enviando..." : "Enviar código"}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              style={{ borderColor: "rgba(248,113,113,0.4)", color: "var(--nexora-alert)" }}
+              disabled={loading || code.length !== OTP_CODE_LENGTH}
+              onClick={handleConfirm}
+            >
+              {loading ? "Eliminando..." : "Confirmar"}
+            </Button>
+          )}
         </div>
-        {error && <span className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</span>}
+
+        {step === "otp-sent" && (
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleSendCode}
+            className="text-[11px] transition-colors disabled:opacity-50"
+            style={{ color: "var(--nexora-ink-dim)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--nexora-nova)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--nexora-ink-dim)")}
+          >
+            Reenviar código
+          </button>
+        )}
       </div>
-    );
-  }
+    </div>,
+    document.body
+  );
+}
+
+function DeleteCollaboratorButton({ id, name }: { id: string; name: string }) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <button
-      type="button"
-      onClick={() => setStep("confirming")}
-      className="inline-flex items-center gap-1.5 text-xs transition-colors"
-      style={{ color: 'var(--nexora-ink-dim)' }}
-      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
-      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
-    >
-      <Trash2 size={14} />
-      Eliminar
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 text-xs transition-colors"
+        style={{ color: "var(--nexora-ink-dim)" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--nexora-alert)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--nexora-ink-dim)")}
+      >
+        <Trash2 size={14} />
+        Eliminar
+      </button>
+      {open && (
+        <DeleteCollaboratorModal
+          name={name}
+          onClose={() => setOpen(false)}
+          onSendCode={() => requestDeleteCollaboratorOtpAction()}
+          onConfirm={(code) => verifyAndDeleteCollaboratorAction(id, code)}
+        />
+      )}
+    </>
   );
 }
 
