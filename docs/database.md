@@ -113,11 +113,14 @@ Tracking de tokens/costo del agente por negocio, desde el día uno (aunque no se
 |---|---|---|
 | `id` | uuid | PK |
 | `business_id` | uuid | FK a `businesses`, NOT NULL |
-| `input_tokens` / `output_tokens` | integer | |
-| `model` | text | |
+| `input_tokens` / `output_tokens` | integer | entrada fresca (no cacheada) / salida |
+| `cache_read_input_tokens` / `cache_creation_input_tokens` | integer, default 0 | desglose de caché de prompt — lectura (0,1× precio input) / escritura (1,25× con TTL 5m). Migración en `docs/setup-credits-payments.md` §3a |
+| `model` | text | id del modelo Anthropic usado (hoy `claude-sonnet-5`) |
 | `created_at` | timestamptz | |
 
 RLS: solo SELECT para `is_business_admin(business_id)` — sin policy de INSERT, se escribe con `createAdminClient()` (`lib/services/agentUsageService.ts`).
+
+El costo estimado por negocio (Superadmin → Consumo) se calcula fila por fila con los precios de `lib/config/modelPricing.ts` (precio de lista Anthropic), respetando el `model` de cada fila. `agentEngineService.ts` marca el system prompt y el último mensaje del historial con `cache_control` para abaratar los turnos siguientes de cada conversación.
 
 ### `report_downloads`
 Historial de descargas del reporte diario (Reportes → Historial de reportes).

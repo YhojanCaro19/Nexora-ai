@@ -27,6 +27,11 @@ import { formatShortDate } from "@/lib/utils/date";
 const client = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
 
 const MODEL = "claude-sonnet-5";
+// Tope de tokens de salida por respuesta. Las respuestas de chat reales
+// rondan los 150 tokens; 1024 es margen de sobra sin dejar que el modelo
+// se desborde. `max_tokens` no cuesta nada salvo lo que efectivamente se
+// genera, así que no hace falta apretarlo más.
+const MAX_OUTPUT_TOKENS = 1024;
 // Canal interno de prueba (admin logueado probando el agente) — distinto
 // del futuro "whatsapp", así conviven sin mezclar hilos de conversación.
 const TEST_CHANNEL = "test";
@@ -63,9 +68,24 @@ export async function runAgentTurn(
   const activeToolKeys = agentConfig.enabledTools.filter((key) => SUPPORTED_TOOL_KEYS.includes(key));
   const tools = buildTools(businessId, customerResult.data.id, activeToolKeys, agentConfig.faqs);
 
-  const history = conversation.messages
-    .slice(-MAX_HISTORY_PAIRS * 2)
-    .map((m) => ({ role: m.role, content: m.content }));
+  // Caché de prompt multi-turno. En cada turno se reenvía TODO el historial
+  // a la API (es stateless), y en una conversación larga ese historial —no
+  // el system prompt— es el grueso del costo. Poniendo un breakpoint de
+  // caché en el ÚLTIMO mensaje del historial, la llamada del turno siguiente
+  // relee ese prefijo (tools + system + historial previo) a 0,1x en vez de
+  // pagarlo completo otra vez. El mensaje nuevo del usuario va después, sin
+  // marca, porque cambia siempre (marcarlo solo pagaría escrituras sin
+  // lecturas). Ver docs/prompt-caching y shared/prompt-caching.md del skill.
+  const historyRaw = conversation.messages.slice(-MAX_HISTORY_PAIRS * 2);
+  const historyMessages: Anthropic.Beta.BetaMessageParam[] = historyRaw.map((m, i) => {
+    if (i !== historyRaw.length - 1) {
+      return { role: m.role, content: m.content };
+    }
+    return {
+      role: m.role,
+      content: [{ type: "text", text: m.content, cache_control: { type: "ephemeral" } }],
+    };
+  });
 
   // Un turno puede ser VARIAS llamadas a la API (una por cada ronda de
   // tool). `await runner` devuelve solo la ÚLTIMA respuesta — así que se
@@ -73,10 +93,10 @@ export async function runAgentTurn(
   // suma el `usage` de cada una. Antes esto subcontaba el costo real.
   const runner = client.beta.messages.toolRunner({
     model: MODEL,
-    max_tokens: 1024,
+    max_tokens: MAX_OUTPUT_TOKENS,
     system: buildSystemPrompt(businessName, agentConfig, orderStats),
     tools,
-    messages: [...history, { role: "user", content: userMessage }],
+    messages: [...historyMessages, { role: "user", content: userMessage }],
   });
 
   const usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheCreationTokens: 0 };
@@ -153,6 +173,11 @@ async function getBusinessName(businessId: string): Promise<string> {
 //      (y entre conversaciones del mismo negocio), así que se cachea: las
 //      llamadas siguientes lo leen a 0,1× en vez de pagarlo completo. El
 //      breakpoint acá también cubre las `tools` (van antes en el prefijo).
+//      Ojo: Sonnet 5 solo cachea un prefijo de ≥1024 tokens — si el negocio
+//      tiene poca personalización, este bloque no llega y el marcador no
+//      hace nada (sin error). El ahorro grande igual entra por el breakpoint
+//      del historial en runAgentTurn, que sí supera ese mínimo a los pocos
+//      turnos.
 //   2. volátil (dato del cliente puntual: orderStats) → SIN cache, va
 //      después del breakpoint para no invalidarlo.
 function buildSystemPrompt(

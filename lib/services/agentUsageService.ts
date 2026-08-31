@@ -5,6 +5,7 @@
 // `agent_usage_log` no tiene policy de INSERT (solo SELECT para el admin
 // del negocio) — mismo criterio que `businessBrandingService.ts`.
 import { createAdminClient } from "@/lib/supabase/server";
+import { estimateCostUsd, estimateCacheSavingsUsd } from "@/lib/config/modelPricing";
 
 export interface AgentTurnUsage {
   /** Tokens de entrada NO cacheados (Anthropic los reporta aparte de cache). */
@@ -45,9 +46,23 @@ export async function logAgentUsage(
 export interface BusinessAgentUsage {
   businessId: string;
   businessName: string;
+  /** Entrada fresca — tokens que NO vinieron de caché (precio completo). */
   totalInputTokens: number;
   totalOutputTokens: number;
+  /** Tokens leídos del caché de prompt (0,1× del precio de entrada). */
+  totalCacheReadTokens: number;
+  /** Tokens escritos al caché de prompt (1,25× con TTL de 5m). */
+  totalCacheCreationTokens: number;
+  /** Volumen real procesado: entrada fresca + caché leído + caché escrito + salida. */
   totalTokens: number;
+  /** Costo estimado en USD a precio de lista de Anthropic (suma por fila, respeta el `model` de cada una). */
+  estimatedCostUsd: number;
+  /** Cuánto se ahorró gracias al caché, en USD (vs. pagar esos tokens completos). */
+  cacheSavingsUsd: number;
+  /** Fracción de la entrada total servida desde caché (0–1). 0 = el caché no está pegando. */
+  cacheHitRatio: number;
+  /** Último modelo visto en las filas de este negocio (contexto para la UI). */
+  model: string | null;
   turnCount: number;
   lastUsedAt: string | null;
 }
@@ -68,37 +83,95 @@ export async function getAgentUsageByBusiness(): Promise<BusinessAgentUsage[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("agent_usage_log")
-    .select("business_id, input_tokens, output_tokens, created_at, businesses(name)");
+    .select(
+      "business_id, input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, model, created_at, businesses(name)"
+    );
 
   if (error) {
     console.error("[getAgentUsageByBusiness] error:", error);
     return [];
   }
 
-  const byBusiness = new Map<string, BusinessAgentUsage>();
+  // Acumulador mutable por negocio — el costo se calcula por fila (respeta
+  // el `model` de cada una) y se suma. Los ratios/derivados se resuelven al
+  // final, una vez que están todos los totales.
+  interface Acc {
+    businessId: string;
+    businessName: string;
+    inputTokens: number;
+    outputTokens: number;
+    cacheReadTokens: number;
+    cacheCreationTokens: number;
+    costUsd: number;
+    savingsUsd: number;
+    model: string | null;
+    turnCount: number;
+    lastUsedAt: string | null;
+  }
+
+  const byBusiness = new Map<string, Acc>();
   for (const row of data ?? []) {
-    const businessName = (row.businesses as unknown as { name: string } | null)?.name ?? "Negocio eliminado";
+    const businessName =
+      (row.businesses as unknown as { name: string } | null)?.name ?? "Negocio eliminado";
+    const cacheRead = row.cache_read_input_tokens ?? 0;
+    const cacheCreation = row.cache_creation_input_tokens ?? 0;
+    const rowCost = estimateCostUsd(row.model, {
+      inputTokens: row.input_tokens,
+      outputTokens: row.output_tokens,
+      cacheReadTokens: cacheRead,
+      cacheCreationTokens: cacheCreation,
+    });
+    const rowSavings = estimateCacheSavingsUsd(row.model, cacheRead, cacheCreation);
+
     const existing = byBusiness.get(row.business_id);
     if (existing) {
-      existing.totalInputTokens += row.input_tokens;
-      existing.totalOutputTokens += row.output_tokens;
-      existing.totalTokens += row.input_tokens + row.output_tokens;
+      existing.inputTokens += row.input_tokens;
+      existing.outputTokens += row.output_tokens;
+      existing.cacheReadTokens += cacheRead;
+      existing.cacheCreationTokens += cacheCreation;
+      existing.costUsd += rowCost;
+      existing.savingsUsd += rowSavings;
       existing.turnCount += 1;
       if (!existing.lastUsedAt || row.created_at > existing.lastUsedAt) {
         existing.lastUsedAt = row.created_at;
+        existing.model = row.model ?? existing.model;
       }
     } else {
       byBusiness.set(row.business_id, {
         businessId: row.business_id,
         businessName,
-        totalInputTokens: row.input_tokens,
-        totalOutputTokens: row.output_tokens,
-        totalTokens: row.input_tokens + row.output_tokens,
+        inputTokens: row.input_tokens,
+        outputTokens: row.output_tokens,
+        cacheReadTokens: cacheRead,
+        cacheCreationTokens: cacheCreation,
+        costUsd: rowCost,
+        savingsUsd: rowSavings,
+        model: row.model ?? null,
         turnCount: 1,
         lastUsedAt: row.created_at,
       });
     }
   }
 
-  return Array.from(byBusiness.values()).sort((a, b) => b.totalTokens - a.totalTokens);
+  return Array.from(byBusiness.values())
+    .map((a): BusinessAgentUsage => {
+      const totalInputSide = a.inputTokens + a.cacheReadTokens;
+      return {
+        businessId: a.businessId,
+        businessName: a.businessName,
+        totalInputTokens: a.inputTokens,
+        totalOutputTokens: a.outputTokens,
+        totalCacheReadTokens: a.cacheReadTokens,
+        totalCacheCreationTokens: a.cacheCreationTokens,
+        totalTokens:
+          a.inputTokens + a.cacheReadTokens + a.cacheCreationTokens + a.outputTokens,
+        estimatedCostUsd: a.costUsd,
+        cacheSavingsUsd: a.savingsUsd,
+        cacheHitRatio: totalInputSide > 0 ? a.cacheReadTokens / totalInputSide : 0,
+        model: a.model,
+        turnCount: a.turnCount,
+        lastUsedAt: a.lastUsedAt,
+      };
+    })
+    .sort((x, y) => y.estimatedCostUsd - x.estimatedCostUsd);
 }
