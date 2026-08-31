@@ -21,6 +21,7 @@ export default async function AdminHomePage() {
   const orderCountTrend = stats?.orderCountTrend ?? { value: "0%", direction: "neutral" as const };
   const salesTrend = stats?.salesTrend ?? [];
   const completionRate = stats?.completionRate ?? 0;
+  const pendingOrders = stats?.pendingOrders ?? 0;
 
   return (
     <div className="space-y-6">
@@ -43,6 +44,11 @@ export default async function AdminHomePage() {
           label="Pedidos de hoy"
           value={String(todayOrderCount)}
           trend={orderCountTrend}
+          badge={
+            pendingOrders > 0
+              ? { text: `${pendingOrders} ${pendingOrders === 1 ? "nuevo" : "nuevos"}` }
+              : undefined
+          }
         />
         <IconStatCard icon={Receipt} label="Ticket promedio del día" value={formatCurrency(avgOrderValue, countryIso2)} />
       </div>
@@ -56,7 +62,11 @@ export default async function AdminHomePage() {
         <div className="lg:col-span-2">
           <SalesTrendChart points={salesTrend} todayRevenue={todayRevenue} countryIso2={countryIso2} />
         </div>
-        <PendingOrdersPreview orders={stats?.pendingPreview ?? []} countryIso2={countryIso2} />
+        <PendingOrdersPreview
+          orders={stats?.pendingPreview ?? []}
+          countryIso2={countryIso2}
+          totalCount={pendingOrders}
+        />
       </div>
 
       {/* Mitad y mitad — reemplaza una proporción escrita a mano

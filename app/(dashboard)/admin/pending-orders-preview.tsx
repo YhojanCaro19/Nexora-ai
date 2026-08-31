@@ -12,9 +12,12 @@ import { formatShortDateTime } from "@/lib/utils/date";
 export function PendingOrdersPreview({
   orders,
   countryIso2,
+  totalCount,
 }: {
   orders: PendingOrderPreview[];
   countryIso2: string | null;
+  // Total real de pendientes — `orders` viene recortado a 4 para la vista.
+  totalCount: number;
 }) {
   return (
     <div
@@ -22,7 +25,7 @@ export function PendingOrdersPreview({
       style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
       <p className="text-xs uppercase tracking-wide text-center mb-4" style={{ color: 'var(--nexora-ink-dim)' }}>
-        Pedidos pendientes
+        Pedidos pendientes{totalCount > 0 ? ` · ${totalCount}` : ""}
       </p>
 
       <div className="flex-1 flex flex-col justify-center">

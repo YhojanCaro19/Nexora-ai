@@ -15,11 +15,15 @@ export function IconStatCard({
   label,
   value,
   trend,
+  badge,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   trend?: TrendIndicator;
+  // Pastilla accionable (ej. "2 nuevos") — tiene prioridad sobre `trend`:
+  // decir "tenés 2 pedidos sin atender" es más útil que "↑ nuevo".
+  badge?: { text: string };
 }) {
   return (
     <div
@@ -33,14 +37,21 @@ export function IconStatCard({
         >
           <Icon size={16} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
         </div>
-        {trend && (
+        {badge ? (
+          <span
+            className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md"
+            style={{ color: '#34D399', background: '#34D3991A' }}
+          >
+            {badge.text}
+          </span>
+        ) : trend ? (
           <span
             className="text-[11px] font-medium px-1.5 py-0.5 rounded-md"
             style={{ color: TREND_COLOR[trend.direction], background: `${TREND_COLOR[trend.direction]}1A` }}
           >
             {trend.direction === "down" ? "↓" : trend.direction === "up" ? "↑" : ""} {trend.value}
           </span>
-        )}
+        ) : null}
       </div>
       <p className="text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
         {value}
