@@ -1,7 +1,7 @@
 // app/(dashboard)/colaborador/pedidos/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getOrders } from "@/lib/services/orderService";
-import { getBusinessCountryIso2 } from "@/lib/services/businessBrandingService";
+import { getBusinessCountryIso2, getBusinessIndustryType } from "@/lib/services/businessBrandingService";
 // Se reutiliza el mismo componente y las mismas server actions que usa
 // admin/pedidos — es exactamente la misma funcionalidad, solo que aquí se
 // llega con permiso de colaborador en vez de rol admin. isAdmin=false
@@ -24,15 +24,20 @@ export default async function ColaboradorPedidosPage() {
     );
   }
 
-  const orders = profile.businessId ? await getOrders(profile.businessId) : [];
-  const countryIso2 = profile.businessId ? await getBusinessCountryIso2(profile.businessId) : null;
+  const [orders, countryIso2, industryType] = profile.businessId
+    ? await Promise.all([
+        getOrders(profile.businessId),
+        getBusinessCountryIso2(profile.businessId),
+        getBusinessIndustryType(profile.businessId),
+      ])
+    : [[], null, null];
 
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Pedidos
       </h1>
-      <PedidosPanel orders={orders} countryIso2={countryIso2} isAdmin={false} />
+      <PedidosPanel orders={orders} countryIso2={countryIso2} industryType={industryType} isAdmin={false} />
     </div>
   );
 }

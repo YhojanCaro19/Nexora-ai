@@ -17,10 +17,12 @@ const FINISHED_STATUSES = ["shipped", "picked_up"];
 export function PedidosPanel({
   orders,
   countryIso2,
+  industryType,
   isAdmin,
 }: {
   orders: Order[];
   countryIso2: string | null;
+  industryType: string | null;
   isAdmin: boolean;
 }) {
   const [view, setView] = useState<View>("chooser");
@@ -87,6 +89,7 @@ export function PedidosPanel({
           orders={active}
           orderNumbers={orderNumbers}
           countryIso2={countryIso2}
+          industryType={industryType}
           title="Pedidos activos"
           emptyMessage="No hay pedidos activos ahora mismo."
           onDetailChange={setViewingDetail}
@@ -97,6 +100,7 @@ export function PedidosPanel({
           orders={finished}
           orderNumbers={orderNumbers}
           countryIso2={countryIso2}
+          industryType={industryType}
           title="Pedidos finalizados"
           emptyMessage="Todavía no hay pedidos finalizados."
           onDetailChange={setViewingDetail}
@@ -107,6 +111,7 @@ export function PedidosPanel({
           orders={rejected}
           orderNumbers={orderNumbers}
           countryIso2={countryIso2}
+          industryType={industryType}
           title="Pedidos rechazados"
           emptyMessage="No hay pedidos rechazados."
           onDetailChange={setViewingDetail}

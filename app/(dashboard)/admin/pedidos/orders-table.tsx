@@ -12,6 +12,11 @@ import {
   type Order,
   type OrderStatus,
 } from "@/lib/types/order";
+import {
+  getOrderVocabulary,
+  orderKindFor,
+  type OrderVocabulary,
+} from "@/lib/config/orderVocabulary";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { formatCurrency } from "@/lib/utils/currency";
 import { InfoRow } from "@/components/dashboard/shared/InfoRow";
@@ -45,19 +50,22 @@ function matchesDateFilter(createdAt: string, filter: DateFilter): boolean {
   return now - createdMs <= days * 24 * 60 * 60 * 1000;
 }
 
-export function StatusDot({ status }: { status: string }) {
+// `label` opcional — Clientes (customer-detail-view) lo usa sin pasarlo y
+// cae a ORDER_STATUS_LABELS; Pedidos le pasa la etiqueta según lo que
+// ofrece el negocio (producto vs servicio).
+export function StatusDot({ status, label }: { status: string; label?: string }) {
   const color = STATUS_COLOR[status] ?? 'var(--nexora-ink-dim)';
   return (
     <span className="inline-flex items-center gap-1.5 text-[12px] font-medium" style={{ color }}>
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-      {ORDER_STATUS_LABELS[status as OrderStatus] ?? status}
+      {label ?? ORDER_STATUS_LABELS[status as OrderStatus] ?? status}
     </span>
   );
 }
 
 // Pastilla de estado para el encabezado del detalle — más presencia que el
 // StatusDot suelto que se usa en las grillas.
-function OrderStatusBadge({ status }: { status: OrderStatus }) {
+function OrderStatusBadge({ status, vocab }: { status: OrderStatus; vocab: OrderVocabulary }) {
   const color = STATUS_COLOR[status] ?? 'var(--nexora-ink-dim)';
   return (
     <span
@@ -69,23 +77,22 @@ function OrderStatusBadge({ status }: { status: OrderStatus }) {
       }}
     >
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
-      {ORDER_STATUS_LABELS[status]}
+      {vocab.statusLabel[status]}
     </span>
   );
 }
 
 // Camino feliz de un pedido en 3 pasos. shipped y picked_up son el mismo
-// paso final ("Entregado") — solo cambia la etiqueta. rejected no es parte
-// del camino, se muestra aparte.
-const PIPELINE_STEPS = ["Pendiente", "Confirmado", "Entregado"] as const;
-
+// paso final — solo cambia la etiqueta. rejected no es parte del camino,
+// se muestra aparte. Las etiquetas salen del vocabulario (producto vs
+// servicio).
 function pipelineProgress(status: OrderStatus): number {
   if (status === "pending") return 0;
   if (status === "confirmed") return 1;
   return 3; // shipped | picked_up → los 3 pasos hechos
 }
 
-function OrderStatusPipeline({ status }: { status: OrderStatus }) {
+function OrderStatusPipeline({ status, vocab }: { status: OrderStatus; vocab: OrderVocabulary }) {
   if (status === "rejected") {
     return (
       <div
@@ -93,18 +100,20 @@ function OrderStatusPipeline({ status }: { status: OrderStatus }) {
         style={{ color: 'var(--nexora-alert)' }}
       >
         <XCircle size={16} strokeWidth={2} />
-        Pedido rechazado
+        {vocab.statusLabel.rejected}
       </div>
     );
   }
 
   const progress = pipelineProgress(status);
   const finalLabel =
-    status === "shipped" ? "Enviado" : status === "picked_up" ? "Recogido" : "Entregado";
+    status === "shipped" || status === "picked_up"
+      ? vocab.statusLabel[status]
+      : vocab.steps[2];
 
   return (
     <div className="mx-auto flex max-w-md items-start">
-      {PIPELINE_STEPS.map((label, i) => {
+      {vocab.steps.map((label, i) => {
         const done = i < progress;
         const active = i === progress;
         const shownLabel = i === 2 ? finalLabel : label;
@@ -150,6 +159,7 @@ export function OrdersTable({
   orders,
   orderNumbers,
   countryIso2,
+  industryType,
   title,
   emptyMessage = "No hay pedidos acá.",
   onDetailChange,
@@ -157,6 +167,7 @@ export function OrdersTable({
   orders: Order[];
   orderNumbers: Map<string, number>;
   countryIso2: string | null;
+  industryType: string | null;
   title: string;
   emptyMessage?: string;
   // El panel que envuelve esto (pedidos-panel.tsx) tiene su propio botón
@@ -165,9 +176,21 @@ export function OrdersTable({
   onDetailChange?: (viewingDetail: boolean) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Snapshot del pedido abierto. Al cambiar de estado, el pedido puede
+  // salir de la categoría que esta grilla recibió (ej. confirmado →
+  // recogido pasa de "activos" a "finalizados"); sin el snapshot el
+  // detalle desaparecía de golpe y quedaba una grilla sin botón "Volver".
+  const [openSnapshot, setOpenSnapshot] = useState<Order | null>(null);
   const [query, setQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
-  const selected = orders.find((o) => o.id === selectedId) ?? null;
+
+  const vocab = useMemo(
+    () => getOrderVocabulary(orderKindFor(industryType)),
+    [industryType]
+  );
+
+  const liveSelected = selectedId ? orders.find((o) => o.id === selectedId) ?? null : null;
+  const selected = liveSelected ?? openSnapshot;
 
   // Busca por número de pedido, producto Y ahora también por nombre/teléfono
   // del cliente (getOrders() ya trae ese dato con un join a customers).
@@ -196,7 +219,7 @@ export function OrdersTable({
       numero: orderNumbers.get(o.id) ?? "",
       cliente: o.customer_name ?? "Sin identificar",
       telefono: o.customer_phone ?? "",
-      estado: ORDER_STATUS_LABELS[o.status as OrderStatus] ?? o.status,
+      estado: vocab.statusLabel[o.status as OrderStatus] ?? o.status,
       productos: o.items.map((item) => `${item.quantity}x ${item.name}`).join(" | "),
       total: o.total,
       gestionado_por: o.updated_by_name ?? "",
@@ -215,13 +238,15 @@ export function OrdersTable({
     downloadCsv(`pedidos-${title.toLowerCase().replace(/\s+/g, "-")}`, csv);
   }
 
-  function openDetail(id: string) {
-    setSelectedId(id);
+  function openDetail(order: Order) {
+    setSelectedId(order.id);
+    setOpenSnapshot(order);
     onDetailChange?.(true);
   }
 
   function closeDetail() {
     setSelectedId(null);
+    setOpenSnapshot(null);
     onDetailChange?.(false);
   }
 
@@ -231,6 +256,7 @@ export function OrdersTable({
         order={selected}
         number={orderNumbers.get(selected.id) ?? 0}
         countryIso2={countryIso2}
+        vocab={vocab}
         onBack={closeDetail}
       />
     );
@@ -322,7 +348,8 @@ export function OrdersTable({
                   order={o}
                   number={orderNumbers.get(o.id) ?? 0}
                   countryIso2={countryIso2}
-                  onClick={() => openDetail(o.id)}
+                  statusLabel={vocab.statusLabel[o.status as OrderStatus] ?? o.status}
+                  onClick={() => openDetail(o)}
                 />
               ))}
             </div>
@@ -337,11 +364,13 @@ function OrderCard({
   order,
   number,
   countryIso2,
+  statusLabel,
   onClick,
 }: {
   order: Order;
   number: number;
   countryIso2: string | null;
+  statusLabel: string;
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -377,7 +406,7 @@ function OrderCard({
           {order.customer_name}
         </span>
       )}
-      <StatusDot status={order.status} />
+      <StatusDot status={order.status} label={statusLabel} />
     </button>
   );
 }
@@ -386,11 +415,13 @@ function OrderDetailView({
   order,
   number,
   countryIso2,
+  vocab,
   onBack,
 }: {
   order: Order;
   number: number;
   countryIso2: string | null;
+  vocab: OrderVocabulary;
   onBack: () => void;
 }) {
   const [updating, setUpdating] = useState(false);
@@ -398,8 +429,14 @@ function OrderDetailView({
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Estado optimista: tras un cambio exitoso, el pedido puede haber salido
+  // de la categoría que la grilla recibió, así que `order` deja de
+  // actualizarse. Se refleja el nuevo estado acá para que el pipeline, la
+  // pastilla y el mensaje de cierre queden bien (y el botón "Volver" del
+  // encabezado sigue disponible siempre).
+  const [localStatus, setLocalStatus] = useState<OrderStatus | null>(null);
 
-  const status = order.status as OrderStatus;
+  const status = localStatus ?? (order.status as OrderStatus);
   const isTerminal = status === "shipped" || status === "picked_up" || status === "rejected";
   // Clientes creados desde el chat de prueba del agente usan `test-<uuid>`
   // como "teléfono" — no es un dato real, no se muestra como tal.
@@ -410,9 +447,11 @@ function OrderDetailView({
     setError(null);
     const result = await updateOrderStatusAction(order.id, next);
     setPendingAction(null);
-    if (result.error) setError(result.error);
-    // Éxito → la server action revalida la ruta y el detalle se vuelve a
-    // renderizar con el estado nuevo (la barra correspondiente desaparece).
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setLocalStatus(next);
   }
 
   async function handleConfirmReject() {
@@ -429,6 +468,7 @@ function OrderDetailView({
       return;
     }
     setRejecting(false);
+    setLocalStatus("rejected");
   }
 
   return (
@@ -449,7 +489,7 @@ function OrderDetailView({
           Pedido #{number}
         </h2>
         <div>
-          <OrderStatusBadge status={status} />
+          <OrderStatusBadge status={status} vocab={vocab} />
         </div>
       </div>
 
@@ -458,7 +498,7 @@ function OrderDetailView({
           <div className="flex flex-col items-center gap-2">
             <Package size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
             <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
-              Productos
+              {vocab.itemsHeading}
             </h3>
           </div>
           <div className="space-y-3 text-left">
@@ -531,11 +571,11 @@ function OrderDetailView({
       {/* Zona de estado: la línea de progreso + la forma de avanzarlo.
           Van juntas para que se lean como un solo bloque de control. */}
       <div className="space-y-6">
-        <OrderStatusPipeline status={status} />
+        <OrderStatusPipeline status={status} vocab={vocab} />
 
-        {status === "rejected" && order.rejection_reason && (
+        {status === "rejected" && (order.rejection_reason || reason) && (
           <p className="text-sm text-center max-w-md mx-auto" style={{ color: 'var(--nexora-alert)' }}>
-            Motivo: {order.rejection_reason}
+            Motivo: {order.rejection_reason || reason}
           </p>
         )}
 
@@ -544,7 +584,7 @@ function OrderDetailView({
             {status === "pending" && (
               <>
                 <SlideToConfirm
-                  label="Deslizá para aceptar el pedido"
+                  label={vocab.acceptLabel}
                   tone="success"
                   loading={pendingAction === "confirmed"}
                   disabled={pendingAction !== null}
@@ -559,29 +599,22 @@ function OrderDetailView({
                   onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
                   onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
                 >
-                  Rechazar pedido
+                  {vocab.rejectLabel}
                 </button>
               </>
             )}
 
-            {status === "confirmed" && (
-              <>
+            {status === "confirmed" &&
+              vocab.advanceFromConfirmed.map((opt) => (
                 <SlideToConfirm
-                  label="Deslizá: marcar como enviado"
+                  key={opt.status}
+                  label={opt.label}
                   tone="success"
-                  loading={pendingAction === "shipped"}
+                  loading={pendingAction === opt.status}
                   disabled={pendingAction !== null}
-                  onConfirm={() => advance("shipped")}
+                  onConfirm={() => advance(opt.status)}
                 />
-                <SlideToConfirm
-                  label="Deslizá: marcar como recogido"
-                  tone="success"
-                  loading={pendingAction === "picked_up"}
-                  disabled={pendingAction !== null}
-                  onConfirm={() => advance("picked_up")}
-                />
-              </>
-            )}
+              ))}
 
             <p className="text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
               Deslizá el botón o tocalo para confirmar.
@@ -595,7 +628,7 @@ function OrderDetailView({
           <div className="flex items-center justify-center gap-2">
             <AlertTriangle size={16} style={{ color: 'var(--nexora-alert)' }} />
             <p className="text-sm font-medium" style={{ color: 'var(--nexora-alert)' }}>
-              Rechazar este pedido
+              {vocab.rejectPanelTitle}
             </p>
           </div>
           <Textarea
@@ -622,7 +655,7 @@ function OrderDetailView({
 
       {(status === "shipped" || status === "picked_up") && !rejecting && (
         <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Este pedido ya está finalizado.
+          {vocab.finishedNote}
         </p>
       )}
 
