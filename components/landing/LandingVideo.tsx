@@ -6,7 +6,9 @@
 //   2. Máscara radial suave → difumina el borde contra el fondo negro.
 //   3. Resplandor cian/violeta detrás para que "flote".
 //   4. Parallax sutil con el mouse.
-//   5. Se pausa fuera de viewport.
+//   5. NUNCA se pausa. Es puramente decorativo: si el navegador lo pausa
+//      (cambio de sección, tab en background, "Now Playing" del SO, etc.)
+//      se re-arranca solo de inmediato. Sin overlay de play nativo.
 //
 // El color del video no se toca. Pensado para fondo NEGRO PURO (las
 // secciones de la landing lo son).
@@ -62,15 +64,50 @@ export function LandingVideo({ src, parallax = 14, fit = 'cover' }: LandingVideo
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) video.play().catch(() => {});
-        else video.pause();
-      },
-      { rootMargin: '200px' }
-    );
-    io.observe(video);
-    return () => io.disconnect();
+
+    let raf = 0;
+    // Re-arranca el video pase lo que pase. Se llama en `pause`, al volver
+    // de un tab en background, y periódicamente por si el navegador lo
+    // detuvo sin emitir evento.
+    const kick = () => {
+      if (video.paused || video.ended) {
+        try {
+          video.currentTime = video.currentTime; // fuerza refresco del frame
+        } catch {
+          /* noop */
+        }
+        video.play().catch(() => {});
+      }
+    };
+
+    const onPause = () => {
+      // Espera al siguiente frame: si fue una pausa "real" del navegador
+      // (no un unmount), volvemos a reproducir.
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(kick);
+    };
+    const onVisibility = () => {
+      if (!document.hidden) kick();
+    };
+
+    video.addEventListener('pause', onPause);
+    video.addEventListener('ended', kick);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', kick);
+    window.addEventListener('pageshow', kick);
+    const interval = window.setInterval(kick, 2000);
+
+    kick();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearInterval(interval);
+      video.removeEventListener('pause', onPause);
+      video.removeEventListener('ended', kick);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', kick);
+      window.removeEventListener('pageshow', kick);
+    };
   }, []);
 
   return (
@@ -90,6 +127,10 @@ export function LandingVideo({ src, parallax = 14, fit = 'cover' }: LandingVideo
         loop
         playsInline
         preload="metadata"
+        disablePictureInPicture
+        disableRemotePlayback
+        controls={false}
+        tabIndex={-1}
         aria-hidden
       />
     </div>
