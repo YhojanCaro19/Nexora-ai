@@ -16,81 +16,69 @@
 
 ---
 
-## 0. Migración de base de datos  — **[ ] pendiente (la corre el usuario en Supabase)**
+## 0. Migración de base de datos  — **[x] corrida (2026-08-31)**
 
 Ver el bloque SQL en la sección de abajo. Es **puramente aditiva**: columnas
 nuevas + un backfill. **No toca RLS ni políticas** (las policies de fila ya
 cubren las columnas nuevas). No borra ninguna columna.
 
-- [ ] Correr el SQL en el editor de Supabase
-- [ ] Verificar: `select payment_methods, emoji_mode, address_form from agent_configs;`
-- [ ] Verificar: `select key, max_collaborators from plans;`
+- [x] Correr el SQL en el editor de Supabase
+- [x] Verificar `plans` → 4 / 8 / 15 OK
+- [ ] Verificar `agent_configs` (`select payment_methods, emoji_mode, address_form from agent_configs;`)
 - [ ] Actualizar `docs/database.md` (tabla `agent_configs` y `plans`)
 
-## 1. Config del agente — servicio  — **[ ] pendiente**
-`lib/services/agentConfigService.ts`
-- [ ] `AgentConfig` + `UpdateAgentConfigInput`: agregar `paymentMethods`,
-      `businessDescription`, `locations`, `socialLinks`, `emojiMode`, `emojiSet`,
-      `addressForm`, `localPhrases`, `escalationTriggers`
-- [ ] `getAgentConfig`: leer las columnas nuevas; dejar de leer `use_emojis`,
-      `bank_name`, `bank_account_number`, `accepts_cash_pickup`
-- [ ] `updateAgentConfig`: escribir las nuevas
-- [ ] `lib/validators/` — schema zod: validar `emojiMode`/`addressForm` contra
-      lista fija, `paymentMethods` como array de `{kind,label,detail}`,
-      `escalationTriggers` contra `lib/config/escalationTriggers.ts`
+## 1. Config del agente — servicio  — **[x] hecho**
+`lib/services/agentConfigService.ts` — `AgentConfig`/`UpdateAgentConfigInput` con
+los 9 campos nuevos; `getAgentConfig`/`updateAgentConfig` leen/escriben las
+columnas nuevas; ya no tocan `use_emojis`/`bank_*`/`accepts_cash_pickup`.
+Validación vía funciones `sanitize*` en `lib/config/*` (mismo patrón que
+`sanitizeToolKeys`, el proyecto no usa zod para el agente).
 
-## 2. Config del agente — nuevos catálogos en código  — **[ ] pendiente**
-- [ ] `lib/config/escalationTriggers.ts` — lista fija (reclamos, devoluciones,
-      precios especiales, cliente molesto, temas legales…) con key + label
-- [ ] `lib/config/emojiModes.ts` / `addressForms.ts` — o constantes en el schema
+## 2. Catálogos en código  — **[x] hecho**
+- [x] `lib/config/escalationTriggers.ts` — 6 disparadores + `sanitize` + frase de prompt
+- [x] `lib/config/agentPersona.ts` — `EMOJI_MODES`, `ADDRESS_FORMS`,
+      `PAYMENT_METHOD_KINDS` + `sanitize*` + frases de prompt
 
-## 3. Panel "Mi Agente"  — **[ ] pendiente**
-`app/(dashboard)/admin/mi-agente/mi-agente-panel.tsx` + `page.tsx` (defaults)
-- [ ] Sección **Pagos**: lista repetible de métodos (label + detalle + kind),
-      "+ Agregar método" — mismo patrón que las FAQs
-- [ ] Sección **Identidad** (o nueva "Sobre el negocio"): descripción del
-      negocio, dirección/sedes, redes sociales
-- [ ] Sección **Comportamiento**: emojis (Ninguno / Pocos / Estos que elijo +
-      campo), trato (Auto / Tú / Usted), modismos
-- [ ] Sección **Cierre y bordes**: checklist de disparadores de escalamiento
-- [ ] `page.tsx`: agregar los defaults nuevos al objeto de config inicial
+## 3. Panel "Mi Agente"  — **[x] hecho**
+- [x] **Pagos**: lista repetible (kind + label + detalle), "+ Agregar método"
+- [x] **Conocimiento del negocio**: descripción, dirección/sedes, redes
+- [x] **Comportamiento**: emojis (select + campo si "personalizado"), trato
+      (Auto/Tú/Usted), modismos, checklist de disparadores de escalamiento
+- [x] `page.tsx`: `DEFAULT_AGENT_CONFIG` tipado como `AgentConfig` con los defaults
 
-## 4. Motor del agente  — **[ ] pendiente**
-`lib/services/agentEngineService.ts` → `buildSystemPrompt`
-- [ ] Descripción del negocio → bloque de contexto
-- [ ] Dirección/sedes + redes → en el bloque de datos del negocio
-- [ ] Emojis: `emoji_mode` → "no uses emojis" / "usa pocos" / "usa preferentemente estos: X"
-- [ ] Trato: `address_form` → "tutea al cliente" / "trata de usted" / (auto = nada)
-- [ ] Modismos → "así habla este negocio: …"
-- [ ] Disparadores de escalamiento → "SIEMPRE pasa a una persona si: …"
-- [ ] Métodos de pago: recorrer el array `payment_methods` (reemplaza el bloque
-      viejo de `bank_name`/`accepts_cash_pickup`)
-- [ ] Todo lo estable sigue dentro del bloque con `cache_control`
+## 4. Motor del agente  — **[x] hecho**
+`buildSystemPrompt`: descripción/sedes/redes, emojis por modo, trato tú/usted,
+modismos, disparadores de escalamiento, métodos de pago desde el array. Todo
+dentro del bloque estable con `cache_control`. + regla base nueva: sin markdown
+(chat de WhatsApp) — commit aparte.
 
-## 5. Límite de colaboradores  — **[ ] pendiente**
-- [ ] `lib/services/collaboratorService.ts` → `createCollaborator`: contar
-      `business_members` activos con role `colaborador` del negocio, traer
-      `plans.max_collaborators` vía `subscriptions.plan_id`, bloquear si se pasa
-      con mensaje claro ("Llegaste al límite de tu plan (N). Mejorá tu plan
-      para agregar más.")
-- [ ] Sin plan asignado (fase pre-Wompi) → usar el límite del plan más bajo
-      (Atención = 4) como default, no ilimitado
-- [ ] `app/(dashboard)/admin/colaboradores/` — mostrar el mensaje de límite y,
-      idealmente, "N de M colaboradores" en el encabezado
-- [ ] Bajada de plan: NO borrar colaboradores, solo bloquear crear nuevos
+## 5. Límite de colaboradores  — **[x] hecho**
+`collaboratorService.ts`: `getCollaboratorUsage()` + chequeo en
+`createCollaborator` (cuenta activos, límite del plan vía `subscriptions`→`plans`,
+default 4 sin plan). Panel: "N de M colaboradores" + botón "Límite alcanzado"
+en el chooser. Bajada de plan no borra nada.
 
-## 6. Docs  — **[ ] pendiente**
-- [ ] `docs/database.md` — columnas nuevas de `agent_configs` y `plans`
-- [ ] `docs/architecture.md` — mención de los campos nuevos que alimentan el prompt
-- [ ] `docs/decisions.md` — decisión de límite de colaboradores por plan
+## 6. Docs  — **[ ] parcial**
+- [ ] `docs/database.md` — columnas nuevas
+- [ ] `docs/architecture.md` — campos nuevos del prompt
+- [ ] `docs/decisions.md` — límite de colaboradores por plan
 
-## 7. Pruebas  — **[ ] pendiente**
+## 7. Pruebas  — **[ ] pendiente (las hace el usuario)**
+- [x] `tsc` + `eslint` limpios
 - [ ] Cargar 2+ métodos de pago → el agente los menciona todos
 - [ ] emoji_mode = personalizado con `✂️ 💈` → el agente usa esos
 - [ ] address_form = usted → el agente trata de usted
 - [ ] disparador "reclamos" activo → el agente escala ante un reclamo
-- [ ] Crear colaboradores hasta el límite → el N+1 se bloquea con el mensaje
-- [ ] `tsc` + `eslint` limpios
+- [ ] Crear colaboradores hasta el límite → el N+1 se bloquea
+
+---
+
+## Fuera de este lote (anotado para no perderlo)
+- **Clientes**: quitar Notas, Tareas y Etiquetas (el usuario dice que nadie las usa).
+- **Reportes diarios**: que lleguen a TODOS los admins (hoy a uno). El 00:00 por
+  país ya funciona.
+- **Agente**: debounce de mensajes rápidos de la misma persona.
+- **Lote 2**: preguntas obligatorias antes de un pedido, con defaults por industria.
 
 ---
 

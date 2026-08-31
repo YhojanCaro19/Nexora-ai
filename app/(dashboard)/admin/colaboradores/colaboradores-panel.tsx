@@ -8,19 +8,38 @@ import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 
 type View = "chooser" | "new" | "list";
 
-export function ColaboradoresPanel({ collaborators }: { collaborators: CollaboratorListItem[] }) {
+export function ColaboradoresPanel({
+  collaborators,
+  usage,
+}: {
+  collaborators: CollaboratorListItem[];
+  usage: { used: number; limit: number };
+}) {
   const [view, setView] = useState<View>("chooser");
+  const atLimit = usage.limit > 0 && usage.used >= usage.limit;
 
   if (view === "chooser") {
     return (
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 py-4 sm:py-10">
-        <ChooserButton icon={UserPlus} label="Agregar colaborador" onClick={() => setView("new")} />
-        <ChooserButton
-          icon={Users}
-          label="Ver colaboradores"
-          count={collaborators.length}
-          onClick={() => setView("list")}
-        />
+      <div className="flex flex-col items-center gap-4 py-4 sm:py-10">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6">
+          <ChooserButton
+            icon={UserPlus}
+            label={atLimit ? "Límite alcanzado" : "Agregar colaborador"}
+            onClick={() => setView(atLimit ? "list" : "new")}
+          />
+          <ChooserButton
+            icon={Users}
+            label="Ver colaboradores"
+            count={collaborators.length}
+            onClick={() => setView("list")}
+          />
+        </div>
+        {usage.limit > 0 && (
+          <p className="text-xs" style={{ color: atLimit ? 'var(--nexora-alert)' : 'var(--nexora-ink-dim)' }}>
+            {usage.used} de {usage.limit} colaboradores de tu plan
+            {atLimit ? " — mejorá tu plan o desactivá a alguien para agregar más." : "."}
+          </p>
+        )}
       </div>
     );
   }

@@ -21,6 +21,42 @@ import { translateError } from "@/lib/errors/translate";
  * `businessId` y `createdBy` deben venir siempre de la sesión ya verificada
  * en el server action que llama a esta función, nunca del formulario.
  */
+// Cupo de colaboradores del plan del negocio. Sin plan asignado (fase
+// pre-Wompi) se cae al cupo del plan más bajo — nunca ilimitado. Cuenta
+// solo colaboradores ACTIVOS: desactivar a alguien libera un asiento
+// (mismo criterio que el corte de acceso por is_active).
+const DEFAULT_COLLABORATOR_LIMIT = 4;
+
+async function getPlanCollaboratorLimit(
+  admin: ReturnType<typeof createAdminClient>,
+  businessId: string
+): Promise<number> {
+  const { data } = await admin
+    .from("subscriptions")
+    .select("plans(max_collaborators)")
+    .eq("business_id", businessId)
+    .maybeSingle();
+  const limit = (data?.plans as unknown as { max_collaborators: number } | null)?.max_collaborators;
+  return typeof limit === "number" && limit > 0 ? limit : DEFAULT_COLLABORATOR_LIMIT;
+}
+
+// Para la UI: "usás X de Y". Se calcula igual que el chequeo de createCollaborator.
+export async function getCollaboratorUsage(
+  businessId: string
+): Promise<{ used: number; limit: number }> {
+  const admin = createAdminClient();
+  const [{ count }, limit] = await Promise.all([
+    admin
+      .from("business_members")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId)
+      .eq("role", "colaborador")
+      .eq("is_active", true),
+    getPlanCollaboratorLimit(admin, businessId),
+  ]);
+  return { used: count ?? 0, limit };
+}
+
 export async function createCollaborator(
   businessId: string,
   createdBy: string,
@@ -32,6 +68,15 @@ export async function createCollaborator(
   }
 
   const admin = createAdminClient();
+
+  // Límite del plan — antes de crear nada en Auth.
+  const { used, limit } = await getCollaboratorUsage(businessId);
+  if (used >= limit) {
+    return {
+      error: `Llegaste al límite de colaboradores de tu plan (${limit}). Mejorá tu plan o desactivá a alguien para agregar otro.`,
+      data: null,
+    };
+  }
 
   // Sin `password`: la cuenta solo se puede usar vía Google OAuth con este
   // mismo correo. `email_confirm: true` deja el correo verificado para que
