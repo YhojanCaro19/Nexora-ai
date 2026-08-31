@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download, ListFilter } from "lucide-react";
+import { Fragment, useMemo, useState } from "react";
+import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download, ListFilter, Check, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
+import { SlideToConfirm } from "@/components/shared/SlideToConfirm";
 import { updateOrderStatusAction, rejectOrderAction } from "./actions";
 import {
-  ALLOWED_STATUS_TRANSITIONS,
   ORDER_STATUS_LABELS,
   type Order,
   type OrderStatus,
@@ -53,6 +52,92 @@ export function StatusDot({ status }: { status: string }) {
       <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
       {ORDER_STATUS_LABELS[status as OrderStatus] ?? status}
     </span>
+  );
+}
+
+// Pastilla de estado para el encabezado del detalle — más presencia que el
+// StatusDot suelto que se usa en las grillas.
+function OrderStatusBadge({ status }: { status: OrderStatus }) {
+  const color = STATUS_COLOR[status] ?? 'var(--nexora-ink-dim)';
+  return (
+    <span
+      className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wide"
+      style={{
+        color,
+        background: `color-mix(in oklch, ${color} 12%, transparent)`,
+        border: `1px solid color-mix(in oklch, ${color} 32%, transparent)`,
+      }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+      {ORDER_STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+// Camino feliz de un pedido en 3 pasos. shipped y picked_up son el mismo
+// paso final ("Entregado") — solo cambia la etiqueta. rejected no es parte
+// del camino, se muestra aparte.
+const PIPELINE_STEPS = ["Pendiente", "Confirmado", "Entregado"] as const;
+
+function pipelineProgress(status: OrderStatus): number {
+  if (status === "pending") return 0;
+  if (status === "confirmed") return 1;
+  return 3; // shipped | picked_up → los 3 pasos hechos
+}
+
+function OrderStatusPipeline({ status }: { status: OrderStatus }) {
+  if (status === "rejected") {
+    return (
+      <div
+        className="mx-auto flex max-w-md items-center justify-center gap-2 text-sm font-medium"
+        style={{ color: 'var(--nexora-alert)' }}
+      >
+        <XCircle size={16} strokeWidth={2} />
+        Pedido rechazado
+      </div>
+    );
+  }
+
+  const progress = pipelineProgress(status);
+  const finalLabel =
+    status === "shipped" ? "Enviado" : status === "picked_up" ? "Recogido" : "Entregado";
+
+  return (
+    <div className="mx-auto flex max-w-md items-start">
+      {PIPELINE_STEPS.map((label, i) => {
+        const done = i < progress;
+        const active = i === progress;
+        const shownLabel = i === 2 ? finalLabel : label;
+        return (
+          <Fragment key={label}>
+            {i > 0 && (
+              <span
+                className="mt-3.5 h-px flex-1"
+                style={{ background: i <= progress ? 'var(--nexora-signal)' : 'var(--nexora-line)' }}
+              />
+            )}
+            <div className="flex flex-col items-center gap-1.5">
+              <span
+                className="flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-semibold"
+                style={{
+                  background: done ? 'var(--nexora-signal)' : active ? 'var(--nexora-nova)' : 'transparent',
+                  color: done ? '#04140d' : active ? 'var(--nexora-nova-ink)' : 'var(--nexora-ink-dim)',
+                  border: done || active ? 'none' : '1px solid var(--nexora-line)',
+                }}
+              >
+                {done ? <Check size={14} strokeWidth={3} /> : i + 1}
+              </span>
+              <span
+                className="whitespace-nowrap text-[11px] font-medium"
+                style={{ color: active || done ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
+              >
+                {shownLabel}
+              </span>
+            </div>
+          </Fragment>
+        );
+      })}
+    </div>
   );
 }
 
@@ -309,28 +394,25 @@ function OrderDetailView({
   onBack: () => void;
 }) {
   const [updating, setUpdating] = useState(false);
+  const [pendingAction, setPendingAction] = useState<OrderStatus | null>(null);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const status = order.status as OrderStatus;
-  const nextStatuses = ALLOWED_STATUS_TRANSITIONS[status] ?? [];
-  const canReject = nextStatuses.includes("rejected");
-  const canAdvance = nextStatuses.filter((s) => s !== "rejected");
-  const hasChoices = canAdvance.length > 0 || canReject;
+  const isTerminal = status === "shipped" || status === "picked_up" || status === "rejected";
+  // Clientes creados desde el chat de prueba del agente usan `test-<uuid>`
+  // como "teléfono" — no es un dato real, no se muestra como tal.
+  const isInternalTest = order.customer_phone?.startsWith("test-") ?? false;
 
-  async function handleSelectChange(value: string | null) {
-    if (!value || value === status) return;
-    if (value === "rejected") {
-      setRejecting(true);
-      setError(null);
-      return;
-    }
-    setUpdating(true);
+  async function advance(next: OrderStatus) {
+    setPendingAction(next);
     setError(null);
-    const result = await updateOrderStatusAction(order.id, value as OrderStatus);
-    setUpdating(false);
+    const result = await updateOrderStatusAction(order.id, next);
+    setPendingAction(null);
     if (result.error) setError(result.error);
+    // Éxito → la server action revalida la ruta y el detalle se vuelve a
+    // renderizar con el estado nuevo (la barra correspondiente desaparece).
   }
 
   async function handleConfirmReject() {
@@ -362,11 +444,13 @@ function OrderDetailView({
         </button>
       </div>
 
-      <div className="text-center space-y-2">
+      <div className="text-center space-y-3">
         <h2 className="font-nexora text-3xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
           Pedido #{number}
         </h2>
-        <StatusDot status={order.status} />
+        <div>
+          <OrderStatusBadge status={status} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -404,8 +488,13 @@ function OrderDetailView({
             </h3>
           </div>
           <div className="space-y-5">
-            <InfoRow label="Cliente" value={order.customer_name ?? "Sin identificar"} />
-            {order.customer_phone && <InfoRow label="Teléfono" value={order.customer_phone} />}
+            <InfoRow
+              label="Cliente"
+              value={order.customer_name ?? (isInternalTest ? "Prueba del agente" : "Sin identificar")}
+            />
+            {order.customer_phone && !isInternalTest && (
+              <InfoRow label="Teléfono" value={order.customer_phone} />
+            )}
             <InfoRow label="Fecha" value={formatShortDateTime(order.created_at)} />
             {order.updated_by_name && (
               <InfoRow
@@ -439,35 +528,67 @@ function OrderDetailView({
         </section>
       </div>
 
-      {status === "rejected" && order.rejection_reason && (
-        <p className="text-sm text-center max-w-md mx-auto" style={{ color: 'var(--nexora-alert)' }}>
-          Rechazado: {order.rejection_reason}
-        </p>
-      )}
+      {/* Zona de estado: la línea de progreso + la forma de avanzarlo.
+          Van juntas para que se lean como un solo bloque de control. */}
+      <div className="space-y-6">
+        <OrderStatusPipeline status={status} />
 
-      {hasChoices && (
-        <div className="max-w-xs mx-auto space-y-2">
-          <Label className="block text-center">Estado del pedido</Label>
-          <Select value={status} onValueChange={handleSelectChange} disabled={updating}>
-            <SelectTrigger className="w-full justify-center">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={status}>{ORDER_STATUS_LABELS[status]}</SelectItem>
-              {canAdvance.map((next) => (
-                <SelectItem key={next} value={next}>
-                  {status === "pending" ? "Aceptar" : ORDER_STATUS_LABELS[next]}
-                </SelectItem>
-              ))}
-              {canReject && (
-                <SelectItem value="rejected">
-                  Rechazar
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+        {status === "rejected" && order.rejection_reason && (
+          <p className="text-sm text-center max-w-md mx-auto" style={{ color: 'var(--nexora-alert)' }}>
+            Motivo: {order.rejection_reason}
+          </p>
+        )}
+
+        {!isTerminal && !rejecting && (
+          <div className="max-w-sm mx-auto space-y-3">
+            {status === "pending" && (
+              <>
+                <SlideToConfirm
+                  label="Deslizá para aceptar el pedido"
+                  tone="success"
+                  loading={pendingAction === "confirmed"}
+                  disabled={pendingAction !== null}
+                  onConfirm={() => advance("confirmed")}
+                />
+                <button
+                  type="button"
+                  onClick={() => { setError(null); setRejecting(true); }}
+                  className="mx-auto block text-xs transition-colors disabled:opacity-50"
+                  style={{ color: 'var(--nexora-ink-dim)' }}
+                  disabled={pendingAction !== null}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
+                >
+                  Rechazar pedido
+                </button>
+              </>
+            )}
+
+            {status === "confirmed" && (
+              <>
+                <SlideToConfirm
+                  label="Deslizá: marcar como enviado"
+                  tone="success"
+                  loading={pendingAction === "shipped"}
+                  disabled={pendingAction !== null}
+                  onConfirm={() => advance("shipped")}
+                />
+                <SlideToConfirm
+                  label="Deslizá: marcar como recogido"
+                  tone="success"
+                  loading={pendingAction === "picked_up"}
+                  disabled={pendingAction !== null}
+                  onConfirm={() => advance("picked_up")}
+                />
+              </>
+            )}
+
+            <p className="text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Deslizá el botón o tocalo para confirmar.
+            </p>
+          </div>
+        )}
+      </div>
 
       {rejecting && (
         <div className="max-w-sm mx-auto space-y-3 rounded-2xl border p-5" style={{ borderColor: 'rgba(248,113,113,0.25)' }}>
@@ -499,7 +620,7 @@ function OrderDetailView({
         </div>
       )}
 
-      {!hasChoices && !rejecting && (
+      {(status === "shipped" || status === "picked_up") && !rejecting && (
         <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
           Este pedido ya está finalizado.
         </p>
