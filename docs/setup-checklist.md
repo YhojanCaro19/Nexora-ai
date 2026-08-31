@@ -4,8 +4,8 @@
 > `CLAUDE.md`: Resend con dominio propio, saldo real en Anthropic (Claude
 > API), saldo real en Gemini (imágenes).
 >
-> **Dominio:** `__________________` (ya comprado — completar acá).
-> **DNS gestionado en:** `__________________` (registrador / Cloudflare).
+> **Dominio:** `aventhra.online` (ya comprado).
+> **DNS gestionado en:** `__________________` (registrador / Cloudflare — por decidir).
 >
 > Leyenda: **[TÚ]** = lo hace el usuario en el navegador · **[JUNTOS]** =
 > en la sesión con Claude (toca `.env.local`, Vercel o código).
@@ -100,6 +100,9 @@ correos de alta tras pago (`/registro/[token]`, `/gracias`).
 ---
 
 ## C. Gemini (imágenes) — habilitar facturación en Google Cloud
+
+> **DIFERIDO (2026-08-31):** el usuario no puede cubrir el mínimo (~COP 30.000)
+> ahora. No bloquea Resend ni Anthropic. Retomar más adelante.
 
 > La key `GOOGLE_GENAI_API_KEY` es de la **Gemini Developer API** (AI
 > Studio), contra `generativelanguage.googleapis.com`, modelo
