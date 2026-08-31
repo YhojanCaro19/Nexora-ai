@@ -1,25 +1,27 @@
 // components/landing/ScreenTwoNavbar.tsx
 //
 // Navbar DEDICADO de la "Pantalla 2" — la landing real que ve el usuario.
-// Reutilizable a propósito: lo montan HomeExperience.tsx (desktop, dentro
-// del bloque de la Pantalla 2 — sube con ella, `sticky`), /productos,
-// /contacto, /login, /solicitar-acceso, /gracias, /registro, y el Home en
-// mobile (app/(experience)/(marketing)/page.tsx).
+// Lo montan HomeExperience.tsx (desktop, dentro del bloque de la Pantalla
+// 2), y las páginas /productos, /contacto, /login, /solicitar-acceso,
+// /gracias, /registro y el Home en mobile (app/(experience)/(marketing)/
+// page.tsx).
 //
-// DESKTOP (lg+): "isla flotante" — pill translúcida centrada, `sticky
-// top-0` dentro de un contenedor h-24 (varias páginas compensan ese alto
-// con `lg:min-h-[calc(100vh-6rem)]`; HomeExperience cuenta con que ocupe
-// espacio en flujo). Todo en una sola fila.
+// DOS CONTENEDORES RAÍZ INDEPENDIENTES — no uno solo con overrides `lg:`:
 //
-// MOBILE/TABLET (< lg): la MISMA isla, condensada — `fixed` (no empuja
-// layout, como el viejo Navbar.tsx que reemplaza acá) con logo + botón de
-// menú; al tocarlo se despliega un panel con las 3 secciones + idioma +
-// acceso.
+//   · DESKTOP (`hidden lg:flex`): contenedor `sticky top-0 h-24`, EN FLUJO
+//     NORMAL. En Home sube junto con la Pantalla 2 y se pega arriba; en
+//     las demás páginas ocupa su alto (h-24, compensado con
+//     `lg:min-h-[calc(100vh-6rem)]`). Es `sticky`, NUNCA `fixed`, así que
+//     jamás aparece sobre la Pantalla 1 del intro.
 //
-// Los dos navbars son elementos SEPARADOS (`hidden lg:flex` / `lg:hidden`)
-// en vez de uno solo con overrides `lg:` — así el de desktop queda
-// idéntico al original, sin riesgo de que el orden de cascada de Tailwind
-// haga ganar una clase mobile en desktop.
+//   · MOBILE (`lg:hidden`): contenedor `fixed top-0`, no empuja layout
+//     (igual que el viejo Navbar.tsx que reemplaza). Isla condensada: logo
+//     + botón de menú → panel desplegable con secciones + idioma + acceso.
+//
+// 🐛 El bug que esto corrige: tener `fixed` + `lg:sticky` en el MISMO
+// elemento — cuando el `lg:sticky` no ganaba la cascada (o el CSS estaba a
+// medio recompilar), todo el navbar quedaba `fixed` y se veía sobre la
+// Pantalla 1.
 'use client';
 
 import Link from 'next/link';
@@ -64,6 +66,12 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
     goToSection(id);
   };
 
+  const logo = (
+    <Link href="/" className="shrink-0" onClick={handleLogoClick}>
+      <span className="aventhra-logo text-base tracking-[0.18em] text-white">AVENTHRA</span>
+    </Link>
+  );
+
   const loginLink = (
     <Link
       href="/login"
@@ -79,89 +87,85 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
     </Link>
   );
 
+  const divider = <span aria-hidden className="mx-2 h-4 w-px shrink-0 bg-white/15" />;
+
   return (
-    <div
-      className={`pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:sticky lg:h-24 lg:items-center lg:px-6 lg:pt-0 ${className}`}
-    >
-      {/* ── DESKTOP — isla en una fila (markup original, sin overrides) ── */}
-      <nav className="pointer-events-auto hidden items-center gap-1.5 rounded-full border border-white/15 bg-black/50 py-2 pl-8 pr-2 shadow-2xl backdrop-blur-xl lg:flex">
-        <Link href="/" className="shrink-0" onClick={handleLogoClick}>
-          <span className="aventhra-logo text-base tracking-[0.18em] text-white">AVENTHRA</span>
-        </Link>
-
-        <span aria-hidden className="mx-2 h-4 w-px shrink-0 bg-white/15" />
-
-        {NAV_SECTIONS.map((section) => (
-          <button
-            key={section.key}
-            type="button"
-            onClick={() => handleSection(section.id)}
-            className="group relative shrink-0 px-2.5 py-1.5 text-sm font-light text-white/60 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
+    <>
+      {/* ══════ DESKTOP ══════ contenedor `sticky` en flujo (jamás `fixed`). */}
+      <div
+        className={`pointer-events-none sticky inset-x-0 top-0 z-40 hidden h-24 items-center justify-center px-6 lg:flex ${className}`}
+      >
+        <nav className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 py-2 pl-8 pr-2 shadow-2xl backdrop-blur-xl">
+          {logo}
+          {divider}
+          {NAV_SECTIONS.map((section) => (
+            <button
+              key={section.key}
+              type="button"
+              onClick={() => handleSection(section.id)}
+              className="group relative shrink-0 px-2.5 py-1.5 text-sm font-light text-white/60 outline-none transition-colors duration-200 hover:text-white focus-visible:text-white"
+            >
+              {t(section.key)}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute bottom-0 left-2.5 right-2.5 h-px origin-center scale-x-0 bg-white transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
+              />
+            </button>
+          ))}
+          {divider}
+          <LocaleToggle className="shrink-0 px-1" />
+          <OrbitFrame
+            className="ml-1 inline-block shrink-0 rounded-full"
+            innerClassName="rounded-full bg-[#0b0b0f]"
+            ringSize="h-[280px] w-[280px]"
           >
-            {t(section.key)}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute bottom-0 left-2.5 right-2.5 h-px origin-center scale-x-0 bg-white transition-transform duration-200 ease-out group-hover:scale-x-100 group-focus-visible:scale-x-100"
-            />
-          </button>
-        ))}
+            {loginLink}
+          </OrbitFrame>
+        </nav>
+      </div>
 
-        <span aria-hidden className="mx-2 h-4 w-px shrink-0 bg-white/15" />
-
-        <LocaleToggle className="shrink-0 px-1" />
-
-        <OrbitFrame
-          className="ml-1 inline-block shrink-0 rounded-full"
-          innerClassName="rounded-full bg-[#0b0b0f]"
-          ringSize="h-[280px] w-[280px]"
-        >
-          {loginLink}
-        </OrbitFrame>
-      </nav>
-
-      {/* ── MOBILE/TABLET — isla condensada + panel desplegable ── */}
-      <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl lg:hidden">
-        <div className="flex items-center justify-between gap-3 px-5 py-3">
-          <Link href="/" className="shrink-0" onClick={handleLogoClick}>
-            <span className="aventhra-logo text-base tracking-[0.18em] text-white">AVENTHRA</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-expanded={menuOpen}
-            aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
-            className="-mr-1 shrink-0 rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
-          >
-            {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className="flex flex-col gap-1 border-t border-white/10 px-3 pb-3 pt-2">
-            {NAV_SECTIONS.map((section) => (
-              <button
-                key={section.key}
-                type="button"
-                onClick={() => handleSection(section.id)}
-                className="rounded-xl px-3 py-2.5 text-left text-[15px] font-light text-white/75 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                {t(section.key)}
-              </button>
-            ))}
-            <div className="mt-1 flex items-center justify-between gap-3 border-t border-white/10 px-3 pt-3">
-              <LocaleToggle />
-              <OrbitFrame
-                className="inline-block shrink-0 rounded-full"
-                innerClassName="rounded-full bg-[#0b0b0f]"
-                ringSize="h-[220px] w-[220px]"
-              >
-                {loginLink}
-              </OrbitFrame>
-            </div>
+      {/* ══════ MOBILE / TABLET ══════ contenedor `fixed` (no empuja layout). */}
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:hidden">
+        <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3 px-5 py-3">
+            {logo}
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
+              className="-mr-1 shrink-0 rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
+            >
+              {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
+            </button>
           </div>
-        )}
-      </nav>
-    </div>
+
+          {menuOpen && (
+            <div className="flex flex-col gap-1 border-t border-white/10 px-3 pb-3 pt-2">
+              {NAV_SECTIONS.map((section) => (
+                <button
+                  key={section.key}
+                  type="button"
+                  onClick={() => handleSection(section.id)}
+                  className="rounded-xl px-3 py-2.5 text-left text-[15px] font-light text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  {t(section.key)}
+                </button>
+              ))}
+              <div className="mt-1 flex items-center justify-between gap-3 border-t border-white/10 px-3 pt-3">
+                <LocaleToggle />
+                <OrbitFrame
+                  className="inline-block shrink-0 rounded-full"
+                  innerClassName="rounded-full bg-[#0b0b0f]"
+                  ringSize="h-[220px] w-[220px]"
+                >
+                  {loginLink}
+                </OrbitFrame>
+              </div>
+            </div>
+          )}
+        </nav>
+      </div>
+    </>
   );
 }

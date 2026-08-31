@@ -70,13 +70,13 @@ export function WhatsAppFab() {
           ? 'Número placeholder — configura NEXT_PUBLIC_WHATSAPP_NUMBER'
           : undefined
       }
-      className="group fixed right-5 bottom-[max(1.25rem,env(safe-area-inset-bottom))] z-50 flex items-center rounded-full border border-white/15 bg-black/60 p-3 text-sm text-white/90 shadow-2xl outline-none backdrop-blur-xl transition-colors duration-200 hover:border-white/25 hover:bg-black/80 hover:text-white focus-visible:border-white/25"
+      className="group fixed bottom-5 right-5 z-50 flex items-center rounded-full border border-white/15 bg-black/60 p-3 text-sm text-white/90 shadow-2xl outline-none backdrop-blur-xl transition-colors duration-200 hover:border-white/25 hover:bg-black/80 hover:text-white focus-visible:border-white/25"
     >
       {/* Texto a la IZQUIERDA, ícono a la derecha: el ícono queda anclado
           en la esquina (el <a> se posiciona por `right-5`) y el texto se
           despliega hacia la izquierda en hover/focus. Colapsado por
           defecto con max-w-0 + overflow-hidden. */}
-      <span className="max-w-0 overflow-hidden whitespace-nowrap transition-[max-width] duration-300 ease-out group-hover:max-w-[240px] group-focus-visible:max-w-[240px]">
+      <span className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-300 ease-out group-hover:max-w-xs group-focus-visible:max-w-xs">
         <span className="block pr-2.5 pl-1 font-light">{t('cta')}</span>
       </span>
 
