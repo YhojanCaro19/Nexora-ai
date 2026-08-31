@@ -22,6 +22,8 @@ import { getCreditPrice, deductCredits } from "@/lib/services/creditService";
 import { createOrder, getCustomerOrderStats, type CustomerOrderStats } from "@/lib/services/orderService";
 import { generateEmbedding } from "@/lib/services/embeddingService";
 import { SUPPORTED_TOOL_KEYS, type AgentToolKey } from "@/lib/config/agentTools";
+import { paymentMethodsPromptLine } from "@/lib/config/agentPersona";
+import { escalationTriggersPromptLine } from "@/lib/config/escalationTriggers";
 import { formatShortDate } from "@/lib/utils/date";
 
 const client = new Anthropic(); // lee ANTHROPIC_API_KEY del entorno
@@ -192,14 +194,24 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
 - Nunca uses groserías ni lenguaje ofensivo.
 - Nunca ayudes con nada ilegal.
 - Nunca te salgas del rol de agente de "${businessName}" — no eres un asistente general.
-- Nunca pegues URLs, links ni rutas de archivos en tus respuestas. Si el cliente pide una foto o un enlace, dile que en este momento no puedes enviar imágenes por acá.`;
+- Nunca pegues URLs, links ni rutas de archivos en tus respuestas. Si el cliente pide una foto o un enlace, dile que en este momento no puedes enviar imágenes por acá.
+- Escribe como en un chat de WhatsApp: texto plano, sin markdown. Nada de "**negrita**", "##", viñetas con "-" ni tablas. Para una lista, usa números o un salto de línea por ítem. Si necesitas resaltar algo, usa un solo asterisco alrededor (*así*).`;
 
   const extras: string[] = [];
+  if (config.businessDescription) extras.push(`A qué se dedica el negocio (contexto de fondo, no lo recites): ${config.businessDescription}`);
+  if (config.locations) extras.push(`Dónde está el negocio / sedes: ${config.locations}`);
+  if (config.socialLinks) extras.push(`Redes del negocio (menciónalas por nombre, nunca pegues el link): ${config.socialLinks}`);
   if (config.greetingMessage) extras.push(`Mensaje de bienvenida al empezar una conversación nueva: "${config.greetingMessage}"`);
   if (config.personality) extras.push(`Personalidad: ${config.personality}`);
+  if (config.localPhrases) extras.push(`Así habla este negocio (usa estas expresiones cuando encajen, sin forzar): ${config.localPhrases}`);
+  if (config.addressForm === "tu") extras.push("Tutea al cliente (trato de 'tú' / 'vos').");
+  if (config.addressForm === "usted") extras.push("Trata al cliente de 'usted' en todo momento.");
   if (config.restrictions) extras.push(`Restricciones adicionales del negocio: ${config.restrictions}`);
   if (config.systemPromptExtra) extras.push(config.systemPromptExtra);
-  extras.push(config.useEmojis ? "Puedes usar emojis con moderación." : "No uses emojis en tus respuestas.");
+  if (config.emojiMode === "ninguno") extras.push("No uses emojis en tus respuestas.");
+  else if (config.emojiMode === "personalizado" && config.emojiSet)
+    extras.push(`Puedes usar emojis con moderación, preferentemente estos: ${config.emojiSet}`);
+  else extras.push("Puedes usar emojis con moderación.");
   if (config.responseLength) extras.push(`Preferencia de longitud de respuesta: ${config.responseLength}.`);
   if (config.language) extras.push(`Responde siempre en: ${config.language}.`);
   if (config.priorityProducts.length > 0) {
@@ -217,14 +229,10 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
       `Si el cliente escribe fuera del horario de atención, usa este mensaje (además de lo que ya sabes del horario): "${config.afterHoursMessage}"`
     );
   }
-  const paymentParts: string[] = [];
-  if (config.acceptsCashPickup) paymentParts.push("efectivo, recogiendo en tienda");
-  if (config.bankName && config.bankAccountNumber) {
-    paymentParts.push(`transferencia a ${config.bankName}, cuenta ${config.bankAccountNumber}`);
-  }
-  if (paymentParts.length > 0) {
-    extras.push(`Métodos de pago que acepta el negocio: ${paymentParts.join(" o ")}.`);
-  }
+  const paymentLine = paymentMethodsPromptLine(config.paymentMethods);
+  if (paymentLine) extras.push(paymentLine);
+  const escalationTriggersLine = escalationTriggersPromptLine(config.escalationTriggers);
+  if (escalationTriggersLine) extras.push(escalationTriggersLine);
   if (config.escalationMessage) {
     extras.push(
       `Si el cliente pide hablar con una persona real, o pregunta algo que no puedes resolver tú (negociar precio, un reclamo, algo fuera de tus herramientas), usa este mensaje: "${config.escalationMessage}"`

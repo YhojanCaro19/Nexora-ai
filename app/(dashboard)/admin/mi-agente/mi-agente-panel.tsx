@@ -26,6 +26,12 @@ import { updateAgentConfigAction } from "./actions";
 import type { AgentConfig, FaqEntry } from "@/lib/services/agentConfigService";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { Product } from "@/lib/services/productService";
+import {
+  EMOJI_MODES,
+  ADDRESS_FORMS,
+  type PaymentMethod,
+} from "@/lib/config/agentPersona";
+import { ESCALATION_TRIGGERS } from "@/lib/config/escalationTriggers";
 
 type ToolCatalog = typeof AGENT_TOOLS;
 
@@ -83,12 +89,40 @@ export function MiAgentePanel({
   const [personality, setPersonality] = useState(agentConfig.personality);
   const [systemPromptExtra, setSystemPromptExtra] = useState(agentConfig.systemPromptExtra);
   const [restrictions, setRestrictions] = useState(agentConfig.restrictions);
-  const [useEmojis, setUseEmojis] = useState(agentConfig.useEmojis);
+  const [emojiMode, setEmojiMode] = useState(agentConfig.emojiMode);
+  const [emojiSet, setEmojiSet] = useState(agentConfig.emojiSet);
+  const [addressForm, setAddressForm] = useState(agentConfig.addressForm);
+  const [localPhrases, setLocalPhrases] = useState(agentConfig.localPhrases);
+  const [businessDescription, setBusinessDescription] = useState(agentConfig.businessDescription);
+  const [locations, setLocations] = useState(agentConfig.locations);
+  const [socialLinks, setSocialLinks] = useState(agentConfig.socialLinks);
+  const [escalationTriggers, setEscalationTriggers] = useState<string[]>(agentConfig.escalationTriggers);
   const [responseLength, setResponseLength] = useState(agentConfig.responseLength ?? "");
   const [language, setLanguage] = useState(agentConfig.language ?? "");
   const [businessHours, setBusinessHours] = useState(agentConfig.businessHours);
   const [afterHoursMessage, setAfterHoursMessage] = useState(agentConfig.afterHoursMessage);
   const [faqs, setFaqs] = useState<FaqEntry[]>(agentConfig.faqs);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(agentConfig.paymentMethods);
+
+  function toggleEscalationTrigger(key: string, checked: boolean) {
+    setSaved(false);
+    setEscalationTriggers((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
+  }
+
+  function addPaymentMethod() {
+    setSaved(false);
+    setPaymentMethods((prev) => [...prev, { label: "", detail: "" }]);
+  }
+
+  function updatePaymentMethod(index: number, patch: Partial<PaymentMethod>) {
+    setSaved(false);
+    setPaymentMethods((prev) => prev.map((m, i) => (i === index ? { ...m, ...patch } : m)));
+  }
+
+  function removePaymentMethod(index: number) {
+    setSaved(false);
+    setPaymentMethods((prev) => prev.filter((_, i) => i !== index));
+  }
 
   function addFaq() {
     setSaved(false);
@@ -104,9 +138,6 @@ export function MiAgentePanel({
     setSaved(false);
     setFaqs((prev) => prev.filter((_, i) => i !== index));
   }
-  const [acceptsCashPickup, setAcceptsCashPickup] = useState(agentConfig.acceptsCashPickup);
-  const [bankName, setBankName] = useState(agentConfig.bankName);
-  const [bankAccountNumber, setBankAccountNumber] = useState(agentConfig.bankAccountNumber);
   const [escalationMessage, setEscalationMessage] = useState(agentConfig.escalationMessage);
   const [fallbackMessage, setFallbackMessage] = useState(agentConfig.fallbackMessage);
   const [farewellMessage, setFarewellMessage] = useState(agentConfig.farewellMessage);
@@ -135,15 +166,20 @@ export function MiAgentePanel({
       personality,
       systemPromptExtra,
       restrictions,
-      useEmojis,
+      emojiMode,
+      emojiSet,
+      addressForm,
+      localPhrases,
+      businessDescription,
+      locations,
+      socialLinks,
+      escalationTriggers,
       responseLength,
       language,
       businessHours,
       afterHoursMessage,
       faqs,
-      acceptsCashPickup,
-      bankName,
-      bankAccountNumber,
+      paymentMethods,
       escalationMessage,
       fallbackMessage,
       farewellMessage,
@@ -370,17 +406,95 @@ export function MiAgentePanel({
                 </div>
               </div>
 
-              <Label htmlFor="agent-emojis" className="font-normal">
-                <Checkbox
-                  id="agent-emojis"
-                  checked={useEmojis}
-                  onCheckedChange={(checked) => {
-                    setUseEmojis(checked === true);
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="block">Emojis</Label>
+                  <Select
+                    value={emojiMode}
+                    onValueChange={(v) => {
+                      if (v) setEmojiMode(v as typeof emojiMode);
+                      setSaved(false);
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EMOJI_MODES.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="block">Trato al cliente</Label>
+                  <Select
+                    value={addressForm}
+                    onValueChange={(v) => {
+                      if (v) setAddressForm(v as typeof addressForm);
+                      setSaved(false);
+                    }}
+                  >
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ADDRESS_FORMS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {emojiMode === "personalizado" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="agent-emoji-set" className="block">¿Qué emojis quieres que use?</Label>
+                  <Input
+                    id="agent-emoji-set"
+                    value={emojiSet}
+                    onChange={(e) => {
+                      setEmojiSet(e.target.value);
+                      setSaved(false);
+                    }}
+                    placeholder="Ej. ✂️ 💈 🔥 ✨"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="agent-phrases" className="block">Modismos / así hablamos acá (opcional)</Label>
+                <Textarea
+                  id="agent-phrases"
+                  rows={2}
+                  value={localPhrases}
+                  onChange={(e) => {
+                    setLocalPhrases(e.target.value);
                     setSaved(false);
                   }}
+                  placeholder="Ej. parce, a la orden, con gusto, ¡de una!"
                 />
-                Usar emojis en las respuestas
-              </Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="block">Siempre pasar a una persona si…</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ESCALATION_TRIGGERS.map((t) => (
+                    <Label key={t.key} htmlFor={`esc-${t.key}`} className="font-normal">
+                      <Checkbox
+                        id={`esc-${t.key}`}
+                        checked={escalationTriggers.includes(t.key)}
+                        onCheckedChange={(checked) => toggleEscalationTrigger(t.key, checked === true)}
+                      />
+                      {t.label}
+                    </Label>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
@@ -418,50 +532,95 @@ export function MiAgentePanel({
 
           {view === "pagos" && (
             <div className="space-y-4">
-              <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Opcional.</p>
-              <Label htmlFor="agent-cash-pickup" className="font-normal">
-                <Checkbox
-                  id="agent-cash-pickup"
-                  checked={acceptsCashPickup}
-                  onCheckedChange={(checked) => {
-                    setAcceptsCashPickup(checked === true);
-                    setSaved(false);
-                  }}
-                />
-                Aceptamos efectivo (recoger en tienda)
-              </Label>
+              <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+                Opcional. Agregá todas las cuentas que aceptes — el agente las ofrece todas.
+              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-bank-name" className="block">Nombre del banco</Label>
-                  <Input
-                    id="agent-bank-name"
-                    value={bankName}
-                    onChange={(e) => {
-                      setBankName(e.target.value);
-                      setSaved(false);
-                    }}
-                    placeholder="Ej. Bancolombia"
-                  />
+              {paymentMethods.length > 0 && (
+                <div className="space-y-3">
+                  {paymentMethods.map((m, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-start"
+                    >
+                      <Input
+                        value={m.label}
+                        onChange={(e) => updatePaymentMethod(index, { label: e.target.value })}
+                        placeholder="Banco / billetera. Ej. Nequi"
+                        className="h-8 min-w-0"
+                      />
+                      <Input
+                        value={m.detail}
+                        onChange={(e) => updatePaymentMethod(index, { detail: e.target.value })}
+                        placeholder="Número de cuenta. Ej. 3054072356"
+                        className="h-8 min-w-0"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePaymentMethod(index)}
+                        className="h-8 w-8 flex items-center justify-center rounded-md transition-colors hover:bg-white/[0.06]"
+                        style={{ color: 'var(--nexora-ink-dim)' }}
+                        aria-label="Quitar cuenta"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="agent-bank-account" className="block">Número de cuenta</Label>
-                  <Input
-                    id="agent-bank-account"
-                    value={bankAccountNumber}
-                    onChange={(e) => {
-                      setBankAccountNumber(e.target.value);
-                      setSaved(false);
-                    }}
-                    placeholder="Ej. 123-456789-00"
-                  />
-                </div>
+              )}
+
+              <div className="flex justify-center">
+                <Button type="button" variant="outline" size="sm" onClick={addPaymentMethod}>
+                  <Plus size={14} strokeWidth={1.75} />
+                  Agregar cuenta
+                </Button>
               </div>
             </div>
           )}
 
           {view === "conocimiento" && (
             <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="agent-description" className="block">¿A qué se dedica el negocio? (opcional)</Label>
+                <Textarea
+                  id="agent-description"
+                  rows={3}
+                  value={businessDescription}
+                  onChange={(e) => {
+                    setBusinessDescription(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="Ej. Barbería especializada en cortes clásicos y arreglo de barba. 10 años en el barrio, atención sin cita."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="agent-locations" className="block">Dirección / sedes (opcional)</Label>
+                <Textarea
+                  id="agent-locations"
+                  rows={2}
+                  value={locations}
+                  onChange={(e) => {
+                    setLocations(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="Ej. Sede principal: Cra 45 #10-20, Medellín. Sede norte: CC Santafé, local 210."
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="agent-social" className="block">Redes sociales (opcional)</Label>
+                <Input
+                  id="agent-social"
+                  value={socialLinks}
+                  onChange={(e) => {
+                    setSocialLinks(e.target.value);
+                    setSaved(false);
+                  }}
+                  placeholder="Ej. Instagram @barberia_x, Facebook Barbería X"
+                />
+              </div>
+
               <div className="space-y-3">
                 <Label className="block">Preguntas frecuentes (opcional)</Label>
                 {faqs.length > 0 && (

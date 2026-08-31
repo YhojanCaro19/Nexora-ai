@@ -1,17 +1,16 @@
 // app/(dashboard)/admin/mi-agente/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { getAgentConfig } from "@/lib/services/agentConfigService";
+import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
 import { getProducts } from "@/lib/services/productService";
 import { AGENT_TOOLS } from "@/lib/config/agentTools";
 import { MiAgentePanel } from "./mi-agente-panel";
 import { TestAgentChat } from "./test-agent-chat";
 
-const DEFAULT_AGENT_CONFIG = {
+const DEFAULT_AGENT_CONFIG: AgentConfig = {
   name: "Tu Agente",
   personality: "",
   enabledTools: [],
   systemPromptExtra: "",
-  useEmojis: false,
   responseLength: null,
   language: null,
   priorityProducts: [],
@@ -23,9 +22,15 @@ const DEFAULT_AGENT_CONFIG = {
   fallbackMessage: "",
   afterHoursMessage: "",
   farewellMessage: "",
-  acceptsCashPickup: false,
-  bankName: "",
-  bankAccountNumber: "",
+  paymentMethods: [],
+  businessDescription: "",
+  locations: "",
+  socialLinks: "",
+  emojiMode: "pocos",
+  emojiSet: "",
+  addressForm: "auto",
+  localPhrases: "",
+  escalationTriggers: [],
 };
 
 export default async function MiAgentePage() {

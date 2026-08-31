@@ -578,6 +578,10 @@ export async function provisionBusinessAccount(
     faqs: template.faqs,
     response_length: template.responseLength,
     use_emojis: template.useEmojis,
+    // Lote 1: el motor y el panel ahora leen emoji_mode; se siembra desde
+    // el use_emojis de la plantilla hasta que las plantillas tengan su
+    // propio campo. Ver docs/agente-lote1.md.
+    emoji_mode: template.useEmojis ? "pocos" : "ninguno",
     restrictions: template.restrictions,
   });
 

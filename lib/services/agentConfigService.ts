@@ -12,6 +12,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeToolKeys, type AgentToolKey } from "@/lib/config/agentTools";
+import {
+  sanitizeEmojiMode,
+  sanitizeAddressForm,
+  sanitizePaymentMethods,
+  type EmojiMode,
+  type AddressForm,
+  type PaymentMethod,
+} from "@/lib/config/agentPersona";
+import {
+  sanitizeEscalationTriggers,
+  type EscalationTriggerKey,
+} from "@/lib/config/escalationTriggers";
 
 export interface FaqEntry {
   question: string;
@@ -40,7 +52,6 @@ export interface AgentConfig {
   personality: string;
   enabledTools: AgentToolKey[];
   systemPromptExtra: string;
-  useEmojis: boolean;
   responseLength: string | null;
   language: string | null;
   priorityProducts: string[];
@@ -52,9 +63,17 @@ export interface AgentConfig {
   fallbackMessage: string;
   afterHoursMessage: string;
   farewellMessage: string;
-  acceptsCashPickup: boolean;
-  bankName: string;
-  bankAccountNumber: string;
+  // Lote 1 (2026-08-31) — reemplazan a acceptsCashPickup/bankName/bankAccountNumber
+  // (columnas viejas dejadas en la base sin usar, igual que faq_text).
+  paymentMethods: PaymentMethod[];
+  businessDescription: string;
+  locations: string;
+  socialLinks: string;
+  emojiMode: EmojiMode;
+  emojiSet: string;
+  addressForm: AddressForm;
+  localPhrases: string;
+  escalationTriggers: EscalationTriggerKey[];
 }
 
 export interface UpdateAgentConfigInput {
@@ -62,7 +81,6 @@ export interface UpdateAgentConfigInput {
   personality: string;
   enabledTools: string[];
   systemPromptExtra: string;
-  useEmojis: boolean;
   responseLength: string;
   language: string;
   priorityProducts: string[];
@@ -74,9 +92,15 @@ export interface UpdateAgentConfigInput {
   fallbackMessage: string;
   afterHoursMessage: string;
   farewellMessage: string;
-  acceptsCashPickup: boolean;
-  bankName: string;
-  bankAccountNumber: string;
+  paymentMethods: PaymentMethod[];
+  businessDescription: string;
+  locations: string;
+  socialLinks: string;
+  emojiMode: string;
+  emojiSet: string;
+  addressForm: string;
+  localPhrases: string;
+  escalationTriggers: string[];
 }
 
 export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
@@ -84,7 +108,7 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
   const { data, error } = await supabase
     .from("agent_configs")
     .select(
-      "name, personality, enabled_tools, system_prompt_extra, use_emojis, response_length, language, priority_products, restrictions, faqs, business_hours, greeting_message, escalation_message, fallback_message, after_hours_message, farewell_message, accepts_cash_pickup, bank_name, bank_account_number"
+      "name, personality, enabled_tools, system_prompt_extra, response_length, language, priority_products, restrictions, faqs, business_hours, greeting_message, escalation_message, fallback_message, after_hours_message, farewell_message, payment_methods, business_description, locations, social_links, emoji_mode, emoji_set, address_form, local_phrases, escalation_triggers"
     )
     .eq("business_id", businessId)
     .maybeSingle();
@@ -98,7 +122,6 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     personality: data?.personality ?? "",
     enabledTools: sanitizeToolKeys(data?.enabled_tools),
     systemPromptExtra: data?.system_prompt_extra ?? "",
-    useEmojis: data?.use_emojis ?? false,
     responseLength: data?.response_length ?? null,
     language: data?.language ?? null,
     priorityProducts: Array.isArray(data?.priority_products) ? data.priority_products : [],
@@ -110,9 +133,15 @@ export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
     fallbackMessage: data?.fallback_message ?? "",
     afterHoursMessage: data?.after_hours_message ?? "",
     farewellMessage: data?.farewell_message ?? "",
-    acceptsCashPickup: data?.accepts_cash_pickup ?? false,
-    bankName: data?.bank_name ?? "",
-    bankAccountNumber: data?.bank_account_number ?? "",
+    paymentMethods: sanitizePaymentMethods(data?.payment_methods),
+    businessDescription: data?.business_description ?? "",
+    locations: data?.locations ?? "",
+    socialLinks: data?.social_links ?? "",
+    emojiMode: sanitizeEmojiMode(data?.emoji_mode),
+    emojiSet: data?.emoji_set ?? "",
+    addressForm: sanitizeAddressForm(data?.address_form),
+    localPhrases: data?.local_phrases ?? "",
+    escalationTriggers: sanitizeEscalationTriggers(data?.escalation_triggers),
   };
 }
 
@@ -131,7 +160,6 @@ export async function updateAgentConfig(
       personality: input.personality.trim() || null,
       enabled_tools: clean,
       system_prompt_extra: input.systemPromptExtra.trim() || null,
-      use_emojis: input.useEmojis,
       response_length: input.responseLength || null,
       language: input.language.trim() || null,
       priority_products: input.priorityProducts,
@@ -143,9 +171,15 @@ export async function updateAgentConfig(
       fallback_message: input.fallbackMessage.trim() || null,
       after_hours_message: input.afterHoursMessage.trim() || null,
       farewell_message: input.farewellMessage.trim() || null,
-      accepts_cash_pickup: input.acceptsCashPickup,
-      bank_name: input.bankName.trim() || null,
-      bank_account_number: input.bankAccountNumber.trim() || null,
+      payment_methods: sanitizePaymentMethods(input.paymentMethods),
+      business_description: input.businessDescription.trim() || null,
+      locations: input.locations.trim() || null,
+      social_links: input.socialLinks.trim() || null,
+      emoji_mode: sanitizeEmojiMode(input.emojiMode),
+      emoji_set: input.emojiSet.trim() || null,
+      address_form: sanitizeAddressForm(input.addressForm),
+      local_phrases: input.localPhrases.trim() || null,
+      escalation_triggers: sanitizeEscalationTriggers(input.escalationTriggers),
     })
     .eq("business_id", businessId);
 
