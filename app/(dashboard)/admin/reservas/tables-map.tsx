@@ -14,9 +14,12 @@ import { createResourceAction, updateResourceAction, deleteResourceAction } from
 
 type Feed = { kind: "ok" | "error"; text: string } | null;
 
-function seatSplit(capacity: number): [number, number] {
+// Sillas parejas a los lados; si la capacidad es impar, la que sobra va a
+// la cabecera (abajo). Ej. 7 → 3 y 3 a los lados + 1 abajo.
+function seatLayout(capacity: number): { side: number; head: number } {
   const c = Math.max(1, Math.min(capacity, 16));
-  return [Math.ceil(c / 2), Math.floor(c / 2)];
+  const head = c % 2;
+  return { side: (c - head) / 2, head };
 }
 
 function seatColumn(n: number, color: string) {
@@ -30,27 +33,30 @@ function seatColumn(n: number, color: string) {
 }
 
 function TableGlyph({ capacity, number, active }: { capacity: number; number: number; active: boolean }) {
-  const [left, right] = seatSplit(capacity);
-  const rows = Math.max(left, right, 1);
+  const { side, head } = seatLayout(capacity);
+  const rows = Math.max(side, 1);
   const seatColor = active ? "#A5B4FC" : "#3B3F52";
   const tableBg = active ? "rgba(129,140,248,0.30)" : "#242838";
   const tableBorder = active ? "#818CF8" : "#3B3F52";
 
   return (
-    <div className="flex items-stretch justify-center gap-1.5">
-      {seatColumn(left, seatColor)}
-      <div
-        className="relative flex w-16 items-center justify-center rounded-2xl"
-        style={{ minHeight: `${rows * 34}px`, background: tableBg, border: `1.5px solid ${tableBorder}` }}
-      >
-        <span
-          className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-          style={{ background: "#818CF8", color: "#0b0b10" }}
+    <div className="flex flex-col items-center gap-1.5">
+      <div className="flex items-stretch justify-center gap-1.5">
+        {seatColumn(side, seatColor)}
+        <div
+          className="relative flex w-16 items-center justify-center rounded-2xl"
+          style={{ minHeight: `${rows * 34}px`, background: tableBg, border: `1.5px solid ${tableBorder}` }}
         >
-          {number}
-        </span>
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-full"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
+          >
+            <span className="aventhra-iridescent font-nexora text-sm font-extrabold leading-none">{number}</span>
+          </span>
+        </div>
+        {seatColumn(side, seatColor)}
       </div>
-      {seatColumn(right, seatColor)}
+      {head === 1 && <span className="h-4 w-7 shrink-0 rounded-[5px]" style={{ background: seatColor }} />}
     </div>
   );
 }
