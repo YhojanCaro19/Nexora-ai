@@ -24,10 +24,18 @@ const FLOOR_BG =
 const SURFACE = "#454B58";
 const SURFACE_BORDER = "#5A6170";
 
-function seatLayout(capacity: number): { side: number; head: number } {
+// Reparte las sillas: siempre que se pueda, una en cada cabecera (arriba y
+// abajo) y el resto parejo a los lados. 4 → una en cada uno de los 4 lados.
+// 6 → 2+2 lados + 1+1 cabeceras. 5 → 2+2 lados + 1 cabecera.
+function seatLayout(capacity: number): { side: number; headTop: number; headBottom: number } {
   const c = Math.max(1, Math.min(capacity, 16));
-  const head = c % 2;
-  return { side: (c - head) / 2, head };
+  let heads: number;
+  if (c === 1) heads = 1;
+  else if (c === 2) heads = 0;
+  else if (c % 2 === 0) heads = 2;
+  else heads = 1;
+  const side = (c - heads) / 2;
+  return { side, headTop: heads === 2 ? 1 : 0, headBottom: heads >= 1 ? 1 : 0 };
 }
 
 function glyphLabel(name: string, index: number): string {
@@ -48,17 +56,19 @@ function TableGlyph({
   size?: number;
   counterRotate?: number;
 }) {
-  const { side, head } = seatLayout(capacity);
+  const { side, headTop, headBottom } = seatLayout(capacity);
   const rows = Math.max(side, 1);
   const seatH = 26 * size;
   const seatW = 15 * size;
   const gap = 5 * size;
   const tableW = 58 * size;
   const seatStyle = { height: seatH, width: seatW, background: SURFACE, border: `1.5px solid ${SURFACE_BORDER}` };
+  const headSeatStyle = { height: seatW, width: seatH, background: SURFACE, border: `1.5px solid ${SURFACE_BORDER}` };
   const label = String(number);
 
   return (
     <div className="flex select-none flex-col items-center" style={{ gap }}>
+      {headTop === 1 && <span className="shrink-0 rounded-[5px]" style={headSeatStyle} />}
       <div className="flex items-stretch justify-center" style={{ gap }}>
         <div className="flex flex-col justify-center" style={{ gap }}>
           {Array.from({ length: side }).map((_, i) => (
@@ -92,7 +102,7 @@ function TableGlyph({
           ))}
         </div>
       </div>
-      {head === 1 && <span className="shrink-0 rounded-[5px]" style={seatStyle} />}
+      {headBottom === 1 && <span className="shrink-0 rounded-[5px]" style={headSeatStyle} />}
     </div>
   );
 }
