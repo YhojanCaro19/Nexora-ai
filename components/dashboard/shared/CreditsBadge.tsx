@@ -32,18 +32,21 @@ export function CreditsBadge({ credits, href = null }: CreditsBadgeProps) {
     </>
   );
 
-  const cls = "flex items-center gap-2.5 rounded-full border px-4 py-2";
-  const style = { borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" };
+  const cls = "flex items-center gap-2.5 px-1 py-1";
 
   if (href) {
     return (
-      <Link href={href} title="Tus créditos" className={`${cls} transition-colors hover:border-white/20`} style={style}>
+      <Link
+        href={href}
+        title="Tus créditos"
+        className={`${cls} rounded-full transition-opacity hover:opacity-80`}
+      >
         {inner}
       </Link>
     );
   }
   return (
-    <div className={cls} style={style} title="Créditos del negocio">
+    <div className={cls} title="Créditos del negocio">
       {inner}
     </div>
   );
