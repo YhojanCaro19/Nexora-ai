@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { toggleProductActiveAction } from "./actions";
@@ -86,16 +85,12 @@ export function ProductsTable({
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Catálogo</CardTitle>
-        <CardDescription>
-          {products.length === 0
-            ? "Todavía no has agregado ningún producto."
-            : `${products.length} producto${products.length === 1 ? "" : "s"} en tu catálogo.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
+      <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {products.length === 0
+          ? "Todavía no has agregado ningún producto."
+          : `${products.length} producto${products.length === 1 ? "" : "s"} en tu catálogo.`}
+      </p>
         {/* Ícono e input como hermanos en una fila flex con gap explícito
             — no superpuestos con position:absolute + padding, que en la
             práctica quedaba sin espacio real entre el ícono y el texto
@@ -234,7 +229,6 @@ export function ProductsTable({
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
