@@ -7,6 +7,7 @@ import {
   replaceBusinessHours,
   createResource,
   updateResource,
+  updateResourceLayout,
   deleteResource,
   createBookingService,
   updateBookingServiceDuration,
@@ -81,6 +82,17 @@ export async function updateResourceAction(resourceId: string, input: Partial<Bo
   if (!profile) return { error: "No autorizado" };
   const result = await updateResource(resourceId, profile.businessId!, input);
   done();
+  return result;
+}
+
+export async function updateResourceLayoutAction(
+  resourceId: string,
+  layout: { posX?: number | null; posY?: number | null; rotation?: number }
+) {
+  const profile = await requireAdmin();
+  if (!profile) return { error: "No autorizado" };
+  const result = await updateResourceLayout(resourceId, profile.businessId!, layout);
+  // sin done() — el plano se guarda seguido, no hace falta revalidar la ruta
   return result;
 }
 

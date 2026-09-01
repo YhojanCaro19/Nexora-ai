@@ -58,6 +58,11 @@ create policy business_closures_member_all on public.business_closures for all u
 drop policy if exists reservations_member_all on public.reservations;
 create policy reservations_member_all on public.reservations for all using (public.is_business_member(business_id)) with check (public.is_business_member(business_id));
 
+-- ---- 8c. Posición y rotación de la mesa en el plano ---------
+alter table public.booking_resources add column if not exists pos_x integer;
+alter table public.booking_resources add column if not exists pos_y integer;
+alter table public.booking_resources add column if not exists rotation smallint not null default 0;
+
 -- ---- 8b. Servicio de cita = un producto del catálogo ------
 -- El servicio para agendar sale del catálogo (products), no se escribe a
 -- mano: booking_services referencia al producto y solo agrega la duración.

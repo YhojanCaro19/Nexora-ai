@@ -80,6 +80,11 @@ export interface BookingResource {
   capacity: number | null;
   active: boolean;
   sortOrder: number;
+  // Posición en el plano del salón (px relativos al canvas) y rotación en
+  // grados (0/90/180/270). null = todavía sin colocar.
+  posX: number | null;
+  posY: number | null;
+  rotation: number;
 }
 
 export interface BookingService {

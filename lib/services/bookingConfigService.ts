@@ -61,6 +61,9 @@ function mapResource(row: Record<string, unknown>): BookingResource {
     capacity: (row.capacity as number | null) ?? null,
     active: row.active as boolean,
     sortOrder: (row.sort_order as number) ?? 0,
+    posX: (row.pos_x as number | null) ?? null,
+    posY: (row.pos_y as number | null) ?? null,
+    rotation: (row.rotation as number) ?? 0,
   };
 }
 
@@ -203,6 +206,27 @@ export async function updateResource(
   if (input.name !== undefined) patch.name = input.name;
   if (input.capacity !== undefined) patch.capacity = input.capacity;
   if (input.active !== undefined) patch.active = input.active;
+
+  const { error } = await supabase
+    .from("booking_resources")
+    .update(patch)
+    .eq("id", resourceId)
+    .eq("business_id", businessId);
+  return { error: error ? translateError(error) : null };
+}
+
+// Posición/rotación en el plano — se guarda seguido (al soltar la mesa),
+// así que es su propia función liviana sin validación de nombre/capacidad.
+export async function updateResourceLayout(
+  resourceId: string,
+  businessId: string,
+  layout: { posX?: number | null; posY?: number | null; rotation?: number }
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const patch: Record<string, unknown> = {};
+  if (layout.posX !== undefined) patch.pos_x = layout.posX == null ? null : Math.round(layout.posX);
+  if (layout.posY !== undefined) patch.pos_y = layout.posY == null ? null : Math.round(layout.posY);
+  if (layout.rotation !== undefined) patch.rotation = ((layout.rotation % 360) + 360) % 360;
 
   const { error } = await supabase
     .from("booking_resources")
