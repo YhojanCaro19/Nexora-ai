@@ -53,7 +53,7 @@ const MODE_OPTIONS: { value: BookingMode; label: string; hint: string }[] = [
   {
     value: "appointments",
     label: "Turnos y citas (con hora y empleado)",
-    hint: "El cliente agenda una cita con un empleado y un servicio a una hora fija (barbería, salón).",
+    hint: "",
   },
   {
     value: "both",
@@ -205,9 +205,11 @@ function SettingsSection({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-center text-[11px] leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
-            {modeHint(mode)}
-          </p>
+          {modeHint(mode) && (
+            <p className="text-center text-[11px] leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
+              {modeHint(mode)}
+            </p>
+          )}
         </div>
 
         {mode !== "off" && (
