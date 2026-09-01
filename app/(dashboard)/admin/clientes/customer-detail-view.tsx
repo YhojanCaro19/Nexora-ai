@@ -264,7 +264,7 @@ function ConversationsSection({
   onOpen: (conversation: Conversation) => void;
 }) {
   return (
-    <section className="rounded-2xl border p-6 space-y-4" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+    <section className="space-y-4">
       <div className="flex flex-col items-center gap-2 text-center">
         <MessageCircle size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
         <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
