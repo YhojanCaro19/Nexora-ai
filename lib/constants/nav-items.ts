@@ -15,6 +15,7 @@ import {
   Sparkles,
   ShieldCheck,
   KeyRound,
+  CalendarDays,
 } from 'lucide-react';
 import { CreditCoinIcon } from '@/components/dashboard/shared/CreditCoin';
 
@@ -57,6 +58,7 @@ export const ADMIN_NAV: NavGroup[] = [
     label: 'Operación',
     items: [
       { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
+      { label: 'Reservas', href: '/admin/reservas', icon: CalendarDays },
       { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
       { label: 'Clientes', href: '/admin/clientes', icon: Contact },
       { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },
