@@ -160,6 +160,9 @@ function SettingsSection({
   onModeChange: (m: BookingMode) => void;
   onSaved: (s: BookingConfig["settings"]) => void;
 }) {
+  // El "¿cada cuánto un turno?" solo aplica a citas. En mesas puras no se
+  // muestra: la duración de la mesa la decide el cliente al reservar.
+  const showTurnLength = mode === "appointments" || mode === "both";
   const [turnLength, setTurnLength] = useState(String(settings.slotMinutes));
   const [minNotice, setMinNotice] = useState(String(settings.minNoticeMinutes));
   const [maxAdvance, setMaxAdvance] = useState(String(settings.maxAdvanceDays));
@@ -168,11 +171,12 @@ function SettingsSection({
 
   function save() {
     setFeedback(null);
-    const len = Number(turnLength) || 30;
+    // En mesas puras se conservan los valores actuales (respaldo interno).
+    const len = showTurnLength ? Number(turnLength) || 30 : settings.slotMinutes;
     const next = {
       mode,
       slotMinutes: len,
-      defaultDurationMinutes: len,
+      defaultDurationMinutes: showTurnLength ? len : settings.defaultDurationMinutes,
       minNoticeMinutes: Number(minNotice) || 0,
       maxAdvanceDays: Number(maxAdvance) || 1,
     };
@@ -207,31 +211,29 @@ function SettingsSection({
         </div>
 
         {mode !== "off" && (
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className={`grid gap-6 ${showTurnLength ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+            {showTurnLength && (
+              <QuestionField
+                question="¿Cada cuánto un turno?"
+                unit="min"
+                value={turnLength}
+                onChange={setTurnLength}
+                hint="Si el turno lleva un servicio, se usa la duración del servicio."
+              />
+            )}
             <QuestionField
-              question={mode === "tables" ? "Duración por defecto de la mesa" : "¿Cada cuánto un turno?"}
-              unit="min"
-              value={turnLength}
-              onChange={setTurnLength}
-              hint={
-                mode === "tables"
-                  ? "Solo si el cliente no dice de qué hora a qué hora. Él decide la duración."
-                  : "Si el turno lleva servicio, se usa esa duración."
-              }
-            />
-            <QuestionField
-              question="Anticipación mínima"
+              question="Anticipación mínima para reservar"
               unit="min"
               value={minNotice}
               onChange={setMinNotice}
-              hint="Para que no reserven a última hora."
+              hint="Para que no reserven a última hora. Ej. 60 = nada para la próxima hora."
             />
             <QuestionField
-              question="Máximo de anticipación"
+              question="¿Con cuántos días de anticipación como máximo?"
               unit="días"
               value={maxAdvance}
               onChange={setMaxAdvance}
-              hint="Qué tan adelante se puede reservar."
+              hint="Ej. 30 = no se puede reservar para más de un mes adelante."
             />
           </div>
         )}
