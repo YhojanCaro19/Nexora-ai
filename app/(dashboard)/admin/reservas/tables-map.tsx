@@ -165,10 +165,9 @@ export function TablesMap({
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       setDragId(null);
-      if (!moved) {
-        setEditingId(t.id);
-        return;
-      }
+      // Sin arrastre = solo seleccionar (ya se hizo en pointerdown). Para
+      // editar hay que tocar el lápiz de la toolbar.
+      if (!moved) return;
       updateResourceLayoutAction(t.id, { posX: last.x, posY: last.y });
       onUpdate({ ...t, posX: last.x, posY: last.y });
       setLocalPos((p) => {
