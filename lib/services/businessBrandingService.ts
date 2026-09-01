@@ -35,6 +35,16 @@ export interface BusinessBranding {
 // Usado por Pedidos/Catálogo para formatear precios/totales en la moneda
 // real del negocio (ver lib/utils/currency.ts) — el mismo country_iso2
 // que ya usa Reportes para la zona horaria.
+export async function getBusinessName(businessId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("businesses")
+    .select("name")
+    .eq("id", businessId)
+    .maybeSingle();
+  return data?.name ?? null;
+}
+
 export async function getBusinessCountryIso2(businessId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase
