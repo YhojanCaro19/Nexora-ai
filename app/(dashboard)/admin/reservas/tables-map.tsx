@@ -22,9 +22,10 @@ function seatLayout(capacity: number): { side: number; head: number } {
   return { side: (c - head) / 2, head };
 }
 
-// Mesa y sillas comparten fondo y borde — mismo gris.
-const SURFACE = "#3A404E";
-const SURFACE_BORDER = "#4C5464";
+// El piso es gris medio; la mesa y las sillas van en carbón oscuro para
+// contrastar. Los dos (mesa + silla) comparten fondo y borde.
+const SURFACE = "#282C36";
+const SURFACE_BORDER = "#383D49";
 
 // Etiqueta corta para el círculo de la mesa: el número del nombre
 // ("Mesa 5" → "5"), o las primeras letras, o el índice.
@@ -145,8 +146,8 @@ export function TablesMap({
         style={{
           minHeight: "17rem",
           background:
-            "repeating-linear-gradient(0deg, rgba(15,23,42,0.06) 0 1px, transparent 1px 46px), repeating-linear-gradient(90deg, rgba(15,23,42,0.06) 0 1px, transparent 1px 46px), linear-gradient(180deg, #D7DAE1, #C2C6CF)",
-          boxShadow: "0 12px 44px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
+            "repeating-linear-gradient(0deg, rgba(0,0,0,0.07) 0 1px, transparent 1px 46px), repeating-linear-gradient(90deg, rgba(0,0,0,0.07) 0 1px, transparent 1px 46px), linear-gradient(180deg, #9AA0AB, #858B96)",
+          boxShadow: "0 12px 44px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.25)",
         }}
       >
         {tables.map((t, i) => (
@@ -158,10 +159,10 @@ export function TablesMap({
             style={{ borderColor: editingId === t.id ? "#818CF8" : "transparent" }}
           >
             <TableGlyph capacity={t.capacity ?? 4} number={glyphLabel(t.name, i + 1)} size={0.78} />
-            <span className="text-sm font-semibold" style={{ color: "#1C2434" }}>
+            <span className="text-sm font-semibold" style={{ color: "#16181F" }}>
               {t.name !== `Mesa ${i + 1}` ? t.name : `Mesa ${i + 1}`}
             </span>
-            <span className="-mt-1.5 text-[11px]" style={{ color: "#6B7280" }}>
+            <span className="-mt-1.5 text-[11px]" style={{ color: "#3D424D" }}>
               {t.capacity ?? 4} sillas
             </span>
           </button>
@@ -171,14 +172,14 @@ export function TablesMap({
           type="button"
           onClick={addTable}
           disabled={pending}
-          className="flex h-36 w-36 flex-col items-center justify-center gap-2 self-center rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-black/[0.05] disabled:opacity-50"
-          style={{ borderColor: "rgba(15,23,42,0.3)", color: "#3B424E" }}
+          className="flex h-36 w-36 flex-col items-center justify-center gap-2 self-center rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-black/[0.07] disabled:opacity-50"
+          style={{ borderColor: "rgba(0,0,0,0.32)", color: "#1E212A" }}
         >
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full"
-            style={{ background: "rgba(129,140,248,0.16)" }}
+            style={{ background: "rgba(255,255,255,0.3)" }}
           >
-            <Plus size={22} strokeWidth={2.5} style={{ color: "#6366F1" }} />
+            <Plus size={22} strokeWidth={2.5} style={{ color: "#282C36" }} />
           </span>
           Agregar mesa
         </button>
