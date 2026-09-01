@@ -16,12 +16,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/currency";
-import { formatShortDateTime } from "@/lib/utils/date";
 import {
-  MODE_LABELS,
-  RESERVATION_STATUS_LABELS,
   weekdayLabel,
   type BookingMode,
   type Reservation,
@@ -35,17 +32,20 @@ import {
   createBookingServiceAction,
   deleteBookingServiceAction,
 } from "./actions";
+import { ReservasAgenda } from "./reservas-agenda";
 
 // `BookingConfig` como tipo vive en dos lados (types/reservation.ts y el
 // service) — son estructuralmente iguales; se usa el del service acá.
 type Config = BookingConfigType;
 
 const MODE_OPTIONS: { value: BookingMode; label: string }[] = [
-  { value: "off", label: "Desactivado" },
-  { value: "tables", label: "Reserva de mesas" },
-  { value: "appointments", label: "Turnos / citas" },
+  { value: "off", label: "No usa reservas ni turnos" },
+  { value: "tables", label: "Reserva de mesas (restaurante)" },
+  { value: "appointments", label: "Turnos y citas (con hora y empleado)" },
   { value: "both", label: "Mesas y turnos" },
 ];
+
+const modeLabel = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.label ?? m;
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0]; // lun→dom para la UI
 
@@ -83,8 +83,9 @@ function Feedback({ state }: { state: { kind: "ok" | "error"; text: string } | n
 
 function SettingsSection({ config }: { config: Config }) {
   const [mode, setMode] = useState<BookingMode>(config.settings.mode);
-  const [slot, setSlot] = useState(String(config.settings.slotMinutes));
-  const [duration, setDuration] = useState(String(config.settings.defaultDurationMinutes));
+  // Un solo control: "¿cada cuánto un turno/reserva?" — escribe tanto la
+  // franja como la duración por defecto (para el usuario son lo mismo).
+  const [turnLength, setTurnLength] = useState(String(config.settings.slotMinutes));
   const [minNotice, setMinNotice] = useState(String(config.settings.minNoticeMinutes));
   const [maxAdvance, setMaxAdvance] = useState(String(config.settings.maxAdvanceDays));
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
@@ -93,27 +94,28 @@ function SettingsSection({ config }: { config: Config }) {
   function save() {
     setFeedback(null);
     start(async () => {
+      const len = Number(turnLength) || 30;
       const result = await saveBookingSettingsAction({
         mode,
-        slotMinutes: Number(slot),
-        defaultDurationMinutes: Number(duration),
-        minNoticeMinutes: Number(minNotice),
-        maxAdvanceDays: Number(maxAdvance),
+        slotMinutes: len,
+        defaultDurationMinutes: len,
+        minNoticeMinutes: Number(minNotice) || 0,
+        maxAdvanceDays: Number(maxAdvance) || 1,
       });
-      setFeedback(
-        result.error ? { kind: "error", text: result.error } : { kind: "ok", text: "Guardado." }
-      );
+      setFeedback(result.error ? { kind: "error", text: result.error } : { kind: "ok", text: "Guardado." });
     });
   }
 
   return (
-    <Section icon={<Settings2 size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />} title="Modo de reservas">
-      <div className="mx-auto max-w-sm space-y-4">
+    <Section
+      icon={<Settings2 size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />}
+      title="¿Qué usa este negocio?"
+    >
+      <div className="mx-auto max-w-sm space-y-6">
         <div className="space-y-1.5">
-          <Label className="block text-center">¿Qué usa este negocio?</Label>
           <Select value={mode} onValueChange={(v) => v && setMode(v as BookingMode)}>
-            <SelectTrigger className="w-full justify-center">
-              <SelectValue />
+            <SelectTrigger className="w-full justify-between">
+              {modeLabel(mode)}
             </SelectTrigger>
             <SelectContent>
               {MODE_OPTIONS.map((o) => (
@@ -126,16 +128,32 @@ function SettingsSection({ config }: { config: Config }) {
         </div>
 
         {mode !== "off" && (
-          <div className="grid grid-cols-2 gap-3">
-            <NumberField label="Franja (min)" value={slot} onChange={setSlot} hint="Cada cuánto se ofrecen horarios" />
-            <NumberField
-              label="Duración por defecto (min)"
-              value={duration}
-              onChange={setDuration}
-              hint="Cuánto se retiene una mesa / dura una cita sin servicio"
+          <div className="space-y-6">
+            <QuestionField
+              question={mode === "tables" ? "¿Cuánto dura cada reserva de mesa?" : "¿Cada cuánto sale un turno?"}
+              unit="minutos"
+              value={turnLength}
+              onChange={setTurnLength}
+              hint={
+                mode === "tables"
+                  ? "Cuánto tiempo se retiene la mesa. Ej. 90 = cada reserva ocupa la mesa hora y media."
+                  : "Cada 30, cada 60… Si el turno tiene un servicio asignado, se usa la duración de ese servicio."
+              }
             />
-            <NumberField label="Anticipación mínima (min)" value={minNotice} onChange={setMinNotice} />
-            <NumberField label="Máx. días de anticipación" value={maxAdvance} onChange={setMaxAdvance} />
+            <QuestionField
+              question="¿Con cuánto tiempo mínimo de anticipación?"
+              unit="minutos"
+              value={minNotice}
+              onChange={setMinNotice}
+              hint="Para que no reserven a última hora. Ej. 60 = no se puede reservar para dentro de la próxima hora."
+            />
+            <QuestionField
+              question="¿Hasta con cuántos días de anticipación se puede reservar?"
+              unit="días"
+              value={maxAdvance}
+              onChange={setMaxAdvance}
+              hint="Ej. 60 = no se puede reservar para más de dos meses adelante."
+            />
           </div>
         )}
 
@@ -150,32 +168,38 @@ function SettingsSection({ config }: { config: Config }) {
   );
 }
 
-function NumberField({
-  label,
+function QuestionField({
+  question,
+  unit,
   value,
   onChange,
   hint,
 }: {
-  label: string;
+  question: string;
+  unit: string;
   value: string;
   onChange: (v: string) => void;
-  hint?: string;
+  hint: string;
 }) {
   return (
-    <div className="space-y-1">
-      <Label className="block text-center text-xs">{label}</Label>
-      <Input
-        type="number"
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-center"
-      />
-      {hint && (
-        <p className="text-center text-[10px] leading-tight" style={{ color: "var(--nexora-ink-dim)" }}>
-          {hint}
-        </p>
-      )}
+    <div className="space-y-1.5 text-center">
+      <Label className="block text-sm font-medium">{question}</Label>
+      <div className="flex items-center justify-center gap-2">
+        <input
+          type="number"
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-20 rounded-lg border bg-transparent py-2 text-center text-base font-semibold outline-none [appearance:textfield] focus-visible:border-[var(--nexora-nova)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+        />
+        <span className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+          {unit}
+        </span>
+      </div>
+      <p className="mx-auto max-w-xs text-xs leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
+        {hint}
+      </p>
     </div>
   );
 }
@@ -314,9 +338,14 @@ function ResourcesSection({
       title={isTable ? "Mesas" : "Empleados"}
     >
       <div className="mx-auto max-w-md space-y-3">
+        <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+          {isTable
+            ? "Agrega cada mesa y cuántas personas caben. El agente reserva la mesa que alcance para el grupo."
+            : "Agrega cada empleado. El agente usa estos nombres para agendar con la persona que el cliente pida."}
+        </p>
         {list.length === 0 ? (
           <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-            {isTable ? "Todavía no registraste mesas." : "Todavía no registraste empleados."}
+            {isTable ? "Todavía no hay mesas." : "Todavía no hay empleados."}
           </p>
         ) : (
           <div className="divide-y divide-white/[0.06]">
@@ -344,7 +373,7 @@ function ResourcesSection({
 
         <div className="flex flex-wrap items-end justify-center gap-2">
           <div className="space-y-1">
-            <Label className="block text-center text-xs">{isTable ? "Nombre de la mesa" : "Nombre"}</Label>
+            <Label className="block text-center text-xs">{isTable ? "Nombre de la mesa" : "Nombre del empleado"}</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -354,7 +383,7 @@ function ResourcesSection({
           </div>
           {isTable && (
             <div className="space-y-1">
-              <Label className="block text-center text-xs">Personas</Label>
+              <Label className="block text-center text-xs">Sillas</Label>
               <Input
                 type="number"
                 inputMode="numeric"
@@ -497,47 +526,6 @@ function ConfigView({ config, countryIso2 }: { config: Config; countryIso2: stri
   );
 }
 
-// ---------------- Agenda (lista simple; el calendario llega en la tanda 3) ----------------
-
-function AgendaView({ upcoming }: { upcoming: Reservation[] }) {
-  if (upcoming.length === 0) {
-    return (
-      <p className="py-16 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-        No hay reservas próximas.
-      </p>
-    );
-  }
-  return (
-    <div className="mx-auto max-w-2xl space-y-2">
-      {upcoming.map((r) => (
-        <div
-          key={r.id}
-          className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3"
-          style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
-              {r.customerName || "Sin nombre"}
-              {r.partySize ? ` · ${r.partySize} personas` : ""}
-              {r.serviceName ? ` · ${r.serviceName}` : ""}
-            </p>
-            <p className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-              {formatShortDateTime(r.startsAt)} · {r.resourceName ?? "—"}
-              {r.customerPhone ? ` · ${r.customerPhone}` : ""}
-            </p>
-          </div>
-          <span
-            className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
-            style={{ color: "var(--nexora-nova)", background: "rgba(255,255,255,0.06)" }}
-          >
-            {RESERVATION_STATUS_LABELS[r.status]}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // ---------------- Panel ----------------
 
 export function ReservasPanel({
@@ -563,7 +551,7 @@ export function ReservasPanel({
     return (
       <div className="mx-auto flex max-w-md flex-col gap-3">
         <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-          Modo actual: <span style={{ color: "var(--nexora-ink)" }}>{MODE_LABELS[config.settings.mode]}</span>
+          Modo actual: <span style={{ color: "var(--nexora-ink)" }}>{modeLabel(config.settings.mode)}</span>
         </p>
         <ChooserRow
           icon={<CalendarDays size={18} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />}
@@ -592,7 +580,11 @@ export function ReservasPanel({
         <ChevronLeft size={16} />
         Volver
       </button>
-      {view === "agenda" ? <AgendaView upcoming={upcoming} /> : <ConfigView config={config} countryIso2={countryIso2} />}
+      {view === "agenda" ? (
+        <ReservasAgenda config={config} countryIso2={countryIso2} />
+      ) : (
+        <ConfigView config={config} countryIso2={countryIso2} />
+      )}
     </div>
   );
 }
