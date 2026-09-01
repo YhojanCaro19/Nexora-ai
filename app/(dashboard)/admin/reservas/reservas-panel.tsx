@@ -307,16 +307,12 @@ function HoursSection({ hours }: { hours: BusinessHour[] }) {
 
   return (
     <Section icon={Clock} title="Horario de atención">
-      <div className="mx-auto grid max-w-2xl gap-x-6 gap-y-1.5 sm:grid-cols-2">
+      <div className="mx-auto grid max-w-2xl gap-x-10 sm:grid-cols-2">
         {rows.map((r) => (
           <div
             key={r.weekday}
-            className="flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5"
-            style={{
-              borderColor: "var(--nexora-line)",
-              background: r.open ? "rgba(255,255,255,0.02)" : "transparent",
-              opacity: r.open ? 1 : 0.55,
-            }}
+            className="flex items-center justify-between gap-2 border-b py-2.5"
+            style={{ borderColor: "var(--nexora-line)", opacity: r.open ? 1 : 0.5 }}
           >
             <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: "var(--nexora-ink)" }}>
               <Checkbox
