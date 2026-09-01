@@ -190,20 +190,20 @@ export function ReservasAgenda({
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="grid gap-6 md:grid-cols-[minmax(0,19rem)_1fr]">
+    <div className="mx-auto max-w-5xl">
+      <div className="grid gap-10 md:grid-cols-2 md:items-start lg:gap-16">
         {/* Calendario */}
-        <div>
-          <div className="mb-3 flex items-center justify-between">
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
               onClick={() => shiftMonth(-1)}
               className="rounded-full p-1.5 transition-colors hover:bg-white/[0.06]"
               style={{ color: "var(--nexora-ink-dim)" }}
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
             </button>
-            <p className="text-sm font-semibold capitalize" style={{ color: "var(--nexora-ink)" }}>
+            <p className="text-base font-semibold capitalize" style={{ color: "var(--nexora-ink)" }}>
               {monthLabel(viewMonth)}
             </p>
             <button
@@ -212,13 +212,13 @@ export function ReservasAgenda({
               className="rounded-full p-1.5 transition-colors hover:bg-white/[0.06]"
               style={{ color: "var(--nexora-ink-dim)" }}
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={20} />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1 text-center">
+          <div className="grid grid-cols-7 gap-y-2 text-center">
             {WEEKDAY_HEADERS.map((w, i) => (
-              <span key={i} className="pb-2 text-[10px] font-medium uppercase" style={{ color: "var(--nexora-ink-dim)" }}>
+              <span key={i} className="pb-3 text-xs font-medium uppercase" style={{ color: "var(--nexora-ink-dim)" }}>
                 {w}
               </span>
             ))}
@@ -235,7 +235,7 @@ export function ReservasAgenda({
                       setSelectedDay(iso);
                       setShowForm(false);
                     }}
-                    className="relative flex h-9 w-9 items-center justify-center rounded-full text-sm transition-colors hover:bg-white/[0.06]"
+                    className="relative flex h-12 w-12 items-center justify-center rounded-full text-[15px] transition-colors hover:bg-white/[0.06]"
                     style={{
                       color: isSelected
                         ? "var(--nexora-nova-ink)"
@@ -254,7 +254,7 @@ export function ReservasAgenda({
                     {Number(iso.slice(8, 10))}
                     {count > 0 && !isSelected && (
                       <span
-                        className="absolute bottom-1 h-1 w-1 rounded-full"
+                        className="absolute bottom-1.5 h-1 w-1 rounded-full"
                         style={{ background: "var(--nexora-nova)" }}
                       />
                     )}
@@ -265,8 +265,10 @@ export function ReservasAgenda({
           </div>
         </div>
 
-        {/* Panel del día — franjas según el horario y el tamaño de franja */}
-        <div className="space-y-3">
+        {/* Panel del día — franjas según el horario y el tamaño de franja.
+            Alto fijo en md+ para que empareje con el calendario; solo la
+            lista de franjas scrollea. */}
+        <div className="flex min-h-0 flex-col md:h-[27rem]">
           {!selectedDay ? (
             <p className="py-10 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
               Elige un día en el calendario.
@@ -274,10 +276,10 @@ export function ReservasAgenda({
           ) : (
             <>
               <div
-                className="flex items-center justify-between gap-2 border-b pb-2"
+                className="flex items-center justify-between gap-2 border-b pb-3"
                 style={{ borderColor: "var(--nexora-line)" }}
               >
-                <p className="text-sm font-semibold capitalize" style={{ color: "var(--nexora-ink)" }}>
+                <p className="text-base font-semibold capitalize" style={{ color: "var(--nexora-ink)" }}>
                   {dayLabel(selectedDay)}
                 </p>
                 <Button type="button" size="sm" variant="outline" onClick={() => openForm(null)}>
@@ -285,6 +287,7 @@ export function ReservasAgenda({
                 </Button>
               </div>
 
+              <div className="mt-3 flex-1 space-y-3 overflow-y-auto pr-1">
               {showForm && (
                 <NewReservationForm
                   config={config}
@@ -322,7 +325,7 @@ export function ReservasAgenda({
                   ))}
                 </div>
               ) : (
-                <div className="max-h-[28rem] space-y-1.5 overflow-y-auto pr-1">
+                <div className="space-y-1.5">
                   {daySlots.slots.map((slot) => {
                     const rs = slotMap.get(slot) ?? [];
                     if (rs.length === 0) {
@@ -360,6 +363,7 @@ export function ReservasAgenda({
                   )}
                 </div>
               )}
+              </div>
             </>
           )}
         </div>
