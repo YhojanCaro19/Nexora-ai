@@ -322,41 +322,38 @@ function ConversationChatView({
   );
 
   return (
-    <div className="space-y-4">
-      <button
-        onClick={onBack}
-        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
-        style={{ color: 'var(--nexora-ink-dim)' }}
-      >
-        <ChevronLeft size={16} />
-        Volver
-      </button>
-
-      <div className="text-center space-y-1">
-        <h3 className="font-nexora text-lg font-semibold" style={{ color: 'var(--nexora-ink)' }}>
-          {channelLabel(conversation.channel)}
-        </h3>
-        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Iniciada el {formatShortDate(conversation.created_at)}
-        </p>
+    <div className="space-y-3">
+      {/* Una sola fila compacta arriba — así el teléfono entra sin scroll. */}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm transition-colors hover:bg-white/[0.06]"
+        >
+          <ChevronLeft size={16} />
+          Volver
+        </button>
+        <span>·</span>
+        <span>{channelLabel(conversation.channel)}</span>
+        <span>·</span>
+        <span>Iniciada el {formatShortDate(conversation.created_at)}</span>
       </div>
 
-      <IPhoneFrame maxWidth={400}>
-        <div style={{ background: "#fafafa" }}>
-          {/* Cabecera estilo iOS */}
+      <IPhoneFrame maxWidth={380}>
+        <div style={{ background: "#000" }}>
+          {/* Cabecera estilo iOS (modo oscuro) */}
           <div
             className="flex items-center gap-2 px-3 pb-2.5 pt-11"
-            style={{ background: "#f4f4f5", borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+            style={{ background: "#1c1c1e", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
           >
             <ChevronLeft size={22} strokeWidth={2.5} style={{ color: "#0a84ff" }} className="shrink-0" />
             <div className="flex min-w-0 flex-1 flex-col items-center">
               <span
-                className="mb-0.5 flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-                style={{ background: "#8e8e93" }}
+                className="mb-0.5 flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                style={{ background: "#48484a" }}
               >
                 {contactName.trim().charAt(0).toUpperCase() || "C"}
               </span>
-              <span className="truncate text-[13px] font-semibold" style={{ color: "#111" }}>
+              <span className="truncate text-[13px] font-semibold" style={{ color: "#f5f5f7" }}>
                 {contactName}
               </span>
             </div>
@@ -364,7 +361,7 @@ function ConversationChatView({
           </div>
 
           {/* Mensajes */}
-          <div className="flex max-h-[520px] min-h-[360px] flex-col gap-1.5 overflow-y-auto px-3 py-4">
+          <div className="flex max-h-[58vh] min-h-[260px] flex-col gap-1.5 overflow-y-auto px-3 py-4">
             {messages.length === 0 ? (
               <p className="py-8 text-center text-xs" style={{ color: "#8e8e93" }}>
                 Esta conversación todavía no tiene mensajes.
@@ -379,7 +376,7 @@ function ConversationChatView({
                       style={
                         outgoing
                           ? { background: "#0a84ff", color: "#fff" }
-                          : { background: "#e9e9eb", color: "#111" }
+                          : { background: "#26262a", color: "#f5f5f7" }
                       }
                     >
                       {message.content}
@@ -394,8 +391,8 @@ function ConversationChatView({
           </div>
 
           {/* Barra de gestos */}
-          <div className="flex justify-center pb-2 pt-1" style={{ background: "#fafafa" }}>
-            <span className="h-1 w-32 rounded-full" style={{ background: "rgba(0,0,0,0.28)" }} />
+          <div className="flex justify-center pb-2 pt-1" style={{ background: "#000" }}>
+            <span className="h-1 w-32 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }} />
           </div>
         </div>
       </IPhoneFrame>
