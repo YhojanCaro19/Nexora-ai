@@ -1,12 +1,15 @@
 // app/api/cron/reservation-reminders/route.ts
 //
-// Recordatorio de confirmación ~1 día antes de cada reserva / turno. Lo
-// llama Vercel Cron una vez por hora (ver vercel.json); esta ruta busca
-// las reservas activas que empiezan dentro de ~24 h y todavía no tienen
-// `reminder_sent_at`, y le agrega un mensaje de confirmación al hilo de
-// conversación del cliente (canal real). Sin canal saliente (WhatsApp aún
-// no está conectado) el mensaje queda igual en la conversación — visible
-// en el CRM — y un worker de salida lo entregará cuando exista.
+// Mantenimiento de reservas, una vez por hora (Vercel Cron, ver vercel.json):
+//  1) Auto-completar: toda reserva activa cuyo `ends_at` ya pasó → status
+//     "completed". La mesa/empleado queda libre (sale del exclusion
+//     constraint) y la agenda deja de mostrarla como activa.
+//  2) Recordatorio de confirmación ~1 día antes: reservas activas que
+//     empiezan dentro de ~24 h y sin `reminder_sent_at` → se agrega un
+//     mensaje de confirmación al hilo de conversación del cliente. Sin
+//     canal saliente (WhatsApp aún no conectado) el mensaje queda en la
+//     conversación (visible en el CRM); un worker de salida lo entregará
+//     cuando exista.
 //
 // Protegida igual que /api/cron/daily-reports: header
 // `Authorization: Bearer $CRON_SECRET` que Vercel agrega solo. Sin
@@ -44,6 +47,19 @@ export async function GET(request: Request) {
 
   const admin = createAdminClient();
   const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  // 1) Auto-completar: toda reserva activa cuyo `ends_at` ya pasó se marca
+  //    como "completed". Así sale del exclusion constraint y la mesa /
+  //    empleado queda 100% libre, y la agenda deja de mostrarla como activa.
+  const { data: completed } = await admin
+    .from("reservations")
+    .update({ status: "completed", updated_at: nowIso })
+    .in("status", ["confirmed", "seated"])
+    .lt("ends_at", nowIso)
+    .select("id");
+  const autoCompleted = (completed ?? []).length;
+
   // Ventana 23–25 h: con el cron corriendo cada hora, cada reserva cae en
   // exactamente una pasada (no se manda dos veces gracias a reminder_sent_at).
   const from = new Date(now + 23 * HOUR).toISOString();
@@ -134,5 +150,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({ due: (due ?? []).length, sent, markedOnly, failed });
+  return NextResponse.json({ autoCompleted, due: (due ?? []).length, sent, markedOnly, failed });
 }
