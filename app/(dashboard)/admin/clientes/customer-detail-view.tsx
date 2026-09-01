@@ -323,19 +323,19 @@ function ConversationChatView({
 
   return (
     <div className="space-y-3">
-      {/* Fila compacta arriba — para que el MacBook entero entre en pantalla. */}
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+      {/* Fila compacta arriba — Volver a la izquierda, el resto centrado. */}
+      <div className="relative flex min-h-[30px] items-center justify-center">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm transition-colors hover:bg-white/[0.06]"
+          className="absolute left-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-sm transition-colors hover:bg-white/[0.06]"
+          style={{ color: 'var(--nexora-ink-dim)' }}
         >
           <ChevronLeft size={16} />
           Volver
         </button>
-        <span>·</span>
-        <span>{channelLabel(conversation.channel)}</span>
-        <span>·</span>
-        <span>Iniciada el {formatShortDate(conversation.created_at)}</span>
+        <p className="px-16 text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {channelLabel(conversation.channel)} · Iniciada el {formatShortDate(conversation.created_at)}
+        </p>
       </div>
 
       <MacBookFrame>
