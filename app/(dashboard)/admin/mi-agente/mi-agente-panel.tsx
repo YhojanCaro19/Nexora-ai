@@ -82,11 +82,13 @@ export function MiAgentePanel({
   catalog,
   products,
   businessName,
+  industryType,
 }: {
   agentConfig: AgentConfig;
   catalog: ToolCatalog;
   products: Product[];
   businessName: string | null;
+  industryType: string | null;
 }) {
   const [name, setName] = useState(agentConfig.name);
   const [greetingMessage, setGreetingMessage] = useState(agentConfig.greetingMessage);
@@ -213,6 +215,7 @@ export function MiAgentePanel({
               localPhrases={localPhrases}
               paymentMethods={paymentMethods}
               businessName={businessName}
+              industryType={industryType}
               sampleProduct={
                 (priorityProducts.length > 0
                   ? products.find((p) => p.id === priorityProducts[0])

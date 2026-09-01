@@ -8,6 +8,7 @@
 // agente" más abajo — eso sí usa el modelo real.
 import { Bot } from "lucide-react";
 import type { PaymentMethod } from "@/lib/config/agentPersona";
+import { PREVIEW_SCRIPTS, previewArchetypeFor, type PreviewCtx } from "@/lib/config/agentPreviewScripts";
 
 export interface AgentPreviewConfig {
   name: string;
@@ -21,6 +22,34 @@ export interface AgentPreviewConfig {
   businessName: string | null;
   /** Un producto real del catálogo para que el ejemplo se sienta propio. */
   sampleProduct: { name: string; price: number } | null;
+  /** businesses.industry_type — decide el guion de la conversación. */
+  industryType: string | null;
+}
+
+// Swap "vos/tú" → "usted" para la vista previa. Diccionario chico y por
+// límite de palabra — es una aproximación, no un traductor.
+const USTED_SWAPS: [RegExp, string][] = [
+  [/\bdecime\b/gi, "dígame"],
+  [/\bcontame\b/gi, "cuénteme"],
+  [/\bcontá\b/gi, "cuente"],
+  [/\bquerés\b/gi, "quiere"],
+  [/\bpodés\b/gi, "puede"],
+  [/\bbuscás\b/gi, "busca"],
+  [/\bnecesitás\b/gi, "necesita"],
+  [/\btenés\b/gi, "tiene"],
+  [/\bpasás\b/gi, "pasa"],
+  [/\bpases\b/gi, "pase"],
+  [/\bte queda\b/gi, "le queda"],
+  [/\bte lo\b/gi, "se lo"],
+  [/\bte digo\b/gi, "le digo"],
+  [/\bte decimos\b/gi, "le decimos"],
+  [/\bte agendo\b/gi, "le agendo"],
+  [/\btu dirección\b/gi, "su dirección"],
+  [/\ba tu dirección\b/gi, "a su dirección"],
+];
+
+function swapToUsted(text: string): string {
+  return USTED_SWAPS.reduce((acc, [re, rep]) => acc.replace(re, rep), text);
 }
 
 function formatCOP(n: number): string {
@@ -48,39 +77,24 @@ function withEmoji(line: string, i: number, cfg: AgentPreviewConfig): string {
   return `${line} ${pool[i % pool.length]}`;
 }
 
-const usted = (cfg: AgentPreviewConfig) => cfg.addressForm === "usted";
+const isUsted = (cfg: AgentPreviewConfig) => cfg.addressForm === "usted";
 
-const SAMPLE_PRODUCT_NAME = "el combo corte y barba";
+// Aplica el swap a usted (si toca) y el emoji del turno.
+function agentText(line: string, i: number, cfg: AgentPreviewConfig): string {
+  const t = isUsted(cfg) ? swapToUsted(line) : line;
+  return withEmoji(t, i, cfg);
+}
 
 function greetingLine(cfg: AgentPreviewConfig): string {
   if (cfg.greeting.trim()) return cfg.greeting.trim();
   const soy = `Soy ${cfg.name || "tu asistente"}${cfg.businessName ? `, de ${cfg.businessName}` : ""}`;
-  return usted(cfg)
+  return isUsted(cfg)
     ? `¡Hola, buenos días! Todo bien por acá, gracias. ${soy}. ¿En qué le puedo ayudar?`
     : `¡Hola, buenos días! Todo bien por acá, gracias. ${soy}. ¿En qué te ayudo?`;
 }
 
-function availabilityLine(cfg: AgentPreviewConfig): string {
-  const price = cfg.sampleProduct ? formatCOP(cfg.sampleProduct.price) : null;
-
-  if (!price) {
-    return usted(cfg)
-      ? "¡Claro que sí! Está disponible. Dígame cuál le interesa y le paso el precio."
-      : "¡Claro que sí! Está disponible. Decime cuál te interesa y te paso el precio.";
-  }
-  if (cfg.responseLength === "corta") {
-    return `¡Claro! Disponible. Cuesta ${price}.`;
-  }
-  if (cfg.responseLength === "larga") {
-    return usted(cfg)
-      ? `¡Claro que sí! Lo tenemos disponible en este momento. Cuesta ${price}. Si quiere, coordinamos para que pase o le doy más detalles.`
-      : `¡Claro que sí! Lo tenemos disponible en este momento. Cuesta ${price}. Si querés, coordinamos para que pases o te doy más detalles.`;
-  }
-  return `¡Claro que sí! Está disponible. Cuesta ${price}.`;
-}
-
 function paymentLine(cfg: AgentPreviewConfig): string {
-  const puede = usted(cfg) ? "Puede" : "Podés";
+  const puede = isUsted(cfg) ? "Puede" : "Podés";
   const list = cfg.paymentMethods
     .filter((m) => m.label.trim())
     .map((m) => (m.detail.trim() ? `${m.label.trim()} (${m.detail.trim()})` : m.label.trim()));
@@ -94,15 +108,18 @@ interface Bubble {
 }
 
 function buildScript(cfg: AgentPreviewConfig): Bubble[] {
-  const productName = cfg.sampleProduct?.name ?? SAMPLE_PRODUCT_NAME;
-  const agentLines = [greetingLine(cfg), availabilityLine(cfg), paymentLine(cfg)];
+  const script = PREVIEW_SCRIPTS[previewArchetypeFor(cfg.industryType)];
+  const item = cfg.sampleProduct?.name ?? script.genericItem;
+  const price = cfg.sampleProduct ? formatCOP(cfg.sampleProduct.price) : null;
+  const ctx: PreviewCtx = { usted: isUsted(cfg), length: cfg.responseLength, item, price };
+
   return [
     { from: "cliente", text: "Hola, buenos días, ¿cómo estás?" },
-    { from: "agente", text: withEmoji(agentLines[0], 0, cfg) },
-    { from: "cliente", text: `¿Tienen ${productName} disponible?` },
-    { from: "agente", text: withEmoji(agentLines[1], 1, cfg) },
+    { from: "agente", text: withEmoji(greetingLine(cfg), 0, cfg) },
+    { from: "cliente", text: script.clientQuestion(item) },
+    { from: "agente", text: agentText(script.agentAnswer(ctx), 1, cfg) },
     { from: "cliente", text: "¿Cómo puedo pagar?" },
-    { from: "agente", text: withEmoji(agentLines[2], 2, cfg) },
+    { from: "agente", text: withEmoji(paymentLine(cfg), 2, cfg) },
   ];
 }
 
