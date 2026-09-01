@@ -19,6 +19,16 @@ function seatSplit(capacity: number): [number, number] {
   return [Math.ceil(c / 2), Math.floor(c / 2)];
 }
 
+function seatColumn(n: number, color: string) {
+  return (
+    <div className="flex flex-col justify-center gap-1.5">
+      {Array.from({ length: n }).map((_, i) => (
+        <span key={i} className="h-7 w-4 shrink-0 rounded-[5px]" style={{ background: color }} />
+      ))}
+    </div>
+  );
+}
+
 function TableGlyph({ capacity, number, active }: { capacity: number; number: number; active: boolean }) {
   const [left, right] = seatSplit(capacity);
   const rows = Math.max(left, right, 1);
@@ -26,17 +36,9 @@ function TableGlyph({ capacity, number, active }: { capacity: number; number: nu
   const tableBg = active ? "rgba(129,140,248,0.30)" : "#242838";
   const tableBorder = active ? "#818CF8" : "#3B3F52";
 
-  const SeatCol = ({ n }: { n: number }) => (
-    <div className="flex flex-col justify-center gap-1.5">
-      {Array.from({ length: n }).map((_, i) => (
-        <span key={i} className="h-7 w-4 shrink-0 rounded-[5px]" style={{ background: seatColor }} />
-      ))}
-    </div>
-  );
-
   return (
     <div className="flex items-stretch justify-center gap-1.5">
-      <SeatCol n={left} />
+      {seatColumn(left, seatColor)}
       <div
         className="relative flex w-16 items-center justify-center rounded-2xl"
         style={{ minHeight: `${rows * 34}px`, background: tableBg, border: `1.5px solid ${tableBorder}` }}
@@ -48,7 +50,7 @@ function TableGlyph({ capacity, number, active }: { capacity: number; number: nu
           {number}
         </span>
       </div>
-      <SeatCol n={right} />
+      {seatColumn(right, seatColor)}
     </div>
   );
 }

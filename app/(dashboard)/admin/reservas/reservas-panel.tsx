@@ -189,7 +189,7 @@ function SettingsSection({
 
   return (
     <Section icon={Settings2} title="¿Qué usa este negocio?">
-      <div className="space-y-6">
+      <div className="mx-auto max-w-lg space-y-6">
         <div className="mx-auto max-w-sm space-y-2">
           <Select value={mode} onValueChange={(v) => v && onModeChange(v as BookingMode)}>
             <SelectTrigger className="h-11 w-full justify-between text-sm">{modeLabel(mode)}</SelectTrigger>
@@ -597,7 +597,7 @@ function ConfigView({
   const showAppointments = mode === "appointments" || mode === "both";
 
   return (
-    <div className="mx-auto max-w-4xl space-y-12">
+    <div className="w-full space-y-12">
       <SettingsSection
         settings={settings}
         mode={mode}
