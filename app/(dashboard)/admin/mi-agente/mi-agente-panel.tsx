@@ -55,7 +55,7 @@ function ConfigSection({
 }) {
   return (
     <section className="space-y-4">
-      <div className="flex items-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
+      <div className="flex items-center justify-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
         <Icon size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
         <h3 className="font-nexora text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
           {title}
