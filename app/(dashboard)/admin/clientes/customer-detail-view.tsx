@@ -135,7 +135,13 @@ export function CustomerDetailView({
               ? "Sin conversaciones"
               : `${conversations.length} conversación${conversations.length === 1 ? "" : "es"}`
           }
-          onClick={() => setActiveSection("conversaciones")}
+          // Si hay una sola, se abre directo (que es el caso normal). Con
+          // dos o más, se muestra la lista para elegir.
+          onClick={() =>
+            conversations.length === 1
+              ? setActiveConversation(conversations[0])
+              : setActiveSection("conversaciones")
+          }
         />
       </div>
     </div>
