@@ -52,18 +52,9 @@ export function CreditsPanel({
           créditos disponibles
         </p>
 
-        {balance && (
+        {balance?.renewsAt && (
           <p className="mt-2 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-            {[
-              `${fmt(balance.plan)} del plan${
-                balance.renewsAt
-                  ? ` (renueva ${new Date(balance.renewsAt).toLocaleDateString("es-CO")})`
-                  : ""
-              }`,
-              balance.topup > 0 ? `${fmt(balance.topup)} en packs (no vencen)` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
+            Renueva el {new Date(balance.renewsAt).toLocaleDateString("es-CO")}
           </p>
         )}
         {balance === null && (
