@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import {
   CalendarDays,
   Settings2,
@@ -36,6 +36,7 @@ import {
   deleteResourceAction,
   createBookingServiceAction,
   deleteBookingServiceAction,
+  getServiceCatalogAction,
 } from "./actions";
 import { ReservasAgenda } from "./reservas-agenda";
 import { TablesMap } from "./tables-map";
@@ -137,12 +138,15 @@ function AddBar({ children }: { children: ReactNode }) {
 
 function SettingsSection({
   settings,
+  mode,
+  onModeChange,
   onSaved,
 }: {
   settings: BookingConfig["settings"];
+  mode: BookingMode;
+  onModeChange: (m: BookingMode) => void;
   onSaved: (s: BookingConfig["settings"]) => void;
 }) {
-  const [mode, setMode] = useState<BookingMode>(settings.mode);
   const [turnLength, setTurnLength] = useState(String(settings.slotMinutes));
   const [minNotice, setMinNotice] = useState(String(settings.minNoticeMinutes));
   const [maxAdvance, setMaxAdvance] = useState(String(settings.maxAdvanceDays));
@@ -174,7 +178,7 @@ function SettingsSection({
     <Section icon={Settings2} title="¿Qué usa este negocio?">
       <div className="space-y-6">
         <div className="mx-auto max-w-sm">
-          <Select value={mode} onValueChange={(v) => v && setMode(v as BookingMode)}>
+          <Select value={mode} onValueChange={(v) => v && onModeChange(v as BookingMode)}>
             <SelectTrigger className="h-11 w-full justify-between text-sm">{modeLabel(mode)}</SelectTrigger>
             <SelectContent>
               {MODE_OPTIONS.map((o) => (
@@ -357,20 +361,28 @@ function ResourcesSection({
 
   function add() {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setFeedback({ kind: "error", text: "Escribe un nombre primero." });
+      return;
+    }
     setFeedback(null);
     start(async () => {
-      const result = await createResourceAction({
-        kind,
-        name: trimmed,
-        capacity: isTable ? Number(capacity) || 1 : null,
-      });
-      if (result.error || !result.data) {
-        setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
-        return;
+      try {
+        const result = await createResourceAction({
+          kind,
+          name: trimmed,
+          capacity: isTable ? Number(capacity) || 1 : null,
+        });
+        if (result.error || !result.data) {
+          setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
+          return;
+        }
+        onAdd(result.data);
+        setName("");
+        setFeedback({ kind: "ok", text: "Agregado." });
+      } catch (err) {
+        setFeedback({ kind: "error", text: err instanceof Error ? err.message : "Error inesperado." });
       }
-      onAdd(result.data);
-      setName("");
     });
   }
   function remove(id: string) {
@@ -442,24 +454,41 @@ function ServicesSection({
   onAdd: (s: BookingService) => void;
   onRemove: (id: string) => void;
 }) {
+  // Relee el catálogo al montar — el usuario puede haber agregado productos
+  // en Catálogo y vuelto acá sin recargar (los props del RSC quedan viejos).
+  const [catalog, setCatalog] = useState(products);
+  useEffect(() => {
+    getServiceCatalogAction().then((rows) => {
+      if (rows.length > 0) setCatalog(rows);
+    });
+  }, []);
+
   const usedIds = new Set(services.map((s) => s.productId).filter(Boolean));
-  const available = products.filter((p) => p.active && !usedIds.has(p.id));
+  const available = catalog.filter((p) => p.active && !usedIds.has(p.id));
   const [productId, setProductId] = useState("");
   const [duration, setDuration] = useState("30");
   const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
   function add() {
-    if (!productId) return;
+    if (!productId) {
+      setFeedback({ kind: "error", text: "Elige un servicio del catálogo primero." });
+      return;
+    }
     setFeedback(null);
     start(async () => {
-      const result = await createBookingServiceAction({ productId, durationMinutes: Number(duration) || 30 });
-      if (result.error || !result.data) {
-        setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
-        return;
+      try {
+        const result = await createBookingServiceAction({ productId, durationMinutes: Number(duration) || 30 });
+        if (result.error || !result.data) {
+          setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
+          return;
+        }
+        onAdd(result.data);
+        setProductId("");
+        setFeedback({ kind: "ok", text: "Servicio agregado." });
+      } catch (err) {
+        setFeedback({ kind: "error", text: err instanceof Error ? err.message : "Error inesperado." });
       }
-      onAdd(result.data);
-      setProductId("");
     });
   }
   function remove(id: string) {
@@ -492,7 +521,7 @@ function ServicesSection({
         </ItemList>
       )}
 
-      {products.length === 0 ? (
+      {catalog.length === 0 ? (
         <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
           Primero agrega tus servicios en el Catálogo.
         </p>
@@ -553,7 +582,12 @@ function ConfigView({
 
   return (
     <div className="mx-auto max-w-3xl space-y-12">
-      <SettingsSection settings={settings} onSaved={setSettings} />
+      <SettingsSection
+        settings={settings}
+        mode={mode}
+        onModeChange={(m) => setSettings((s) => ({ ...s, mode: m }))}
+        onSaved={setSettings}
+      />
       {mode !== "off" && (
         <>
           <HoursSection hours={config.hours} />

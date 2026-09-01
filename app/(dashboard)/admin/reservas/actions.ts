@@ -12,6 +12,7 @@ import {
   updateBookingServiceDuration,
   deleteBookingService,
 } from "@/lib/services/bookingConfigService";
+import { getProducts } from "@/lib/services/productService";
 import {
   getReservations,
   createReservation,
@@ -110,6 +111,15 @@ export async function updateBookingServiceDurationAction(serviceId: string, dura
   const result = await updateBookingServiceDuration(serviceId, profile.businessId!, durationMinutes);
   done();
   return result;
+}
+
+// Catálogo para elegir servicios — se relee acá porque el usuario puede
+// agregar productos en Catálogo y volver a Reservas sin recargar la página.
+export async function getServiceCatalogAction() {
+  const profile = await requireAdmin();
+  if (!profile) return [] as { id: string; name: string; price: number; active: boolean }[];
+  const products = await getProducts(profile.businessId!);
+  return products.map((p) => ({ id: p.id, name: p.name, price: p.price, active: p.active }));
 }
 
 export async function deleteBookingServiceAction(serviceId: string) {
