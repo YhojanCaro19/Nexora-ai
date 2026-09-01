@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
-import { formatTimeOnly } from "@/lib/utils/date";
+import { formatTimeOnly, formatShortDate } from "@/lib/utils/date";
 import {
   ALLOWED_RESERVATION_TRANSITIONS,
   RESERVATION_STATUS_LABELS,
@@ -107,9 +107,11 @@ function buildGrid(viewMonth: Date): string[] {
 export function ReservasAgenda({
   config,
   countryIso2,
+  onConfigure,
 }: {
   config: BookingConfig;
   countryIso2: string | null;
+  onConfigure?: () => void;
 }) {
   void countryIso2;
   const todayIso = toDateIso(new Date());
@@ -299,6 +301,17 @@ export function ReservasAgenda({
                 <p className="py-6 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
                   Cargando...
                 </p>
+              ) : config.hours.length === 0 ? (
+                <div className="space-y-3 py-6 text-center">
+                  <p className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+                    Todavía no configuraste tu horario de atención, así que no se pueden mostrar las franjas.
+                  </p>
+                  {onConfigure && (
+                    <Button type="button" size="sm" variant="outline" onClick={onConfigure}>
+                      Configurar horario
+                    </Button>
+                  )}
+                </div>
               ) : daySlots.closed ? (
                 <div className="space-y-2">
                   <p className="py-4 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
@@ -390,7 +403,9 @@ function ReservationCard({
             {r.partySize ? ` · ${r.partySize} personas` : ""}
             {r.serviceName ? ` · ${r.serviceName}` : ""}
             {r.customerPhone ? ` · ${r.customerPhone}` : ""}
-            {r.source === "agent" ? " · agente" : ""}
+          </p>
+          <p className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+            {r.source === "agent" ? "Pedido por el agente" : "Cargado a mano"} · {formatShortDate(r.createdAt)}
           </p>
           {r.notes && (
             <p className="mt-1 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>

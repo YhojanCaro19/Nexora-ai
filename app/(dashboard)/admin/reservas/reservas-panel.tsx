@@ -581,7 +581,7 @@ export function ReservasPanel({
         Volver
       </button>
       {view === "agenda" ? (
-        <ReservasAgenda config={config} countryIso2={countryIso2} />
+        <ReservasAgenda config={config} countryIso2={countryIso2} onConfigure={() => setView("config")} />
       ) : (
         <ConfigView config={config} countryIso2={countryIso2} />
       )}
