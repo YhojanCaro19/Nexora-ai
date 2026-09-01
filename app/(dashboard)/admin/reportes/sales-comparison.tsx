@@ -15,6 +15,79 @@ const RANGES = [
   { days: 90, label: "Últimos 3 meses" },
 ];
 
+// Oro / plata / bronce para el podio del top 3.
+const MEDALS = [
+  {
+    block: "linear-gradient(180deg, #FCE690 0%, #E1A82C 100%)",
+    numberInk: "#5a4300",
+    height: "h-24",
+    glow: "rgba(245,197,24,0.4)",
+  },
+  {
+    block: "linear-gradient(180deg, #EEF0F4 0%, #A6ACB7 100%)",
+    numberInk: "#3a4048",
+    height: "h-[4.5rem]",
+    glow: "rgba(199,205,214,0.3)",
+  },
+  {
+    block: "linear-gradient(180deg, #E6AB7C 0%, #9C5325 100%)",
+    numberInk: "#3a2210",
+    height: "h-14",
+    glow: "rgba(208,138,87,0.3)",
+  },
+];
+
+function Podium({
+  items,
+  countryIso2,
+}: {
+  items: { name: string; quantity: number; subtotal: number }[];
+  countryIso2: string | null;
+}) {
+  const top3 = items.slice(0, 3);
+  // Orden visual: 2º a la izquierda, 1º al centro, 3º a la derecha.
+  const layout = [1, 0, 2].filter((i) => i < top3.length);
+
+  return (
+    <div className="flex items-end justify-center pt-4">
+      {layout.map((rank) => {
+        const item = top3[rank];
+        const m = MEDALS[rank];
+        return (
+          <div key={item.name} className="flex w-[7.5rem] flex-col items-center gap-1.5 sm:w-32">
+            {/* Datos del producto, arriba del bloque */}
+            <span
+              className="line-clamp-2 min-h-[2rem] px-1 text-center text-[13px] font-semibold leading-tight"
+              style={{ color: "var(--nexora-ink)" }}
+            >
+              {item.name}
+            </span>
+            <span className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+              {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
+            </span>
+
+            {/* Bloque del podio */}
+            <div
+              className={`flex w-full ${m.height} items-center justify-center rounded-t-lg`}
+              style={{
+                background: m.block,
+                boxShadow: `inset 0 3px 0 rgba(255,255,255,0.45), 0 -10px 30px -10px ${m.glow}`,
+              }}
+            >
+              <span
+                className="font-nexora text-3xl font-extrabold"
+                style={{ color: m.numberInk, textShadow: "0 1px 0 rgba(255,255,255,0.35)" }}
+              >
+                {rank + 1}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Vive dentro del propio módulo Reportes (no solo en Inicio, donde ya
 // existía la tendencia de 7 días fija) — acá el rango es elegible y
 // además trae el ranking de más vendidos del período completo, no solo
@@ -103,31 +176,39 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
               {summary.items.length > 0 ? "Más vendidos del período" : "Sin ventas registradas en este período."}
             </p>
+
             {summary.items.length > 0 && (
-              <div className="flex justify-center">
-                <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
-                  <Download size={14} strokeWidth={1.75} />
-                  Exportar CSV
-                </Button>
-              </div>
-            )}
-            {summary.items.length > 0 && (
-              <div className="rounded-2xl border divide-y" style={{ borderColor: 'var(--nexora-line)' }}>
-                {summary.items.slice(0, 10).map((item, i) => (
-                  <div key={item.name} className="flex items-center justify-between gap-3 px-4 py-3">
-                    <span className="text-sm truncate" style={{ color: 'var(--nexora-ink)' }}>
-                      {i + 1}. {item.name}
-                    </span>
-                    <span className="shrink-0 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-                      {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
-                    </span>
+              <>
+                {/* Podio del top 3 */}
+                <Podium items={summary.items} countryIso2={countryIso2} />
+
+                {/* Del 4º en adelante, lista simple */}
+                {summary.items.length > 3 && (
+                  <div className="divide-y divide-white/[0.06] pt-2">
+                    {summary.items.slice(3, 10).map((item, i) => (
+                      <div key={item.name} className="flex items-center justify-between gap-3 py-2.5">
+                        <span className="truncate text-sm" style={{ color: 'var(--nexora-ink)' }}>
+                          {i + 4}. {item.name}
+                        </span>
+                        <span className="shrink-0 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                          {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                )}
+
+                <div className="flex justify-center">
+                  <Button type="button" variant="outline" size="sm" onClick={handleExportCsv}>
+                    <Download size={14} strokeWidth={1.75} />
+                    Exportar CSV
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </>
