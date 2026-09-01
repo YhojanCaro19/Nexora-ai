@@ -276,6 +276,30 @@ body {
   .aventhra-iridescent { animation: none; }
 }
 
+/* Igual que .aventhra-iridescent pero como fondo real (no clip a texto) —
+   para barras/pills que deben ir cambiando de color de marca. Gradiente
+   vertical que fluye a lo largo del elemento. */
+@keyframes aventhra-iridescent-bg {
+  to { background-position: center 200%; }
+}
+.aventhra-iridescent-bg {
+  background-image: linear-gradient(
+    180deg,
+    #4CC2E8 0%,
+    #818CF8 22%,
+    #A78BFA 40%,
+    #E879C7 55%,
+    #818CF8 72%,
+    #4CC2E8 100%
+  );
+  background-size: auto 200%;
+  background-position: center 0%;
+  animation: aventhra-iridescent-bg 6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aventhra-iridescent-bg { animation: none; }
+}
+
 /* Indicador de "scroll hacia abajo" de la Pantalla 1 (HomeExperience.tsx).
    Una línea vertical fina con un punto de luz que cae en loop — sutil, no
    una flecha parpadeante. La keyframe mueve el punto y lo desvanece al

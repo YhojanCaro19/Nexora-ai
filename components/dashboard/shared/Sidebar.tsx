@@ -42,11 +42,8 @@ function NavGroups({ groups, pathname }: { groups: NavGroup[]; pathname: string 
                 >
                   {active && (
                     <span
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full nexora-pulse"
-                      style={{
-                        background: 'var(--accent-cyan)',
-                        boxShadow: '0 0 8px rgba(76,194,232,0.7)',
-                      }}
+                      className="aventhra-iridescent-bg absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full"
+                      style={{ boxShadow: '0 0 8px rgba(129,140,248,0.55)' }}
                     />
                   )}
                   <Icon size={16} strokeWidth={1.5} />
