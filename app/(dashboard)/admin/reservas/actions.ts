@@ -16,7 +16,6 @@ import {
 import { getProducts } from "@/lib/services/productService";
 import {
   getReservations,
-  createReservation,
   updateReservationStatus,
   computeAvailability,
   type AvailabilityQuery,
@@ -26,12 +25,10 @@ import {
   businessHoursSchema,
   bookingResourceSchema,
   bookingServiceSchema,
-  createReservationSchema,
   type BookingSettingsInput,
   type BusinessHoursInput,
   type BookingResourceInput,
   type BookingServiceInput,
-  type CreateReservationInput,
 } from "@/lib/validators/reservationSchema";
 import { isValidReservationStatus, type Reservation, type ReservationStatus } from "@/lib/types/reservation";
 
@@ -162,18 +159,8 @@ export async function checkAvailabilityAction(query: AvailabilityQuery) {
   return { error: result.error, slots: result.slots };
 }
 
-export async function createManualReservationAction(input: CreateReservationInput) {
-  const profile = await requireAdmin();
-  if (!profile) return { error: "No autorizado", data: null };
-  const parsed = createReservationSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
-  const result = await createReservation(profile.businessId!, parsed.data, {
-    source: "manual",
-    createdByUserId: profile.userId,
-  });
-  done();
-  return result;
-}
+// Las reservas SOLO las crea el agente conversacional (ver
+// agentEngineService, tool `reservar`). No hay alta manual desde la agenda.
 
 export async function setReservationStatusAction(reservationId: string, status: string) {
   const profile = await requireAdmin();
