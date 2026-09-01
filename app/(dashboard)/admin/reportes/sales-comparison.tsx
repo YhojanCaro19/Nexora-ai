@@ -15,27 +15,10 @@ const RANGES = [
   { days: 90, label: "Últimos 3 meses" },
 ];
 
-// Oro / plata / bronce para el podio del top 3.
-const MEDALS = [
-  {
-    block: "linear-gradient(180deg, #FCE690 0%, #E1A82C 100%)",
-    numberInk: "#5a4300",
-    height: "h-24",
-    glow: "rgba(245,197,24,0.4)",
-  },
-  {
-    block: "linear-gradient(180deg, #EEF0F4 0%, #A6ACB7 100%)",
-    numberInk: "#3a4048",
-    height: "h-[4.5rem]",
-    glow: "rgba(199,205,214,0.3)",
-  },
-  {
-    block: "linear-gradient(180deg, #E6AB7C 0%, #9C5325 100%)",
-    numberInk: "#3a2210",
-    height: "h-14",
-    glow: "rgba(208,138,87,0.3)",
-  },
-];
+// Podio oscuro (casi negro): los tres bloques iguales, sólo cambia la
+// altura (1º más alto). El número va con el degradado iridiscente de la
+// landing.
+const PODIUM_HEIGHTS = ["h-28", "h-20", "h-14"];
 
 function Podium({
   items,
@@ -52,9 +35,8 @@ function Podium({
     <div className="flex items-end justify-center pt-4">
       {layout.map((rank) => {
         const item = top3[rank];
-        const m = MEDALS[rank];
         return (
-          <div key={item.name} className="flex w-[7.5rem] flex-col items-center gap-1.5 sm:w-32">
+          <div key={item.name} className="flex w-[7.5rem] flex-col items-center gap-1 sm:w-[8.5rem]">
             {/* Datos del producto, arriba del bloque */}
             <span
               className="line-clamp-2 min-h-[2rem] px-1 text-center text-[13px] font-semibold leading-tight"
@@ -62,22 +44,24 @@ function Podium({
             >
               {item.name}
             </span>
-            <span className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+            <span className="mb-1 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
               {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
             </span>
 
-            {/* Bloque del podio */}
+            {/* Bloque del podio — casi negro */}
             <div
-              className={`flex w-full ${m.height} items-center justify-center rounded-t-lg`}
+              className={`relative flex w-full ${PODIUM_HEIGHTS[rank]} items-center justify-center rounded-t-[6px] ${
+                rank === 0 ? "z-10" : ""
+              }`}
               style={{
-                background: m.block,
-                boxShadow: `inset 0 3px 0 rgba(255,255,255,0.45), 0 -10px 30px -10px ${m.glow}`,
+                background: "linear-gradient(180deg, #17171d 0%, #0c0c10 100%)",
+                borderTop: "1px solid rgba(255,255,255,0.14)",
+                borderLeft: "1px solid rgba(255,255,255,0.06)",
+                borderRight: "1px solid rgba(255,255,255,0.06)",
+                boxShadow: rank === 0 ? "0 -8px 24px -12px rgba(0,0,0,0.7)" : undefined,
               }}
             >
-              <span
-                className="font-nexora text-3xl font-extrabold"
-                style={{ color: m.numberInk, textShadow: "0 1px 0 rgba(255,255,255,0.35)" }}
-              >
+              <span className="aventhra-iridescent font-nexora text-[2.4rem] font-extrabold leading-none">
                 {rank + 1}
               </span>
             </div>
