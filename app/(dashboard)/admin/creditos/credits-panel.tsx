@@ -38,7 +38,18 @@ function IridescentGradientDef() {
   return (
     <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
       <defs>
-        <linearGradient id={IR_GRADIENT_ID} x1="0" y1="0" x2="1" y2="0">
+        {/* userSpaceOnUse: el gradiente se define en el viewBox del ícono
+            (24x24), no en el bbox de cada trazo — sin esto, líneas rectas
+            como la del "+" (bbox de ancho 0) quedan degeneradas y no se
+            pintan. */}
+        <linearGradient
+          id={IR_GRADIENT_ID}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1="0"
+          x2="24"
+          y2="0"
+        >
           <stop offset="0" stopColor="#4CC2E8" />
           <stop offset="0.25" stopColor="#818CF8" />
           <stop offset="0.5" stopColor="#A78BFA" />
@@ -47,8 +58,8 @@ function IridescentGradientDef() {
           <animateTransform
             attributeName="gradientTransform"
             type="translate"
-            from="-1 0"
-            to="1 0"
+            from="-24 0"
+            to="24 0"
             dur="4s"
             repeatCount="indefinite"
           />
