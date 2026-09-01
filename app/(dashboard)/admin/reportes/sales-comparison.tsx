@@ -17,8 +17,9 @@ const RANGES = [
 
 // Podio oscuro (casi negro): los tres bloques iguales, sólo cambia la
 // altura (1º más alto). El número va con el degradado iridiscente de la
-// landing.
-const PODIUM_HEIGHTS = ["h-28", "h-20", "h-14"];
+// landing. La zona de datos arriba tiene alto fijo para que las 3 columnas
+// queden alineadas aunque el nombre ocupe 1 o 2 líneas.
+const PODIUM_HEIGHTS = ["h-24", "h-[4.5rem]", "h-14"];
 
 function Podium({
   items,
@@ -32,36 +33,35 @@ function Podium({
   const layout = [1, 0, 2].filter((i) => i < top3.length);
 
   return (
-    <div className="flex items-end justify-center pt-4">
+    <div className="mx-auto flex max-w-md items-end">
       {layout.map((rank) => {
         const item = top3[rank];
         return (
-          <div key={item.name} className="flex w-[7.5rem] flex-col items-center gap-1 sm:w-[8.5rem]">
-            {/* Datos del producto, arriba del bloque */}
-            <span
-              className="line-clamp-2 min-h-[2rem] px-1 text-center text-[13px] font-semibold leading-tight"
-              style={{ color: "var(--nexora-ink)" }}
-            >
-              {item.name}
-            </span>
-            <span className="mb-1 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-              {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
-            </span>
+          <div key={item.name} className="flex flex-1 flex-col items-center">
+            {/* Zona de datos — alto fijo, texto pegado al bloque */}
+            <div className="flex h-[4.75rem] w-full flex-col items-center justify-end px-1 pb-2 text-center">
+              <span
+                className="line-clamp-2 text-[13px] font-semibold leading-tight"
+                style={{ color: "var(--nexora-ink)" }}
+              >
+                {item.name}
+              </span>
+              <span className="mt-1 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+                {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
+              </span>
+            </div>
 
-            {/* Bloque del podio — casi negro */}
+            {/* Bloque del podio */}
             <div
-              className={`relative flex w-full ${PODIUM_HEIGHTS[rank]} items-center justify-center rounded-t-[6px] ${
-                rank === 0 ? "z-10" : ""
-              }`}
+              className={`flex w-full ${PODIUM_HEIGHTS[rank]} items-center justify-center rounded-t-lg`}
               style={{
-                background: "linear-gradient(180deg, #17171d 0%, #0c0c10 100%)",
+                background: "linear-gradient(180deg, #17171d 0%, #0b0b0f 100%)",
                 borderTop: "1px solid rgba(255,255,255,0.14)",
                 borderLeft: "1px solid rgba(255,255,255,0.06)",
                 borderRight: "1px solid rgba(255,255,255,0.06)",
-                boxShadow: rank === 0 ? "0 -8px 24px -12px rgba(0,0,0,0.7)" : undefined,
               }}
             >
-              <span className="aventhra-iridescent font-nexora text-[2.4rem] font-extrabold leading-none">
+              <span className="aventhra-iridescent font-nexora text-[2.6rem] font-extrabold leading-none">
                 {rank + 1}
               </span>
             </div>
