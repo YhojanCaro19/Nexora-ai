@@ -36,6 +36,45 @@ export async function getCreditBalance(businessId: string): Promise<CreditBalanc
   };
 }
 
+export interface BillingSummary {
+  planName: string | null;
+  renewsAt: string | null;
+  credits: { total: number; plan: number; topup: number } | null;
+}
+
+// Resumen de plan + créditos para la pantalla de Perfil. Degrada suave:
+// si no hay wallet (módulo de créditos sin aplicar), devuelve null.
+export async function getBillingSummary(businessId: string): Promise<BillingSummary | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("credit_wallets")
+    .select("plan_balance, topup_balance, plan_renews_at, plan_key")
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  let planName: string | null = null;
+  if (data.plan_key) {
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("name")
+      .eq("key", data.plan_key)
+      .maybeSingle();
+    planName = (plan as { name: string } | null)?.name ?? data.plan_key;
+  }
+
+  return {
+    planName,
+    renewsAt: data.plan_renews_at ?? null,
+    credits: {
+      total: data.plan_balance + data.topup_balance,
+      plan: data.plan_balance,
+      topup: data.topup_balance,
+    },
+  };
+}
+
 /** Costo en créditos de una acción. null si no está configurada o el módulo no está aplicado. */
 export async function getCreditPrice(actionKey: string): Promise<number | null> {
   const supabase = await createClient();
