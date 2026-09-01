@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { CreditCoin } from "@/components/dashboard/shared/CreditCoin";
 import type { CreditBalance, CreditLedgerEntry } from "@/lib/services/creditService";
 import { formatShortDateTime } from "@/lib/utils/date";
@@ -22,9 +23,8 @@ const REASON_LABELS: Record<string, string> = {
   manual_test: "Ajuste manual",
 };
 
-function reasonLabel(reason: string) {
-  return REASON_LABELS[reason] ?? reason;
-}
+const reasonLabel = (reason: string) => REASON_LABELS[reason] ?? reason;
+const fmt = (n: number) => n.toLocaleString("es-CO");
 
 export function CreditsPanel({
   balance,
@@ -37,86 +37,57 @@ export function CreditsPanel({
   const total = balance?.total ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
+    <div className="mx-auto max-w-2xl space-y-10">
       <h1 className="font-nexora text-xl text-center" style={{ color: "var(--nexora-ink)" }}>
         Créditos
       </h1>
 
-      {/* Saldo */}
-      <div
-        className="flex flex-col items-center rounded-2xl border p-8 text-center"
-        style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
-      >
-        <CreditCoin className="h-14 w-14 drop-shadow-[0_0_16px_rgba(129,140,248,0.55)]" />
-        <p
-          className="mt-4 font-nexora text-4xl font-semibold tabular-nums"
-          style={{ color: "var(--nexora-ink)" }}
-        >
-          {total.toLocaleString("es-CO")}
+      {/* ---- Saldo disponible (sin card) ---- */}
+      <div className="flex flex-col items-center gap-1 text-center">
+        <CreditCoin className="h-12 w-12 drop-shadow-[0_0_16px_rgba(129,140,248,0.55)]" />
+        <p className="mt-3 font-nexora text-5xl font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
+          {fmt(total)}
         </p>
         <p className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
           créditos disponibles
         </p>
 
         {balance && (
-          <div className="mt-6 grid w-full max-w-sm grid-cols-2 gap-3">
-            <div
-              className="rounded-xl border p-3"
-              style={{ borderColor: "var(--nexora-line)" }}
-            >
-              <p className="text-lg font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
-                {balance.plan.toLocaleString("es-CO")}
-              </p>
-              <p className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-                del plan
-                {balance.renewsAt
-                  ? ` · renueva ${new Date(balance.renewsAt).toLocaleDateString("es-CO")}`
-                  : ""}
-              </p>
-            </div>
-            <div
-              className="rounded-xl border p-3"
-              style={{ borderColor: "var(--nexora-line)" }}
-            >
-              <p className="text-lg font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
-                {balance.topup.toLocaleString("es-CO")}
-              </p>
-              <p className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-                en packs (no vencen)
-              </p>
-            </div>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setShowBuy((v) => !v)}
-          className="mt-6 rounded-full border px-6 py-2.5 text-sm font-medium transition-colors"
-          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
-        >
-          Comprar créditos
-        </button>
-        {showBuy && (
-          <p className="mt-3 max-w-sm text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-            La compra de planes y packs con pago en línea está en camino. Mientras
-            tanto, escríbenos y te recargamos manualmente.
+          <p className="mt-2 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            {fmt(balance.plan)} del plan
+            {balance.renewsAt
+              ? ` (renueva ${new Date(balance.renewsAt).toLocaleDateString("es-CO")})`
+              : ""}{" "}
+            · {fmt(balance.topup)} en packs (no vencen)
           </p>
         )}
-
         {balance === null && (
-          <p className="mt-4 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+          <p className="mt-2 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
             Tu negocio todavía no tiene créditos asignados.
           </p>
         )}
       </div>
 
-      {/* Historial */}
-      <div>
+      {/* ---- Comprar más ---- */}
+      <div className="flex flex-col items-center gap-2">
+        <Button type="button" onClick={() => setShowBuy((v) => !v)}>
+          Comprar más créditos
+        </Button>
+        {showBuy && (
+          <p className="max-w-sm text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            La compra de planes y packs con pago en línea está en camino. Mientras
+            tanto, escríbenos y te recargamos manualmente.
+          </p>
+        )}
+      </div>
+
+      {/* ---- Historial de gasto ---- */}
+      <div className="space-y-3">
         <h2
-          className="mb-3 text-center text-sm font-semibold uppercase tracking-wide"
+          className="text-center text-sm font-semibold uppercase tracking-wide"
           style={{ color: "var(--nexora-ink-dim)" }}
         >
-          Movimientos
+          Historial de gasto
         </h2>
 
         {history.length === 0 ? (
@@ -124,12 +95,9 @@ export function CreditsPanel({
             Aún no hay movimientos.
           </p>
         ) : (
-          <div
-            className="divide-y overflow-hidden rounded-xl border"
-            style={{ borderColor: "var(--nexora-line)" }}
-          >
+          <div className="divide-y divide-white/[0.06]">
             {history.map((h) => (
-              <div key={h.id} className="flex items-center justify-between gap-3 px-4 py-3">
+              <div key={h.id} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm" style={{ color: "var(--nexora-ink)" }}>
                     {reasonLabel(h.reason)}
@@ -144,10 +112,10 @@ export function CreditsPanel({
                     style={{ color: h.delta >= 0 ? "var(--nexora-signal)" : "var(--nexora-ink)" }}
                   >
                     {h.delta >= 0 ? "+" : ""}
-                    {h.delta.toLocaleString("es-CO")}
+                    {fmt(h.delta)}
                   </p>
                   <p className="text-xs tabular-nums" style={{ color: "var(--nexora-ink-dim)" }}>
-                    saldo {h.balanceAfter.toLocaleString("es-CO")}
+                    saldo {fmt(h.balanceAfter)}
                   </p>
                 </div>
               </div>
