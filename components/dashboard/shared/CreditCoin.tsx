@@ -9,6 +9,35 @@
 // grande de créditos).
 import type { SVGProps } from "react";
 
+// Versión monocroma (currentColor, trazo) con la forma moneda + chispa,
+// para usar como ícono del módulo Créditos en el menú — así mantiene el
+// mismo patrón que los demás íconos (un solo color, trazo fino) en vez de
+// meter el degradado de la moneda "real".
+export function CreditCoinIcon({
+  size = 24,
+  strokeWidth = 2,
+  ...props
+}: SVGProps<SVGSVGElement> & { size?: number | string; strokeWidth?: number | string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      {...props}
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 6.5 L13.4 10.6 L17.5 12 L13.4 13.4 L12 17.5 L10.6 13.4 L6.5 12 Z" />
+    </svg>
+  );
+}
+
 export function CreditCoin(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden {...props}>

@@ -1,4 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ComponentType, SVGProps } from 'react';
 import {
   LayoutDashboard,
   Building2,
@@ -13,10 +14,16 @@ import {
   Zap,
   Sparkles,
   ShieldCheck,
-  Coins,
 } from 'lucide-react';
+import { CreditCoinIcon } from '@/components/dashboard/shared/CreditCoin';
 
-export type NavItem = { label: string; href: string; icon: LucideIcon };
+// Íconos del menú: los de lucide + el ícono monocromo de la moneda de
+// créditos (mismo trazo/color, pero con la forma de la moneda de marca).
+export type NavIcon =
+  | LucideIcon
+  | ComponentType<SVGProps<SVGSVGElement> & { size?: number | string; strokeWidth?: number | string }>;
+
+export type NavItem = { label: string; href: string; icon: NavIcon };
 export type NavGroup = { label: string; items: NavItem[] };
 
 export const SUPERADMIN_NAV: NavGroup[] = [
@@ -57,7 +64,7 @@ export const ADMIN_NAV: NavGroup[] = [
   {
     label: 'Negocio',
     items: [
-      { label: 'Créditos', href: '/admin/creditos', icon: Coins },
+      { label: 'Créditos', href: '/admin/creditos', icon: CreditCoinIcon },
       { label: 'Colaboradores', href: '/admin/colaboradores', icon: Users },
       { label: 'Reportes', href: '/admin/reportes', icon: FileBarChart },
       { label: 'Perfil', href: '/admin/perfil', icon: UserCircle },

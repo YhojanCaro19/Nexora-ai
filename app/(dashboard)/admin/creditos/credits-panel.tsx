@@ -64,15 +64,20 @@ export function CreditsPanel({
         )}
       </div>
 
-      {/* ---- Comprar más ---- */}
-      <div className="flex flex-col items-center gap-2">
-        <Button type="button" onClick={() => setShowBuy((v) => !v)}>
-          Comprar más créditos
-        </Button>
+      {/* ---- Comprar más / mejorar plan ---- */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button type="button" onClick={() => setShowBuy(true)}>
+            Comprar más créditos
+          </Button>
+          <Button type="button" variant="outline" onClick={() => setShowBuy(true)}>
+            Mejorar plan
+          </Button>
+        </div>
         {showBuy && (
           <p className="max-w-sm text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
             La compra de planes y packs con pago en línea está en camino. Mientras
-            tanto, escríbenos y te recargamos manualmente.
+            tanto, escríbenos y te recargamos o mejoramos el plan manualmente.
           </p>
         )}
       </div>
@@ -105,7 +110,7 @@ export function CreditsPanel({
                 <div className="shrink-0 text-right">
                   <p
                     className="text-sm font-semibold tabular-nums"
-                    style={{ color: h.delta >= 0 ? "var(--nexora-signal)" : "var(--nexora-ink)" }}
+                    style={{ color: h.delta >= 0 ? "var(--nexora-signal)" : "var(--nexora-alert)" }}
                   >
                     {h.delta >= 0 ? "+" : ""}
                     {fmt(h.delta)}
