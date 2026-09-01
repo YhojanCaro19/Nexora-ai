@@ -44,7 +44,7 @@ export function CreditsPanel({
 
       {/* ---- Saldo disponible (sin card) ---- */}
       <div className="flex flex-col items-center gap-1 text-center">
-        <CreditCoin className="h-12 w-12 drop-shadow-[0_0_16px_rgba(129,140,248,0.55)]" />
+        <CreditCoin className="h-12 w-12 drop-shadow-[0_0_18px_rgba(76,194,232,0.6)]" />
         <p className="mt-3 font-nexora text-5xl font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
           {fmt(total)}
         </p>
