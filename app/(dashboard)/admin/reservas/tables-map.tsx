@@ -1,11 +1,12 @@
 "use client";
 
-// Plano del salón — cada mesa se dibuja con sus sillas a los lados y su
-// número. Tocar una abre el editor (nombre, sillas, eliminar). El "+"
-// agrega una mesa nueva. Todo se guarda en `booking_resources`
-// (kind='table', name = número/nombre, capacity = sillas) — el agente lee
-// esa misma tabla para hablar con el cliente.
-import { useState, useTransition } from "react";
+// Plano del salón — fondo claro tipo plano de restaurante. Cada mesa se
+// dibuja con sus sillas (parejas a los lados, la impar a la cabecera) y su
+// número en el degradado de la landing. Tocar una mesa (o "Agregar mesa")
+// abre una ventana centrada donde el dibujo se actualiza en tiempo real.
+// Todo vive en `booking_resources` (kind='table', name, capacity) — el
+// agente lee esa misma tabla.
+import { useEffect, useState, useTransition } from "react";
 import { Plus, X, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,49 +15,72 @@ import { createResourceAction, updateResourceAction, deleteResourceAction } from
 
 type Feed = { kind: "ok" | "error"; text: string } | null;
 
-// Sillas parejas a los lados; si la capacidad es impar, la que sobra va a
-// la cabecera (abajo). Ej. 7 → 3 y 3 a los lados + 1 abajo.
+// Sillas parejas a los lados; la impar va a la cabecera (abajo). 7 → 3+3+1.
 function seatLayout(capacity: number): { side: number; head: number } {
   const c = Math.max(1, Math.min(capacity, 16));
   const head = c % 2;
   return { side: (c - head) / 2, head };
 }
 
-function seatColumn(n: number, color: string) {
-  return (
-    <div className="flex flex-col justify-center gap-1.5">
-      {Array.from({ length: n }).map((_, i) => (
-        <span key={i} className="h-7 w-4 shrink-0 rounded-[5px]" style={{ background: color }} />
+function TableGlyph({
+  capacity,
+  number,
+  active = false,
+  size = 1,
+}: {
+  capacity: number;
+  number: number;
+  active?: boolean;
+  size?: number;
+}) {
+  const { side, head } = seatLayout(capacity);
+  const rows = Math.max(side, 1);
+  const seatH = 28 * size;
+  const seatW = 16 * size;
+  const gap = 6 * size;
+  const tableW = 64 * size;
+  const seatColor = active ? "#818CF8" : "#C7CBD6";
+
+  const seatCol = (
+    <div className="flex flex-col justify-center" style={{ gap }}>
+      {Array.from({ length: side }).map((_, i) => (
+        <span key={i} className="shrink-0 rounded-[5px]" style={{ height: seatH, width: seatW, background: seatColor }} />
       ))}
     </div>
   );
-}
-
-function TableGlyph({ capacity, number, active }: { capacity: number; number: number; active: boolean }) {
-  const { side, head } = seatLayout(capacity);
-  const rows = Math.max(side, 1);
-  const seatColor = active ? "#A5B4FC" : "#3B3F52";
-  const tableBg = active ? "rgba(129,140,248,0.30)" : "#242838";
-  const tableBorder = active ? "#818CF8" : "#3B3F52";
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className="flex items-stretch justify-center gap-1.5">
-        {seatColumn(side, seatColor)}
+    <div className="flex flex-col items-center" style={{ gap }}>
+      <div className="flex items-stretch justify-center" style={{ gap }}>
+        {seatCol}
         <div
-          className="relative flex w-16 items-center justify-center rounded-2xl"
-          style={{ minHeight: `${rows * 34}px`, background: tableBg, border: `1.5px solid ${tableBorder}` }}
+          className="relative flex items-center justify-center rounded-2xl"
+          style={{
+            width: tableW,
+            minHeight: rows * (seatH + gap),
+            background: active ? "rgba(129,140,248,0.18)" : "#2A2E3C",
+            border: `1.5px solid ${active ? "#818CF8" : "#2A2E3C"}`,
+          }}
         >
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-full"
-            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)" }}
+            className="flex items-center justify-center rounded-full"
+            style={{ height: 32 * size, width: 32 * size, background: "rgba(255,255,255,0.92)" }}
           >
-            <span className="aventhra-iridescent font-nexora text-sm font-extrabold leading-none">{number}</span>
+            <span
+              className="aventhra-iridescent font-nexora font-extrabold leading-none"
+              style={{ fontSize: 14 * size }}
+            >
+              {number}
+            </span>
           </span>
         </div>
-        {seatColumn(side, seatColor)}
+        <div className="flex flex-col justify-center" style={{ gap }}>
+          {Array.from({ length: side }).map((_, i) => (
+            <span key={i} className="shrink-0 rounded-[5px]" style={{ height: seatH, width: seatW, background: seatColor }} />
+          ))}
+        </div>
       </div>
-      {head === 1 && <span className="h-4 w-7 shrink-0 rounded-[5px]" style={{ background: seatColor }} />}
+      {head === 1 && <span className="shrink-0 rounded-[5px]" style={{ height: seatW, width: seatH, background: seatColor }} />}
     </div>
   );
 }
@@ -91,6 +115,8 @@ export function TablesMap({
   }
 
   const totalSeats = tables.reduce((s, t) => s + (t.capacity ?? 0), 0);
+  const editingIndex = tables.findIndex((t) => t.id === editingId);
+  const editing = editingIndex >= 0 ? tables[editingIndex] : null;
 
   return (
     <div className="space-y-4">
@@ -100,29 +126,29 @@ export function TablesMap({
           : `${tables.length} mesa${tables.length === 1 ? "" : "s"} · ${totalSeats} sillas en total`}
       </p>
 
-      {/* Salón — usa todo el ancho; las mesas se reparten solas */}
+      {/* Salón — fondo claro; las mesas van juntas al centro */}
       <div
-        className="grid justify-items-center gap-8 rounded-3xl border p-6 sm:p-10"
+        className="flex flex-wrap content-center items-center justify-center gap-x-2 gap-y-6 rounded-3xl p-6 sm:p-10"
         style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
-          borderColor: "#2A2E3E",
+          minHeight: "17rem",
           background:
-            "radial-gradient(circle at 30% 20%, rgba(129,140,248,0.05), transparent 55%), repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 44px), repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 44px), #0C0D14",
+            "repeating-linear-gradient(0deg, rgba(15,23,42,0.045) 0 1px, transparent 1px 46px), repeating-linear-gradient(90deg, rgba(15,23,42,0.045) 0 1px, transparent 1px 46px), linear-gradient(180deg, #FFFFFF, #EEF1F6)",
+          boxShadow: "0 12px 44px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.7)",
         }}
       >
         {tables.map((t, i) => (
           <button
             key={t.id}
             type="button"
-            onClick={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
-            className="flex w-full flex-col items-center gap-3 rounded-2xl border p-4 transition-all hover:bg-white/[0.03]"
+            onClick={() => setEditingId(t.id)}
+            className="flex flex-col items-center gap-2 rounded-2xl border px-2 py-3 transition-colors hover:bg-black/[0.04]"
             style={{ borderColor: editingId === t.id ? "#818CF8" : "transparent" }}
           >
-            <TableGlyph capacity={t.capacity ?? 4} number={i + 1} active={editingId === t.id} />
-            <span className="text-xs font-medium" style={{ color: "var(--nexora-ink)" }}>
+            <TableGlyph capacity={t.capacity ?? 4} number={i + 1} active={editingId === t.id} size={0.78} />
+            <span className="text-sm font-semibold" style={{ color: "#1C2434" }}>
               {t.name !== `Mesa ${i + 1}` ? t.name : `Mesa ${i + 1}`}
             </span>
-            <span className="-mt-2 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+            <span className="-mt-1.5 text-[11px]" style={{ color: "#6B7280" }}>
               {t.capacity ?? 4} sillas
             </span>
           </button>
@@ -132,27 +158,18 @@ export function TablesMap({
           type="button"
           onClick={addTable}
           disabled={pending}
-          className="flex w-full flex-col items-center justify-center gap-2 self-center rounded-2xl border border-dashed py-10 text-sm transition-colors hover:bg-white/[0.03] disabled:opacity-50"
-          style={{ borderColor: "#3B3F52", color: "var(--nexora-ink-dim)" }}
+          className="flex h-36 w-36 flex-col items-center justify-center gap-2 self-center rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-black/[0.04] disabled:opacity-50"
+          style={{ borderColor: "rgba(15,23,42,0.2)", color: "#4B5563" }}
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "rgba(129,140,248,0.15)" }}>
-            <Plus size={20} strokeWidth={2.5} style={{ color: "#A5B4FC" }} />
+          <span
+            className="flex h-11 w-11 items-center justify-center rounded-full"
+            style={{ background: "rgba(129,140,248,0.16)" }}
+          >
+            <Plus size={22} strokeWidth={2.5} style={{ color: "#6366F1" }} />
           </span>
           Agregar mesa
         </button>
       </div>
-
-      {editingId && (
-        <TableEditor
-          table={tables.find((t) => t.id === editingId)!}
-          onSaved={onUpdate}
-          onRemoved={(id) => {
-            onRemove(id);
-            setEditingId(null);
-          }}
-          onClose={() => setEditingId(null)}
-        />
-      )}
 
       {feedback && (
         <p
@@ -162,17 +179,35 @@ export function TablesMap({
           {feedback.text}
         </p>
       )}
+
+      {editing && (
+        <TableEditorModal
+          table={editing}
+          number={editingIndex + 1}
+          defaultName={`Mesa ${editingIndex + 1}`}
+          onSaved={onUpdate}
+          onRemoved={(id) => {
+            onRemove(id);
+            setEditingId(null);
+          }}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }
 
-function TableEditor({
+function TableEditorModal({
   table,
+  number,
+  defaultName,
   onSaved,
   onRemoved,
   onClose,
 }: {
   table: BookingResource;
+  number: number;
+  defaultName: string;
   onSaved: (r: BookingResource) => void;
   onRemoved: (id: string) => void;
   onClose: () => void;
@@ -182,9 +217,19 @@ function TableEditor({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const title = name.trim() || defaultName;
+
   function save() {
     setError(null);
-    const finalName = name.trim() || table.name;
+    const finalName = name.trim() || defaultName;
     start(async () => {
       const result = await updateResourceAction(table.id, { name: finalName, capacity });
       if (result.error) {
@@ -206,71 +251,88 @@ function TableEditor({
 
   return (
     <div
-      className="mx-auto max-w-sm space-y-4 rounded-xl border p-4"
-      style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)" }}
+      onClick={onClose}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
-          Editar mesa
-        </span>
-        <button type="button" onClick={onClose} className="rounded-md p-1 hover:bg-white/[0.06]" style={{ color: "var(--nexora-ink-dim)" }}>
-          <X size={14} />
-        </button>
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="block text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          Nombre / número
-        </label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10 text-center" placeholder="Mesa 1" />
-      </div>
-
-      <div className="space-y-1.5">
-        <label className="block text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          Sillas
-        </label>
-        <div className="flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => setCapacity((c) => Math.max(1, c - 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border"
-            style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
-          >
-            <Minus size={15} />
-          </button>
-          <span className="w-10 text-center text-xl font-semibold" style={{ color: "var(--nexora-ink)" }}>
-            {capacity}
+      <div
+        className="w-full max-w-sm space-y-5 rounded-2xl border p-6"
+        style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative flex items-center justify-center">
+          <span className="font-nexora text-base font-semibold" style={{ color: "var(--nexora-ink)" }}>
+            {title}
           </span>
           <button
             type="button"
-            onClick={() => setCapacity((c) => Math.min(16, c + 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border"
-            style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+            onClick={onClose}
+            className="absolute right-0 rounded-md p-1 transition-colors hover:bg-white/[0.06]"
+            style={{ color: "var(--nexora-ink-dim)" }}
           >
-            <Plus size={15} />
+            <X size={16} />
           </button>
         </div>
-      </div>
 
-      {error && (
-        <p className="text-center text-xs" style={{ color: "var(--nexora-alert)" }}>
-          {error}
-        </p>
-      )}
+        {/* Dibujo en tiempo real — refleja el número y las sillas actuales */}
+        <div className="flex justify-center py-2">
+          <TableGlyph capacity={capacity} number={number} active size={0.9} />
+        </div>
 
-      <div className="flex items-center justify-center gap-4">
-        <Button type="button" size="sm" onClick={save} disabled={pending}>
-          {pending ? "..." : "Guardar"}
-        </Button>
-        <button
-          type="button"
-          onClick={remove}
-          disabled={pending}
-          className="text-xs underline underline-offset-2"
-          style={{ color: "var(--nexora-alert)" }}
-        >
-          Eliminar mesa
-        </button>
+        <div className="space-y-1.5">
+          <label className="block text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            Nombre o número
+          </label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} className="h-10 text-center" placeholder={defaultName} />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="block text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            Sillas
+          </label>
+          <div className="flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setCapacity((c) => Math.max(1, c - 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border"
+              style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+            >
+              <Minus size={16} />
+            </button>
+            <span className="w-12 text-center text-2xl font-bold" style={{ color: "var(--nexora-ink)" }}>
+              {capacity}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCapacity((c) => Math.min(16, c + 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border"
+              style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-center text-xs" style={{ color: "var(--nexora-alert)" }}>
+            {error}
+          </p>
+        )}
+
+        <div className="flex items-center justify-center gap-4 pt-1">
+          <Button type="button" onClick={save} disabled={pending}>
+            {pending ? "Guardando..." : "Guardar"}
+          </Button>
+          <button
+            type="button"
+            onClick={remove}
+            disabled={pending}
+            className="text-xs underline underline-offset-2"
+            style={{ color: "var(--nexora-alert)" }}
+          >
+            Eliminar mesa
+          </button>
+        </div>
       </div>
     </div>
   );
