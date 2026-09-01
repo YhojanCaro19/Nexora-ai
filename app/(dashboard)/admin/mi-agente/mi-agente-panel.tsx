@@ -213,6 +213,11 @@ export function MiAgentePanel({
               localPhrases={localPhrases}
               paymentMethods={paymentMethods}
               businessName={businessName}
+              sampleProduct={
+                (priorityProducts.length > 0
+                  ? products.find((p) => p.id === priorityProducts[0])
+                  : products[0]) ?? null
+              }
             />
           </div>
         </div>

@@ -19,6 +19,12 @@ export interface AgentPreviewConfig {
   localPhrases: string;
   paymentMethods: PaymentMethod[];
   businessName: string | null;
+  /** Un producto real del catálogo para que el ejemplo se sienta propio. */
+  sampleProduct: { name: string; price: number } | null;
+}
+
+function formatCOP(n: number): string {
+  return `$${Math.round(n).toLocaleString("es-CO")}`;
 }
 
 const DEFAULT_EMOJIS = ["👋", "✨", "🙌", "😊"];
@@ -44,26 +50,33 @@ function withEmoji(line: string, i: number, cfg: AgentPreviewConfig): string {
 
 const usted = (cfg: AgentPreviewConfig) => cfg.addressForm === "usted";
 
+const SAMPLE_PRODUCT_NAME = "el combo corte y barba";
+
 function greetingLine(cfg: AgentPreviewConfig): string {
   if (cfg.greeting.trim()) return cfg.greeting.trim();
   const soy = `Soy ${cfg.name || "tu asistente"}${cfg.businessName ? `, de ${cfg.businessName}` : ""}`;
   return usted(cfg)
-    ? `¡Hola! ${soy}. ¿En qué le puedo ayudar?`
-    : `¡Hola! ${soy}. ¿En qué te ayudo?`;
+    ? `¡Hola, buenos días! Todo bien por acá, gracias. ${soy}. ¿En qué le puedo ayudar?`
+    : `¡Hola, buenos días! Todo bien por acá, gracias. ${soy}. ¿En qué te ayudo?`;
 }
 
-function catalogLine(cfg: AgentPreviewConfig): string {
+function availabilityLine(cfg: AgentPreviewConfig): string {
+  const price = cfg.sampleProduct ? formatCOP(cfg.sampleProduct.price) : null;
+
+  if (!price) {
+    return usted(cfg)
+      ? "¡Claro que sí! Está disponible. Dígame cuál le interesa y le paso el precio."
+      : "¡Claro que sí! Está disponible. Decime cuál te interesa y te paso el precio.";
+  }
   if (cfg.responseLength === "corta") {
-    return usted(cfg) ? "Claro, dígame qué busca y le paso el precio." : "Claro, decime qué buscás y te paso el precio.";
+    return `¡Claro! Disponible. Cuesta ${price}.`;
   }
   if (cfg.responseLength === "larga") {
     return usted(cfg)
-      ? "Con gusto le muestro el catálogo. Tenemos varias opciones con sus precios y detalles — cuénteme qué necesita y le doy toda la información para que elija tranquilo."
-      : "Con gusto te muestro el catálogo. Tenemos varias opciones con sus precios y detalles — contame qué necesitás y te doy toda la info para que elijas tranquilo.";
+      ? `¡Claro que sí! Lo tenemos disponible en este momento. Cuesta ${price}. Si quiere, coordinamos para que pase o le doy más detalles.`
+      : `¡Claro que sí! Lo tenemos disponible en este momento. Cuesta ${price}. Si querés, coordinamos para que pases o te doy más detalles.`;
   }
-  return usted(cfg)
-    ? "Claro, le muestro el catálogo. Dígame qué busca y le doy el precio."
-    : "Claro, te muestro el catálogo. Decime qué buscás y te doy el precio.";
+  return `¡Claro que sí! Está disponible. Cuesta ${price}.`;
 }
 
 function paymentLine(cfg: AgentPreviewConfig): string {
@@ -81,11 +94,12 @@ interface Bubble {
 }
 
 function buildScript(cfg: AgentPreviewConfig): Bubble[] {
-  const agentLines = [greetingLine(cfg), catalogLine(cfg), paymentLine(cfg)];
+  const productName = cfg.sampleProduct?.name ?? SAMPLE_PRODUCT_NAME;
+  const agentLines = [greetingLine(cfg), availabilityLine(cfg), paymentLine(cfg)];
   return [
-    { from: "cliente", text: "Hola, buenas" },
+    { from: "cliente", text: "Hola, buenos días, ¿cómo estás?" },
     { from: "agente", text: withEmoji(agentLines[0], 0, cfg) },
-    { from: "cliente", text: "¿Qué precios manejan?" },
+    { from: "cliente", text: `¿Tienen ${productName} disponible?` },
     { from: "agente", text: withEmoji(agentLines[1], 1, cfg) },
     { from: "cliente", text: "¿Cómo puedo pagar?" },
     { from: "agente", text: withEmoji(agentLines[2], 2, cfg) },
