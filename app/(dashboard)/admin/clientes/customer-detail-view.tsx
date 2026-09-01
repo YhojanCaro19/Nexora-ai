@@ -228,8 +228,8 @@ function OrdersSection({ orders, countryIso2 }: { orders: Order[]; countryIso2: 
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>
-                  {formatShortDate(order.created_at)}
+                <TableCell className="whitespace-nowrap" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {formatShortDateTime(order.created_at)}
                 </TableCell>
                 <TableCell
                   className="max-w-[220px] whitespace-normal"
