@@ -6,7 +6,7 @@
 // reglas simples (saludo, emojis, tú/usted, longitud, métodos de pago) a
 // unas frases de muestra. El agente de verdad se prueba en "Probar tu
 // agente" más abajo — eso sí usa el modelo real.
-import { Bot } from "lucide-react";
+import { ChevronLeft, Phone, Video, MoreVertical, Plus, Camera, Mic, CheckCheck } from "lucide-react";
 import type { PaymentMethod } from "@/lib/config/agentPersona";
 import { PREVIEW_SCRIPTS, previewArchetypeFor, type PreviewCtx } from "@/lib/config/agentPreviewScripts";
 
@@ -123,8 +123,31 @@ function buildScript(cfg: AgentPreviewConfig): Bubble[] {
   ];
 }
 
+// Colores WhatsApp (mockup fiel, no usa los tokens Nexora a propósito).
+const WA = {
+  wallpaper: "#dbe6dc",
+  header: "#f6f6f6",
+  headerInk: "#111b21",
+  subtle: "#667781",
+  accent: "#008069",
+  incoming: "#ffffff",
+  outgoing: "#d9fdd3",
+  bubbleInk: "#111b21",
+  tick: "#53bdeb",
+  inputBar: "#f0f2f5",
+};
+
+const TIMES = ["10:31", "10:31", "10:32", "10:32", "10:33", "10:33"];
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "A";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
+}
+
 export function AgentPreview(cfg: AgentPreviewConfig) {
   const script = buildScript(cfg);
+  const agentName = cfg.name || "Tu Agente";
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -132,64 +155,80 @@ export function AgentPreview(cfg: AgentPreviewConfig) {
         Vista previa
       </p>
 
-      {/* iPhone */}
+      {/* Teléfono — de frente */}
       <div
-        className="relative w-full max-w-[340px] rounded-[46px] p-[10px] shadow-2xl"
-        style={{ background: "#050506", border: "1px solid rgba(255,255,255,0.08)" }}
+        className="relative w-full max-w-[330px] rounded-[42px] p-[9px]"
+        style={{ background: "#0c0c0d", boxShadow: "0 24px 60px -12px rgba(0,0,0,0.6)" }}
       >
-        {/* Isla flotante (Dynamic Island) */}
-        <div className="pointer-events-none absolute left-1/2 top-[18px] z-20 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-black" />
+        {/* Cámara / isla */}
+        <div className="pointer-events-none absolute left-1/2 top-[16px] z-20 h-[22px] w-[78px] -translate-x-1/2 rounded-full bg-black" />
 
         {/* Pantalla */}
-        <div
-          className="overflow-hidden rounded-[38px]"
-          style={{ background: "var(--nexora-void)" }}
-        >
-          {/* Barra de estado + cabecera del chat */}
+        <div className="overflow-hidden rounded-[34px]" style={{ background: WA.wallpaper }}>
+          {/* Cabecera WhatsApp */}
           <div
-            className="border-b px-4 pb-3 pt-11"
-            style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+            className="flex items-center gap-2 px-2 pb-2.5 pt-10"
+            style={{ background: WA.header, color: WA.headerInk }}
           >
-            <div className="flex items-center gap-3">
-              <span
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                style={{ background: "rgba(238,240,247,0.08)" }}
-              >
-                <Bot size={17} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold" style={{ color: "var(--nexora-ink)" }}>
-                  {cfg.name || "Tu Agente"}
-                </p>
-                <p className="text-[11px]" style={{ color: "var(--nexora-signal)" }}>
-                  en línea
-                </p>
-              </div>
+            <ChevronLeft size={20} strokeWidth={2} style={{ color: WA.subtle }} className="shrink-0" />
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold text-white"
+              style={{ background: WA.accent }}
+            >
+              {initials(agentName)}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[15px] font-semibold leading-tight">{agentName}</p>
+              <p className="text-[11px]" style={{ color: WA.subtle }}>
+                en línea
+              </p>
             </div>
+            <Video size={18} strokeWidth={2} style={{ color: WA.subtle }} className="shrink-0" />
+            <Phone size={16} strokeWidth={2} style={{ color: WA.subtle }} className="shrink-0" />
+            <MoreVertical size={18} strokeWidth={2} style={{ color: WA.subtle }} className="shrink-0" />
           </div>
 
           {/* Mensajes */}
-          <div className="flex min-h-[280px] flex-col gap-2 px-3.5 py-5">
-            {script.map((b, i) => (
-              <div
-                key={i}
-                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13.5px] leading-snug ${
-                  b.from === "agente" ? "self-start rounded-bl-md" : "self-end rounded-br-md"
-                }`}
-                style={
-                  b.from === "agente"
-                    ? { background: "var(--nexora-secondary)", color: "var(--nexora-ink)" }
-                    : { background: "var(--nexora-nova)", color: "var(--nexora-nova-ink)" }
-                }
-              >
-                {b.text}
-              </div>
-            ))}
+          <div className="flex min-h-[320px] flex-col gap-1.5 px-2.5 py-3">
+            {script.map((b, i) => {
+              const outgoing = b.from === "cliente";
+              return (
+                <div
+                  key={i}
+                  className={`max-w-[85%] rounded-lg px-2 py-1.5 text-[13px] leading-snug shadow-sm ${
+                    outgoing ? "self-end rounded-tr-none" : "self-start rounded-tl-none"
+                  }`}
+                  style={{ background: outgoing ? WA.outgoing : WA.incoming, color: WA.bubbleInk }}
+                >
+                  <span>{b.text}</span>
+                  <span
+                    className="ml-2 inline-flex translate-y-[3px] items-center gap-0.5 text-[10px]"
+                    style={{ color: WA.subtle }}
+                  >
+                    {TIMES[i]}
+                    {outgoing && <CheckCheck size={13} strokeWidth={2.25} style={{ color: WA.tick }} />}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Barra de gestos (home indicator) */}
-          <div className="flex justify-center pb-2 pt-1">
-            <span className="h-1 w-28 rounded-full" style={{ background: "rgba(255,255,255,0.22)" }} />
+          {/* Barra de escribir (decorativa) */}
+          <div className="flex items-center gap-1.5 px-2 py-2" style={{ background: WA.wallpaper }}>
+            <div
+              className="flex flex-1 items-center gap-2 rounded-full px-3 py-2"
+              style={{ background: "#ffffff", color: WA.subtle }}
+            >
+              <Plus size={17} strokeWidth={2} />
+              <span className="flex-1 text-[13px]">Mensaje</span>
+              <Camera size={16} strokeWidth={2} />
+            </div>
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: WA.accent }}
+            >
+              <Mic size={16} strokeWidth={2} />
+            </span>
           </div>
         </div>
       </div>
