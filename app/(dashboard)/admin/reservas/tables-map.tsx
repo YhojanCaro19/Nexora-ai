@@ -76,7 +76,17 @@ export function TablesMap({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <p className="text-center text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+        {tables.length === 0 ? "Tu salón está vacío — agrega tus mesas." : `${tables.length} mesa${tables.length === 1 ? "" : "s"} en el salón`}
+      </p>
+      <div
+        className="grid grid-cols-2 gap-3 rounded-2xl border p-4 sm:grid-cols-3"
+        style={{
+          borderColor: "var(--nexora-line)",
+          background:
+            "repeating-linear-gradient(45deg, rgba(255,255,255,0.015) 0 12px, transparent 12px 24px), var(--nexora-void)",
+        }}
+      >
         {tables.map((t, i) => (
           <button
             key={t.id}
