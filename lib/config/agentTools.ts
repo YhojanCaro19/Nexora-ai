@@ -7,18 +7,18 @@
 // panel. Lo que SÍ es editable desde el panel es qué combinación de ESTAS
 // herramientas trae cada industria por defecto (ver industry_agent_templates
 // en Supabase y agentTemplateService.ts).
-// "agendar_cita", "reservar_mesa", "reservar_habitacion" y
-// "verificar_comprobante" existieron acá pero se quitaron a pedido
-// explícito — no se van a implementar por ahora. Si en el futuro se
-// retoman, hay que revisar DEFAULT_INDUSTRY_TOOLS abajo (varias industrias
-// las usaban como default) y cualquier fila ya sembrada en
-// industry_agent_templates que las mencione — sanitizeToolKeys() ya las
-// filtra automáticamente en cualquier dato viejo, así que no rompen nada,
-// solo dejan de ofrecerse.
+// "agendar_cita" y "reservar_mesa" están de vuelta con motor real (módulo
+// Reservas — reservationService/bookingConfigService, ver
+// docs/sql/reservations-module.sql). El agente solo las ofrece si además
+// el negocio tiene `booking_settings.mode != 'off'`. "reservar_habitacion"
+// y "verificar_comprobante" siguen sin implementarse — sanitizeToolKeys()
+// filtra cualquier dato viejo que las mencione.
 export const AGENT_TOOLS = [
   { key: "tomar_pedido", label: "Tomar pedidos", description: "Registra pedidos de productos directamente en la conversación." },
   { key: "catalogo_productos", label: "Mostrar catálogo de productos", description: "Responde con productos disponibles, precios y fotos." },
   { key: "responder_faq", label: "Responder preguntas frecuentes", description: "Horarios, ubicación, políticas, dudas comunes." },
+  { key: "reservar_mesa", label: "Reservar mesas", description: "Consulta disponibilidad y reserva mesas para restaurantes (usa el módulo Reservas)." },
+  { key: "agendar_cita", label: "Agendar turnos y citas", description: "Consulta horarios libres y agenda turnos con un empleado (usa el módulo Reservas)." },
   { key: "recordatorios", label: "Enviar recordatorios", description: "Avisa de citas o pedidos próximos automáticamente." },
 ] as const;
 
@@ -34,6 +34,8 @@ export const SUPPORTED_TOOL_KEYS: readonly AgentToolKey[] = [
   "catalogo_productos",
   "tomar_pedido",
   "responder_faq",
+  "reservar_mesa",
+  "agendar_cita",
 ];
 
 export const AGENT_TOOL_KEYS: readonly string[] = AGENT_TOOLS.map((t) => t.key);
@@ -54,11 +56,11 @@ export const sanitizeToolKeys = (keys: unknown): AgentToolKey[] => {
 // para esa industria todavía (no debería pasar tras el seed inicial, pero
 // mejor tener un default sensato que dejar el agente sin ninguna herramienta).
 export const DEFAULT_INDUSTRY_TOOLS: Record<string, AgentToolKey[]> = {
-  restaurant: ["tomar_pedido", "responder_faq", "recordatorios"],
+  restaurant: ["tomar_pedido", "reservar_mesa", "responder_faq", "recordatorios"],
   jewelry: ["catalogo_productos", "responder_faq"],
-  barbershop: ["recordatorios", "responder_faq"],
+  barbershop: ["agendar_cita", "recordatorios", "responder_faq"],
   hotel: ["responder_faq", "recordatorios"],
-  workshop: ["responder_faq"],
+  workshop: ["agendar_cita", "responder_faq"],
   clothing_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   phone_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   computer_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
@@ -67,7 +69,7 @@ export const DEFAULT_INDUSTRY_TOOLS: Record<string, AgentToolKey[]> = {
   bakery: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   ice_cream_shop: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   makeup_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
-  beauty_salon: ["responder_faq"],
+  beauty_salon: ["agendar_cita", "responder_faq"],
   accessories_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   appliance_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],
   home_decor_store: ["catalogo_productos", "tomar_pedido", "responder_faq"],

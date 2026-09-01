@@ -53,6 +53,23 @@ function hhmmToMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
+function minToHhmm(t: number): string {
+  return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+}
+
+// "2026-09-05" + "19:30" (hora LOCAL del negocio) → ISO UTC. Para que el
+// agente pueda pasar fecha y hora en lenguaje natural y el backend las
+// ancle a la zona horaria correcta.
+export async function resolveLocalDateTime(
+  businessId: string,
+  dateIso: string,
+  hhmm: string,
+  passed?: Client
+): Promise<string> {
+  const supabase = await client(passed);
+  const timezone = await getBusinessTimezone(supabase, businessId);
+  return localDateTimeToUtc(timezone, dateIso, hhmmToMinutes(hhmm)).toISOString();
+}
 
 function resourceKindFor(kind: ReservationKind): "staff" | "table" {
   return kind === "table" ? "table" : "staff";
@@ -251,6 +268,7 @@ export async function computeAvailability(
         slots.push({
           startsAt: new Date(slotStart).toISOString(),
           endsAt: new Date(slotEnd).toISOString(),
+          label: minToHhmm(t),
           resourceIds: free.map((r) => r.id),
         });
       }

@@ -126,6 +126,8 @@ export interface Reservation {
 export interface AvailabilitySlot {
   startsAt: string;
   endsAt: string;
+  // "HH:MM" en hora local del negocio — para mostrarle al cliente.
+  label: string;
   // Recursos libres en esa franja (mesas que caben, o el empleado).
   resourceIds: string[];
 }

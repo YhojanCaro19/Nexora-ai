@@ -21,6 +21,15 @@ import { logAgentUsage } from "@/lib/services/agentUsageService";
 import { getCreditPrice, deductCredits } from "@/lib/services/creditService";
 import { createOrder, getCustomerOrderStats, type CustomerOrderStats } from "@/lib/services/orderService";
 import { generateEmbedding } from "@/lib/services/embeddingService";
+import { getBookingConfig, type BookingConfig } from "@/lib/services/bookingConfigService";
+import {
+  computeAvailability,
+  createReservation,
+  getReservationsByCustomer,
+  resolveLocalDateTime,
+  updateReservationStatus,
+} from "@/lib/services/reservationService";
+import { RESERVATION_STATUS_LABELS, weekdayLabel } from "@/lib/types/reservation";
 import { SUPPORTED_TOOL_KEYS, type AgentToolKey } from "@/lib/config/agentTools";
 import { paymentMethodsPromptLine } from "@/lib/config/agentPersona";
 import { escalationTriggersPromptLine } from "@/lib/config/escalationTriggers";
@@ -49,9 +58,10 @@ export async function runAgentTurn(
   customerPhone: string,
   userMessage: string
 ): Promise<AgentTurnResult> {
-  const [businessName, agentConfig, customerResult] = await Promise.all([
+  const [businessName, agentConfig, bookingConfig, customerResult] = await Promise.all([
     getBusinessName(businessId),
     getAgentConfig(businessId),
+    getBookingConfig(businessId),
     getOrCreateCustomer(businessId, customerPhone, TEST_CHANNEL),
   ]);
 
@@ -68,7 +78,13 @@ export async function runAgentTurn(
   }
 
   const activeToolKeys = agentConfig.enabledTools.filter((key) => SUPPORTED_TOOL_KEYS.includes(key));
-  const tools = buildTools(businessId, customerResult.data.id, activeToolKeys, agentConfig.faqs);
+  const tools = buildTools(
+    businessId,
+    customerResult.data.id,
+    activeToolKeys,
+    agentConfig.faqs,
+    bookingConfig
+  );
 
   // Caché de prompt multi-turno. En cada turno se reenvía TODO el historial
   // a la API (es stateless), y en una conversación larga ese historial —no
@@ -96,7 +112,7 @@ export async function runAgentTurn(
   const runner = client.beta.messages.toolRunner({
     model: MODEL,
     max_tokens: MAX_OUTPUT_TOKENS,
-    system: buildSystemPrompt(businessName, agentConfig, orderStats),
+    system: buildSystemPrompt(businessName, agentConfig, orderStats, bookingConfig),
     tools,
     messages: [...historyMessages, { role: "user", content: userMessage }],
   });
@@ -182,10 +198,65 @@ async function getBusinessName(businessId: string): Promise<string> {
 //      turnos.
 //   2. volátil (dato del cliente puntual: orderStats) → SIN cache, va
 //      después del breakpoint para no invalidarlo.
+// Resumen del horario semanal para el prompt: "Lun 09:00-18:00 · Mar ...".
+function formatWeeklyHours(booking: BookingConfig): string {
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const parts: string[] = [];
+  for (const wd of order) {
+    const blocks = booking.hours.filter((h) => h.weekday === wd);
+    if (blocks.length === 0) continue;
+    const ranges = blocks.map((b) => `${b.opensAt}-${b.closesAt}`).join(" y ");
+    parts.push(`${weekdayLabel(wd).slice(0, 3)} ${ranges}`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : "sin horario configurado";
+}
+
+// Bloque de instrucciones de reservas para el system prompt. Vacío si el
+// negocio no usa reservas.
+function bookingPromptBlock(booking: BookingConfig): string | null {
+  const mode = booking.settings.mode;
+  if (mode === "off") return null;
+
+  const kindText =
+    mode === "tables" ? "reservas de mesa" : mode === "appointments" ? "turnos / citas" : "reservas de mesa y turnos";
+
+  const lines: string[] = [
+    `Este negocio maneja ${kindText}. Tienes herramientas para consultar disponibilidad y reservar — úsalas, nunca inventes un horario libre ni confirmes una reserva sin la herramienta.`,
+    `Horario de atención: ${formatWeeklyHours(booking)}. Fuera de ese horario no hay franjas.`,
+  ];
+
+  if (mode !== "tables" && booking.services.length > 0) {
+    const svc = booking.services
+      .filter((s) => s.active)
+      .map((s) => `${s.name} (${s.durationMinutes} min${s.price != null ? `, ${s.price}` : ""})`)
+      .join("; ");
+    lines.push(`Servicios disponibles para agendar: ${svc}.`);
+  }
+  if (mode !== "tables") {
+    const staff = booking.resources.filter((r) => r.active && r.kind === "staff").map((r) => r.name);
+    if (staff.length > 0) lines.push(`Empleados con los que se puede agendar: ${staff.join(", ")}.`);
+  }
+
+  const askText =
+    mode === "tables"
+      ? "a nombre de quién va la reserva, para cuántas personas, y la fecha y hora"
+      : mode === "appointments"
+        ? "a nombre de quién es la cita, qué servicio quiere (y con qué empleado si tiene preferencia), y la fecha y hora"
+        : "si es mesa o turno, a nombre de quién, cuántas personas o qué servicio, y la fecha y hora";
+
+  lines.push(
+    `Para reservar SIEMPRE pregunta primero: ${askText}. Usa "consultar_disponibilidad" para ofrecer horas reales. Antes de llamar a "reservar", repite un resumen (nombre, fecha, hora, personas o servicio) y espera que el cliente confirme.`,
+    `Cuando la reserva quede hecha, dile que le va a llegar un mensaje de confirmación un día antes.`
+  );
+
+  return lines.join("\n");
+}
+
 function buildSystemPrompt(
   businessName: string,
   config: AgentConfig,
-  orderStats: CustomerOrderStats
+  orderStats: CustomerOrderStats,
+  booking: BookingConfig
 ): Anthropic.Beta.BetaTextBlockParam[] {
   const base = `Eres "${config.name}", el agente conversacional de "${businessName}", un negocio que usa AVENTHRA. Ayudas a sus clientes por chat.
 
@@ -243,6 +314,8 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
       `Si no sabes algo o no tienes el dato (y no aplica ninguna herramienta para consultarlo), usa esta frase en vez de improvisar una respuesta: "${config.fallbackMessage}"`
     );
   }
+  const bookingBlock = bookingPromptBlock(booking);
+  if (bookingBlock) extras.push(bookingBlock);
   if (config.farewellMessage) {
     extras.push(
       `Cuando la conversación llegue a un cierre natural (ej. pedido confirmado, duda resuelta y el cliente no tiene más preguntas), puedes despedirte con algo como: "${config.farewellMessage}"`
@@ -271,7 +344,13 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
   ];
 }
 
-function buildTools(businessId: string, customerId: string, activeToolKeys: AgentToolKey[], faqs: FaqEntry[]) {
+function buildTools(
+  businessId: string,
+  customerId: string,
+  activeToolKeys: AgentToolKey[],
+  faqs: FaqEntry[],
+  booking: BookingConfig
+) {
   const tools = [];
 
   if (activeToolKeys.includes("catalogo_productos")) {
@@ -328,6 +407,132 @@ function buildTools(businessId: string, customerId: string, activeToolKeys: Agen
           faqs.length === 0
             ? "Este negocio no configuró preguntas frecuentes todavía."
             : faqs.map((f, i) => `${i + 1}. P: ${f.question}\n   R: ${f.answer}`).join("\n"),
+      })
+    );
+  }
+
+  const bookingEnabled =
+    booking.settings.mode !== "off" &&
+    (activeToolKeys.includes("reservar_mesa") || activeToolKeys.includes("agendar_cita"));
+
+  if (bookingEnabled) {
+    const defaultKind: "table" | "appointment" =
+      booking.settings.mode === "appointments" ? "appointment" : "table";
+    const resolveKind = (tipo?: string): "table" | "appointment" =>
+      tipo === "cita" || tipo === "turno" ? "appointment" : tipo === "mesa" ? "table" : defaultKind;
+    const findServiceId = (name?: string) =>
+      name
+        ? booking.services.find((s) => s.active && s.name.toLowerCase().includes(name.toLowerCase()))?.id
+        : undefined;
+    const findStaffId = (name?: string) =>
+      name
+        ? booking.resources.find(
+            (r) => r.active && r.kind === "staff" && r.name.toLowerCase().includes(name.toLowerCase())
+          )?.id
+        : undefined;
+
+    tools.push(
+      betaZodTool({
+        name: "consultar_disponibilidad",
+        description:
+          "Devuelve las horas libres para una fecha. Úsala antes de ofrecer un horario — nunca inventes disponibilidad.",
+        inputSchema: z.object({
+          fecha: z.string().describe("Fecha en formato YYYY-MM-DD"),
+          cantidad_personas: z.number().int().min(1).optional().describe("Para mesas"),
+          servicio: z.string().optional().describe("Para citas: nombre del servicio"),
+          empleado: z.string().optional().describe("Para citas: nombre del empleado si el cliente lo pidió"),
+          tipo: z.enum(["mesa", "cita", "turno"]).optional(),
+        }),
+        run: async ({ fecha, cantidad_personas, servicio, empleado, tipo }) => {
+          const { slots, error } = await computeAvailability(businessId, {
+            dateIso: fecha,
+            kind: resolveKind(tipo),
+            partySize: cantidad_personas,
+            serviceId: findServiceId(servicio),
+            resourceId: findStaffId(empleado),
+          });
+          if (error) return error;
+          if (slots.length === 0) return `No hay horarios libres el ${fecha}. Ofrece otra fecha.`;
+          const times = [...new Set(slots.map((s) => s.label))].join(", ");
+          return `Horas libres el ${fecha}: ${times}.`;
+        },
+      })
+    );
+
+    tools.push(
+      betaZodTool({
+        name: "reservar",
+        description:
+          "Crea la reserva DEFINITIVA. Solo úsala cuando el cliente ya confirmó el resumen (nombre, fecha, hora y personas o servicio).",
+        inputSchema: z.object({
+          fecha: z.string().describe("YYYY-MM-DD"),
+          hora: z.string().describe("HH:MM en 24h"),
+          a_nombre_de: z.string().describe("Nombre de quien reserva"),
+          telefono: z.string().optional(),
+          cantidad_personas: z.number().int().min(1).optional().describe("Para mesas"),
+          servicio: z.string().optional().describe("Para citas"),
+          empleado: z.string().optional(),
+          nota: z.string().optional(),
+          tipo: z.enum(["mesa", "cita", "turno"]).optional(),
+        }),
+        run: async ({ fecha, hora, a_nombre_de, telefono, cantidad_personas, servicio, empleado, nota, tipo }) => {
+          const kind = resolveKind(tipo);
+          const startsAt = await resolveLocalDateTime(businessId, fecha, hora);
+          const result = await createReservation(
+            businessId,
+            {
+              kind,
+              startsAt,
+              partySize: kind === "table" ? cantidad_personas : undefined,
+              serviceId: findServiceId(servicio),
+              resourceId: findStaffId(empleado),
+              customerName: a_nombre_de,
+              customerPhone: telefono,
+              notes: nota,
+            },
+            { source: "agent", customerId }
+          );
+          if (result.error) return `No se pudo reservar: ${result.error}`;
+          return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${hora}. Le llegará un recordatorio un día antes.`;
+        },
+      })
+    );
+
+    tools.push(
+      betaZodTool({
+        name: "consultar_mis_reservas",
+        description: "Lista las reservas próximas de este cliente.",
+        inputSchema: z.object({}),
+        run: async () => {
+          const list = await getReservationsByCustomer(businessId, customerId);
+          const upcoming = list.filter(
+            (r) => ["pending", "confirmed", "seated"].includes(r.status) && new Date(r.startsAt).getTime() > Date.now()
+          );
+          if (upcoming.length === 0) return "Este cliente no tiene reservas próximas.";
+          return upcoming
+            .map(
+              (r) =>
+                `${r.startsAt} · ${r.customerName ?? ""} · ${r.serviceName ?? (r.partySize ? `${r.partySize} personas` : "")} · ${RESERVATION_STATUS_LABELS[r.status]} (id ${r.id})`
+            )
+            .join("\n");
+        },
+      })
+    );
+
+    tools.push(
+      betaZodTool({
+        name: "cancelar_reserva",
+        description: "Cancela una reserva próxima del cliente. Confirma con el cliente antes de cancelar.",
+        inputSchema: z.object({
+          reserva_id: z.string().describe("id de la reserva, obtenido con consultar_mis_reservas"),
+        }),
+        run: async ({ reserva_id }) => {
+          const list = await getReservationsByCustomer(businessId, customerId);
+          const target = list.find((r) => r.id === reserva_id);
+          if (!target) return "No se encontró esa reserva para este cliente.";
+          const result = await updateReservationStatus(reserva_id, businessId, "cancelled");
+          return result.error ? `No se pudo cancelar: ${result.error}` : "Reserva cancelada.";
+        },
       })
     );
   }
