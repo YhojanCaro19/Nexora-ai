@@ -29,6 +29,35 @@ const fmt = (n: number) => n.toLocaleString("es-CO");
 // Botón que en desktop es solo el ícono y, al pasar el mouse (o con foco),
 // revela el texto con una animación de ancho. En móvil (sin hover) muestra
 // el texto siempre.
+// Degradado iridiscente de marca (el de las letras de la landing) como
+// gradiente SVG animado, para poder pintar el TRAZO de un ícono lucide.
+// Se renderiza una sola vez; los íconos lo referencian por id.
+const IR_GRADIENT_ID = "aventhra-ir-icon";
+
+function IridescentGradientDef() {
+  return (
+    <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
+      <defs>
+        <linearGradient id={IR_GRADIENT_ID} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#4CC2E8" />
+          <stop offset="0.25" stopColor="#818CF8" />
+          <stop offset="0.5" stopColor="#A78BFA" />
+          <stop offset="0.75" stopColor="#818CF8" />
+          <stop offset="1" stopColor="#4CC2E8" />
+          <animateTransform
+            attributeName="gradientTransform"
+            type="translate"
+            from="-1 0"
+            to="1 0"
+            dur="4s"
+            repeatCount="indefinite"
+          />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 function ExpandingButton({
   icon: Icon,
   label,
@@ -46,7 +75,7 @@ function ExpandingButton({
       className="group inline-flex items-center rounded-full border px-3.5 py-2.5 text-sm font-medium transition-colors hover:border-white/25"
       style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
     >
-      <Icon size={16} strokeWidth={2} className="shrink-0" style={{ color: "var(--accent-cyan)" }} />
+      <Icon size={16} strokeWidth={2} className="shrink-0" stroke={`url(#${IR_GRADIENT_ID})`} />
       <span className="grid grid-cols-[1fr] transition-[grid-template-columns] duration-300 ease-out sm:grid-cols-[0fr] sm:group-hover:grid-cols-[1fr] sm:group-focus-visible:grid-cols-[1fr]">
         <span className="overflow-hidden whitespace-nowrap pl-2">{label}</span>
       </span>
@@ -66,6 +95,7 @@ export function CreditsPanel({
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
+      <IridescentGradientDef />
       <h1 className="font-nexora text-xl text-center" style={{ color: "var(--nexora-ink)" }}>
         Créditos
       </h1>
