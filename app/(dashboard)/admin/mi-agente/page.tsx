@@ -2,7 +2,6 @@
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
 import { getProducts } from "@/lib/services/productService";
-import { getBusinessName, getBusinessIndustryType } from "@/lib/services/businessBrandingService";
 import { AGENT_TOOLS } from "@/lib/config/agentTools";
 import { MiAgentePanel } from "./mi-agente-panel";
 import { TestAgentChat } from "./test-agent-chat";
@@ -36,11 +35,9 @@ const DEFAULT_AGENT_CONFIG: AgentConfig = {
 
 export default async function MiAgentePage() {
   const profile = await getSessionProfile();
-  const [agentConfig, products, businessName, industryType] = await Promise.all([
+  const [agentConfig, products] = await Promise.all([
     profile?.businessId ? getAgentConfig(profile.businessId) : Promise.resolve(DEFAULT_AGENT_CONFIG),
     profile?.businessId ? getProducts(profile.businessId) : Promise.resolve([]),
-    profile?.businessId ? getBusinessName(profile.businessId) : Promise.resolve(null),
-    profile?.businessId ? getBusinessIndustryType(profile.businessId) : Promise.resolve(null),
   ]);
 
   return (
@@ -48,13 +45,7 @@ export default async function MiAgentePage() {
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Mi Agente
       </h1>
-      <MiAgentePanel
-        agentConfig={agentConfig}
-        catalog={AGENT_TOOLS}
-        products={products}
-        businessName={businessName}
-        industryType={industryType}
-      />
+      <MiAgentePanel agentConfig={agentConfig} catalog={AGENT_TOOLS} products={products} />
 
       <div className="border-t pt-10" style={{ borderColor: 'var(--nexora-line)' }}>
         <TestAgentChat />

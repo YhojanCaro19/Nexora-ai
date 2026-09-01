@@ -20,7 +20,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectSearch } from "@/components/shared/MultiSelectSearch";
 import { updateAgentConfigAction } from "./actions";
-import { AgentPreview } from "./agent-preview";
 import type { AgentConfig, FaqEntry } from "@/lib/services/agentConfigService";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { Product } from "@/lib/services/productService";
@@ -81,14 +80,10 @@ export function MiAgentePanel({
   agentConfig,
   catalog,
   products,
-  businessName,
-  industryType,
 }: {
   agentConfig: AgentConfig;
   catalog: ToolCatalog;
   products: Product[];
-  businessName: string | null;
-  industryType: string | null;
 }) {
   const [name, setName] = useState(agentConfig.name);
   const [greetingMessage, setGreetingMessage] = useState(agentConfig.greetingMessage);
@@ -200,33 +195,8 @@ export function MiAgentePanel({
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-        {/* ---- Vista previa (arriba en móvil, fija al costado en desktop) ---- */}
-        <div className="order-1 lg:order-2">
-          <div className="lg:sticky lg:top-6">
-            <AgentPreview
-              name={name}
-              greeting={greetingMessage}
-              emojiMode={emojiMode}
-              emojiSet={emojiSet}
-              addressForm={addressForm}
-              responseLength={responseLength}
-              localPhrases={localPhrases}
-              paymentMethods={paymentMethods}
-              businessName={businessName}
-              industryType={industryType}
-              sampleProduct={
-                (priorityProducts.length > 0
-                  ? products.find((p) => p.id === priorityProducts[0])
-                  : products[0]) ?? null
-              }
-            />
-          </div>
-        </div>
-
-        {/* ---- Configuración ---- */}
-        <div className="order-2 space-y-10 lg:order-1">
+    <div className="mx-auto max-w-2xl">
+      <div className="space-y-10">
           <ConfigSection icon={Sparkles} title="Identidad">
             <Field label="Nombre del agente" htmlFor="agent-name">
               <Input
@@ -552,7 +522,6 @@ export function MiAgentePanel({
               emptyMessage="Ninguna herramienta coincide."
             />
           </ConfigSection>
-        </div>
       </div>
 
       {/* ---- Guardar — al final de todo, quieto ---- */}
