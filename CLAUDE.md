@@ -15,6 +15,7 @@ No se puede sacar AVENTHRA a producción hasta tener TODO esto funcionando de ve
 - **TikTok Ads:** app aprobada, OAuth y publicación probados. (Si TikTok se pospone al post-lanzamiento, decidirlo explícitamente y marcarlo en la landing como "en camino").
 - **Segundo factor:** confirmado que "MFA = la 2FA de Google" es suficiente, o TOTP propio construido — ver la memoria de MFA.
 - **Pagos:** Wompi en producción (no sandbox), verificación del comercio hecha, webhook validando firma, y el ciclo completo probado (comprar plan → acreditar créditos → renovar mes).
+- **Reporte diario automático:** el cron `/api/cron/daily-reports` (`vercel.json`, `0 * * * *`) solo corre en un deployment de producción en Vercel — nunca en local. Antes de dar por buena esta feature: (1) `CRON_SECRET` cargada en las env vars del proyecto en Vercel, (2) plan **Vercel Pro** (en Hobby el cron corre máx. 1 vez/día y no es puntual — no sirve para "00:00 de cada país"), (3) probado end-to-end: llega un correo real al admin de un negocio a su medianoche local, y el envío queda registrado en Superadmin → Envíos automáticos de reportes.
 - Todo "aprendido y configurado" — nadie despliega una integración que no entiende cómo opera ni cómo se corrige si falla.
 
 ## Nunca sin confirmación explícita
