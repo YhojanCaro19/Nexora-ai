@@ -41,10 +41,7 @@ function NavGroups({ groups, pathname }: { groups: NavGroup[]; pathname: string 
                   }}
                 >
                   {active && (
-                    <span
-                      className="aventhra-iridescent-bg absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full"
-                      style={{ boxShadow: '0 0 8px rgba(129,140,248,0.55)' }}
-                    />
+                    <span className="aventhra-navcycle absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-full" />
                   )}
                   <Icon size={16} strokeWidth={1.5} />
                   <span>{item.label}</span>
