@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { OtpInput } from "@/components/shared/OtpInput";
 import {
   requestDeleteCollaboratorOtpAction,
@@ -314,16 +313,12 @@ export function CollaboratorsTable({
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Colaboradores</CardTitle>
-        <CardDescription>
-          {collaborators.length === 0
-            ? "Todavía no has creado ningún colaborador."
-            : `${collaborators.length} colaborador${collaborators.length === 1 ? "" : "es"} en tu negocio.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-4">
+      <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {collaborators.length === 0
+          ? "Todavía no has creado ningún colaborador."
+          : `${collaborators.length} colaborador${collaborators.length === 1 ? "" : "es"} en tu negocio.`}
+      </p>
         <Table>
           <TableHeader>
             <TableRow>
@@ -382,7 +377,6 @@ export function CollaboratorsTable({
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

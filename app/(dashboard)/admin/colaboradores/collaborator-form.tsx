@@ -8,13 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneField } from "@/components/shared/PhoneField";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 
 const EMPTY_FORM = { full_name: "", phone: "", email: "" };
@@ -99,120 +92,123 @@ export function CollaboratorForm({
     }
   }
 
+  if (credentials) {
+    return (
+      <div className="mx-auto max-w-sm space-y-3 text-center">
+        <h2 className="font-nexora text-lg font-semibold" style={{ color: 'var(--nexora-signal)' }}>
+          Colaborador creado
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Entra con &ldquo;Continuar con Google&rdquo; usando este correo:
+        </p>
+        <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
+          <span className="font-mono-data">{credentials.email}</span>
+        </p>
+        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Debe iniciar sesión con la cuenta de Google de ese correo.
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-1"
+          onClick={() => {
+            setCredentials(null);
+            onDone?.();
+          }}
+        >
+          Listo
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {credentials && (
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle style={{ color: 'var(--nexora-signal)' }}>Colaborador creado</CardTitle>
-            <CardDescription>
-              Entra con &ldquo;Continuar con Google&rdquo; usando este correo:
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-sm" style={{ color: 'var(--nexora-ink)' }}>
-              Correo: <span className="font-mono-data">{credentials.email}</span>
-            </p>
-            <p className="mt-1 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-              Debe iniciar sesión con la cuenta de Google de ese correo.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => {
-                setCredentials(null);
-                onDone?.();
-              }}
-            >
-              Listo
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+    <div className="mx-auto max-w-md space-y-6">
+      <div className="text-center space-y-1">
+        <h2 className="font-nexora text-lg font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+          {isEditing ? "Editar colaborador" : "Nuevo colaborador"}
+        </h2>
+        {!isEditing && (
+          <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Entrará con su cuenta de Google usando este mismo correo.
+          </p>
+        )}
+      </div>
 
       {error && (
         <p
-          className="rounded-xl border p-3 text-sm"
+          className="rounded-lg border p-3 text-center text-sm"
           style={{ borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--nexora-alert)' }}
         >
           {error}
         </p>
       )}
 
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle>{isEditing ? "Editar colaborador" : "Nuevo colaborador"}</CardTitle>
-          {!isEditing && (
-            <CardDescription>
-              El colaborador entrará con su cuenta de Google usando este mismo correo.
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
-            <div className="space-y-1 md:space-y-1.5">
-              <Label htmlFor="full_name" className="block text-center">Nombre completo</Label>
-              <Input
-                id="full_name"
-                value={form.full_name}
-                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-                required
-              />
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-1.5">
+          <Label htmlFor="full_name" className="block text-center">Nombre completo</Label>
+          <Input
+            id="full_name"
+            value={form.full_name}
+            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+            placeholder="Ej. Angie Vásquez"
+            required
+            className="text-center"
+          />
+        </div>
 
-            <PhoneField
-              key={phoneFieldKey}
-              label="Teléfono"
-              defaultValue={editingCollaborator?.phone ?? undefined}
-              onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
+        <PhoneField
+          key={phoneFieldKey}
+          label="Teléfono"
+          defaultValue={editingCollaborator?.phone ?? undefined}
+          onChange={(value) => setForm((f) => ({ ...f, phone: value }))}
+        />
+
+        {!isEditing && (
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="block text-center">Correo</Label>
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="correo@gmail.com"
+              required
+              className="text-center"
             />
+          </div>
+        )}
 
-            {!isEditing && (
-              <div className="space-y-1 md:space-y-1.5">
-                <Label htmlFor="email" className="block text-center">Correo</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  required
-                />
-              </div>
-            )}
-
-            <div className="space-y-1 md:space-y-1.5">
-              <Label className="block text-center">Módulos que puede ver</Label>
-              <div className="flex justify-center">
-                <div className="flex flex-col items-start gap-1.5 md:gap-2">
-                  {ASSIGNABLE_MODULES.map((mod) => (
-                    <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
-                      <Checkbox
-                        id={`perm-${mod.key}`}
-                        checked={permissions.includes(mod.key)}
-                        onCheckedChange={(checked) => togglePermission(mod.key, checked === true)}
-                      />
-                      <mod.icon size={14} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
-                      {mod.label}
-                    </Label>
-                  ))}
-                </div>
-              </div>
+        <div className="space-y-2">
+          <Label className="block text-center">Módulos que puede ver</Label>
+          <div className="flex justify-center">
+            <div className="flex flex-col items-start gap-2">
+              {ASSIGNABLE_MODULES.map((mod) => (
+                <Label key={mod.key} htmlFor={`perm-${mod.key}`} className="font-normal">
+                  <Checkbox
+                    id={`perm-${mod.key}`}
+                    checked={permissions.includes(mod.key)}
+                    onCheckedChange={(checked) => togglePermission(mod.key, checked === true)}
+                  />
+                  <mod.icon size={14} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
+                  {mod.label}
+                </Label>
+              ))}
             </div>
+          </div>
+        </div>
 
-            <div className="flex justify-center gap-3">
-              <Button type="submit" disabled={loading}>
-                {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear colaborador"}
-              </Button>
-              {isEditing && (
-                <Button type="button" variant="outline" onClick={onDone}>
-                  Cancelar
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex justify-center gap-3 pt-1">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Crear colaborador"}
+          </Button>
+          {isEditing && (
+            <Button type="button" variant="outline" onClick={onDone}>
+              Cancelar
+            </Button>
+          )}
+        </div>
+      </form>
     </div>
   );
 }
