@@ -1,28 +1,18 @@
 import type { LucideIcon } from 'lucide-react';
-import type { TrendIndicator } from '@/lib/services/dashboardService';
-
-const TREND_COLOR: Record<TrendIndicator['direction'], string> = {
-  up: '#34D399',
-  down: '#F87171',
-  neutral: 'var(--nexora-ink-dim)',
-};
 
 // Tarjeta compacta de KPI con ícono — la fila de arriba de Inicio, al
 // estilo de los dashboards SaaS de referencia (ícono + cifra grande +
-// etiqueta + tendencia), pero con los tokens de color de AVENTHRA.
+// etiqueta), pero con los tokens de color de AVENTHRA.
 export function IconStatCard({
   icon: Icon,
   label,
   value,
-  trend,
   badge,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
-  trend?: TrendIndicator;
-  // Pastilla accionable (ej. "2 nuevos") — tiene prioridad sobre `trend`:
-  // decir "tenés 2 pedidos sin atender" es más útil que "↑ nuevo".
+  // Pastilla accionable (ej. "2 nuevos") arriba a la derecha de la tarjeta.
   badge?: { text: string };
 }) {
   return (
@@ -43,13 +33,6 @@ export function IconStatCard({
             style={{ color: '#34D399', background: '#34D3991A' }}
           >
             {badge.text}
-          </span>
-        ) : trend ? (
-          <span
-            className="text-[11px] font-medium px-1.5 py-0.5 rounded-md"
-            style={{ color: TREND_COLOR[trend.direction], background: `${TREND_COLOR[trend.direction]}1A` }}
-          >
-            {trend.direction === "down" ? "↓" : trend.direction === "up" ? "↑" : ""} {trend.value}
           </span>
         ) : null}
       </div>

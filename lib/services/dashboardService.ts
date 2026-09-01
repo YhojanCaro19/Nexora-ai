@@ -9,11 +9,6 @@ import { getProducts } from "@/lib/services/productService";
 import { getCollaborators } from "@/lib/services/collaboratorService";
 import { getTimezoneForCountry, startOfDayInTimezone, endOfDayInTimezone } from "@/lib/utils/timezone";
 
-export interface TrendIndicator {
-  value: string;
-  direction: "up" | "down" | "neutral";
-}
-
 export interface PendingOrderPreview {
   id: string;
   number: number;
@@ -25,8 +20,6 @@ export interface AdminDashboardStats {
   todayRevenue: number;
   todayOrderCount: number;
   avgOrderValue: number;
-  revenueTrend: TrendIndicator;
-  orderCountTrend: TrendIndicator;
   topProductToday: string | null;
   pendingOrders: number;
   activeProducts: number;
@@ -43,25 +36,11 @@ export interface AdminDashboardStats {
   pendingPreview: PendingOrderPreview[];
 }
 
-// "nuevo" cuando ayer no hubo nada con qué comparar — más honesto que
-// mostrar un porcentaje sin sentido (dividir por cero) o un 0% engañoso.
-function computeTrend(current: number, previous: number): TrendIndicator {
-  if (previous === 0) {
-    return current === 0 ? { value: "0%", direction: "neutral" } : { value: "nuevo", direction: "up" };
-  }
-  const change = ((current - previous) / previous) * 100;
-  if (Math.abs(change) < 1) return { value: "0%", direction: "neutral" };
-  return { value: `${Math.abs(Math.round(change))}%`, direction: change > 0 ? "up" : "down" };
-}
-
 const FINISHED_STATUSES = ["shipped", "picked_up"];
 
 export async function getAdminDashboardStats(businessId: string): Promise<AdminDashboardStats> {
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
-  const [todaySummary, yesterdaySummary, orders, products, collaborators, salesTrend] = await Promise.all([
+  const [todaySummary, orders, products, collaborators, salesTrend] = await Promise.all([
     getDailySalesSummary(businessId),
-    getDailySalesSummary(businessId, yesterday),
     getOrders(businessId),
     getProducts(businessId),
     getCollaborators(businessId),
@@ -109,8 +88,6 @@ export async function getAdminDashboardStats(businessId: string): Promise<AdminD
     todayRevenue,
     todayOrderCount,
     avgOrderValue: todayOrderCount > 0 ? todayRevenue / todayOrderCount : 0,
-    revenueTrend: computeTrend(todayRevenue, yesterdaySummary?.totalRevenue ?? 0),
-    orderCountTrend: computeTrend(todayOrderCount, yesterdaySummary?.orderCount ?? 0),
     topProductToday: todaySummary?.items[0]?.name ?? null,
     pendingOrders: orders.filter((o) => o.status === "pending").length,
     activeProducts: products.filter((p) => p.active).length,

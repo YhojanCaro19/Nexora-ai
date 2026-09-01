@@ -17,8 +17,6 @@ export default async function AdminHomePage() {
   const todayRevenue = stats?.todayRevenue ?? 0;
   const todayOrderCount = stats?.todayOrderCount ?? 0;
   const avgOrderValue = stats?.avgOrderValue ?? 0;
-  const revenueTrend = stats?.revenueTrend ?? { value: "0%", direction: "neutral" as const };
-  const orderCountTrend = stats?.orderCountTrend ?? { value: "0%", direction: "neutral" as const };
   const salesTrend = stats?.salesTrend ?? [];
   const completionRate = stats?.completionRate ?? 0;
   const pendingOrders = stats?.pendingOrders ?? 0;
@@ -37,13 +35,11 @@ export default async function AdminHomePage() {
           icon={Wallet}
           label="Ventas de hoy"
           value={formatCurrency(todayRevenue, countryIso2)}
-          trend={revenueTrend}
         />
         <IconStatCard
           icon={ShoppingBag}
           label="Pedidos de hoy"
           value={String(todayOrderCount)}
-          trend={orderCountTrend}
           badge={
             pendingOrders > 0
               ? { text: `${pendingOrders} ${pendingOrders === 1 ? "nuevo" : "nuevos"}` }
