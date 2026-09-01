@@ -22,37 +22,33 @@ function seatSplit(capacity: number): [number, number] {
 function TableGlyph({ capacity, number, active }: { capacity: number; number: number; active: boolean }) {
   const [left, right] = seatSplit(capacity);
   const rows = Math.max(left, right, 1);
-  const seatColor = active ? "rgba(129,140,248,0.6)" : "rgba(255,255,255,0.16)";
+  const seatColor = active ? "#A5B4FC" : "#3B3F52";
+  const tableBg = active ? "rgba(129,140,248,0.30)" : "#242838";
+  const tableBorder = active ? "#818CF8" : "#3B3F52";
+
+  const SeatCol = ({ n }: { n: number }) => (
+    <div className="flex flex-col justify-center gap-1.5">
+      {Array.from({ length: n }).map((_, i) => (
+        <span key={i} className="h-7 w-4 shrink-0 rounded-[5px]" style={{ background: seatColor }} />
+      ))}
+    </div>
+  );
 
   return (
-    <div className="flex items-stretch justify-center gap-2">
-      <div className="flex flex-col justify-center gap-2">
-        {Array.from({ length: left }).map((_, i) => (
-          <span key={i} className="h-6 w-4 shrink-0 rounded-md" style={{ background: seatColor }} />
-        ))}
-      </div>
-
+    <div className="flex items-stretch justify-center gap-1.5">
+      <SeatCol n={left} />
       <div
-        className="relative flex w-14 items-center justify-center rounded-xl"
-        style={{
-          minHeight: `${rows * 32}px`,
-          background: active ? "rgba(129,140,248,0.28)" : "rgba(255,255,255,0.06)",
-          border: `1px solid ${active ? "rgba(129,140,248,0.6)" : "var(--nexora-line)"}`,
-        }}
+        className="relative flex w-16 items-center justify-center rounded-2xl"
+        style={{ minHeight: `${rows * 34}px`, background: tableBg, border: `1.5px solid ${tableBorder}` }}
       >
         <span
-          className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold"
+          className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
           style={{ background: "#818CF8", color: "#0b0b10" }}
         >
           {number}
         </span>
       </div>
-
-      <div className="flex flex-col justify-center gap-2">
-        {Array.from({ length: right }).map((_, i) => (
-          <span key={i} className="h-6 w-4 shrink-0 rounded-md" style={{ background: seatColor }} />
-        ))}
-      </div>
+      <SeatCol n={right} />
     </div>
   );
 }
@@ -96,14 +92,14 @@ export function TablesMap({
           : `${tables.length} mesa${tables.length === 1 ? "" : "s"} · ${totalSeats} sillas en total`}
       </p>
 
-      {/* Salón — área grande tipo plano */}
+      {/* Salón — usa todo el ancho; las mesas se reparten solas */}
       <div
-        className="grid grid-cols-2 gap-x-6 gap-y-8 rounded-2xl border p-6 sm:grid-cols-3 sm:gap-x-10 sm:p-10 lg:grid-cols-4"
+        className="grid justify-items-center gap-8 rounded-3xl border p-6 sm:p-10"
         style={{
-          borderColor: "var(--nexora-line)",
-          minHeight: "26rem",
+          gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+          borderColor: "#2A2E3E",
           background:
-            "repeating-linear-gradient(0deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0 1px, transparent 1px 40px), var(--nexora-void)",
+            "radial-gradient(circle at 30% 20%, rgba(129,140,248,0.05), transparent 55%), repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 44px), repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 44px), #0C0D14",
         }}
       >
         {tables.map((t, i) => (
@@ -111,14 +107,14 @@ export function TablesMap({
             key={t.id}
             type="button"
             onClick={() => setEditingId((cur) => (cur === t.id ? null : t.id))}
-            className="flex flex-col items-center gap-2.5 rounded-xl border p-3 transition-colors hover:bg-white/[0.03]"
-            style={{
-              borderColor: editingId === t.id ? "var(--nexora-nova)" : "transparent",
-            }}
+            className="flex w-full flex-col items-center gap-3 rounded-2xl border p-4 transition-all hover:bg-white/[0.03]"
+            style={{ borderColor: editingId === t.id ? "#818CF8" : "transparent" }}
           >
             <TableGlyph capacity={t.capacity ?? 4} number={i + 1} active={editingId === t.id} />
-            <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-              {t.name !== `Mesa ${i + 1}` ? `${t.name} · ` : ""}
+            <span className="text-xs font-medium" style={{ color: "var(--nexora-ink)" }}>
+              {t.name !== `Mesa ${i + 1}` ? t.name : `Mesa ${i + 1}`}
+            </span>
+            <span className="-mt-2 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
               {t.capacity ?? 4} sillas
             </span>
           </button>
@@ -128,10 +124,12 @@ export function TablesMap({
           type="button"
           onClick={addTable}
           disabled={pending}
-          className="flex flex-col items-center justify-center gap-2 self-center rounded-xl border border-dashed p-6 text-sm transition-colors hover:bg-white/[0.03] disabled:opacity-50"
-          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)", minHeight: "8rem" }}
+          className="flex w-full flex-col items-center justify-center gap-2 self-center rounded-2xl border border-dashed py-10 text-sm transition-colors hover:bg-white/[0.03] disabled:opacity-50"
+          style={{ borderColor: "#3B3F52", color: "var(--nexora-ink-dim)" }}
         >
-          <Plus size={22} strokeWidth={2} />
+          <span className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: "rgba(129,140,248,0.15)" }}>
+            <Plus size={20} strokeWidth={2.5} style={{ color: "#A5B4FC" }} />
+          </span>
           Agregar mesa
         </button>
       </div>

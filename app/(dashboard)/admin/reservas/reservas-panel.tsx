@@ -597,7 +597,7 @@ function ConfigView({
   const showAppointments = mode === "appointments" || mode === "both";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-12">
+    <div className="mx-auto max-w-4xl space-y-12">
       <SettingsSection
         settings={settings}
         mode={mode}
