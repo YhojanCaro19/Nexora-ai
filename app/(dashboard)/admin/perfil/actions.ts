@@ -3,8 +3,14 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { ownProfileSchema } from "@/lib/validators/profileSchema";
+import { accountChangeRequestSchema } from "@/lib/validators/accountChangeSchema";
 import { updateOwnProfile, signOutAllSessions, uploadAvatar, deleteAvatar } from "@/lib/services/profileService";
+import {
+  createAccountChangeRequest,
+  cancelAccountChangeRequest,
+} from "@/lib/services/accountChangeService";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
@@ -66,6 +72,61 @@ export async function deleteAvatarAction() {
     await logProfileSecurityEvent(profile.userId, profile.businessId, "avatar_updated");
   }
   revalidatePath("/admin/perfil");
+  return result;
+}
+
+// Solicitud de cambio de cuenta de acceso (Google). No cambia nada por sí
+// sola — crea una solicitud que el superadmin verifica y aprueba. Ver
+// lib/services/accountChangeService.ts.
+export async function requestAccountChangeAction(input: { requestedEmail: string; reason: string }) {
+  const profile = await getSessionProfile();
+  if (!profile || !profile.businessId) return { error: "No autorizado" };
+
+  const limit = checkRateLimit(`account-change-request:${profile.userId}`, 3, 60 * 60 * 1000);
+  if (!limit.allowed) {
+    return { error: `Demasiados intentos. Espera ${limit.retryAfterSeconds}s y vuelve a intentarlo.` };
+  }
+
+  const parsed = accountChangeRequestSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return { error: "No encontramos un correo asociado a tu cuenta" };
+
+  const admin = createAdminClient();
+  const { data: member } = await admin
+    .from("business_members")
+    .select("phone")
+    .eq("user_id", profile.userId)
+    .eq("business_id", profile.businessId)
+    .maybeSingle();
+
+  const result = await createAccountChangeRequest({
+    userId: profile.userId,
+    businessId: profile.businessId,
+    memberRole: profile.role,
+    currentEmail: user.email,
+    contactPhone: (member as { phone: string | null } | null)?.phone ?? null,
+    input: parsed.data,
+  });
+
+  revalidatePath("/admin/perfil");
+  revalidatePath("/colaborador/perfil");
+  return result;
+}
+
+export async function cancelAccountChangeAction(requestId: string) {
+  const profile = await getSessionProfile();
+  if (!profile) return { error: "No autorizado" };
+
+  const result = await cancelAccountChangeRequest(requestId, profile.userId);
+  revalidatePath("/admin/perfil");
+  revalidatePath("/colaborador/perfil");
   return result;
 }
 

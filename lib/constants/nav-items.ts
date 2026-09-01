@@ -14,6 +14,7 @@ import {
   Zap,
   Sparkles,
   ShieldCheck,
+  KeyRound,
 } from 'lucide-react';
 import { CreditCoinIcon } from '@/components/dashboard/shared/CreditCoin';
 
@@ -32,6 +33,7 @@ export const SUPERADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Negocios', href: '/superadmin/negocios', icon: Building2 },
       { label: 'Registros', href: '/superadmin/registros', icon: ClipboardList },
+      { label: 'Solicitudes', href: '/superadmin/solicitudes', icon: KeyRound },
       { label: 'Reportes', href: '/superadmin/reportes', icon: FileBarChart },
     ],
   },

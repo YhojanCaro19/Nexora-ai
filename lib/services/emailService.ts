@@ -139,6 +139,67 @@ export async function sendAccountReadyEmail(
   });
 }
 
+// Aviso al correo ACTUAL de que alguien pidió cambiar la cuenta de acceso
+// — así el dueño real se entera aunque la solicitud la haya hecho otra
+// persona con acceso al panel.
+export async function sendAccountChangeRequestedEmail(
+  to: string,
+  data: { requestedEmail: string }
+): Promise<{ error: string | null }> {
+  return sendEmail({
+    to,
+    subject: "Solicitud de cambio de cuenta de acceso — AVENTHRA",
+    html: emailShell(`
+      <h2 style="margin-bottom: 4px;">Recibimos una solicitud de cambio</h2>
+      <p>Se pidió cambiar la cuenta de acceso de <strong>${to}</strong> a
+      <strong>${data.requestedEmail}</strong>.</p>
+      <p>Nuestro equipo va a verificar la identidad antes de aplicar el
+      cambio. No tienes que hacer nada más por ahora.</p>
+      <p style="color: #6b7280; font-size: 13px;">Si <strong>no</strong> fuiste
+      tú, escríbenos de inmediato: es posible que alguien más tenga acceso a
+      tu panel.</p>
+    `),
+  });
+}
+
+// Resultado de la solicitud — aprobada (a los dos correos) o rechazada (al
+// correo actual).
+export async function sendAccountChangeResolvedEmail(
+  to: string,
+  data: { approved: boolean; newEmail: string; note: string | null }
+): Promise<{ error: string | null }> {
+  const noteHtml = data.note
+    ? `<p style="color: #6b7280; font-size: 13px;">Nota del equipo: ${data.note}</p>`
+    : "";
+  if (data.approved) {
+    return sendEmail({
+      to,
+      subject: "Tu cuenta de acceso de AVENTHRA cambió",
+      html: emailShell(`
+        <h2 style="margin-bottom: 4px;">Cambio de cuenta aplicado</h2>
+        <p>La cuenta de acceso ahora es <strong>${data.newEmail}</strong>.
+        Desde ahora se inicia sesión con "Continuar con Google" usando ese
+        correo.</p>
+        ${noteHtml}
+        <p style="color: #6b7280; font-size: 13px;">Si no reconoces este
+        cambio, escríbenos de inmediato.</p>
+      `),
+    });
+  }
+  return sendEmail({
+    to,
+    subject: "Solicitud de cambio de cuenta — no aprobada",
+    html: emailShell(`
+      <h2 style="margin-bottom: 4px;">No pudimos aprobar el cambio</h2>
+      <p>La solicitud para cambiar la cuenta de acceso a
+      <strong>${data.newEmail}</strong> no fue aprobada.</p>
+      ${noteHtml}
+      <p style="color: #6b7280; font-size: 13px;">Puedes volver a
+      solicitarlo desde tu perfil.</p>
+    `),
+  });
+}
+
 // No lanza — cualquier falla (key faltante, from sin verificar, Resend
 // caído) se devuelve como { error } para que el caller decida si
 // reintenta en la siguiente pasada del cron, nunca tumba el proceso.
