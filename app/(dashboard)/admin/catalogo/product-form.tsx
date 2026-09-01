@@ -1,14 +1,13 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { createProductAction, updateProductAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
 import { getCategoryOptions, OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
@@ -86,6 +85,12 @@ export function ProductForm({
     setImagePreview(URL.createObjectURL(file));
   }
 
+  function clearImage() {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -121,93 +126,143 @@ export function ProductForm({
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>{isEditing ? "Editar producto" : "Nuevo producto"}</CardTitle>
-        {!isEditing && (
-          <CardDescription>Agrega un producto a tu catálogo.</CardDescription>
-        )}
-      </CardHeader>
-      <CardContent>
-        {error && (
-          <p
-            className="mb-4 rounded-lg border p-3 text-sm"
-            style={{ borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--nexora-alert)' }}
+    <div className="max-w-xl mx-auto space-y-6">
+      <div className="text-center space-y-1">
+        <h2 className="font-nexora text-lg" style={{ color: 'var(--nexora-ink)' }}>
+          {isEditing ? "Editar producto" : "Nuevo producto"}
+        </h2>
+        <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {isEditing ? "Actualiza los datos de este producto." : "Agrega un producto a tu catálogo."}
+        </p>
+      </div>
+
+      {error && (
+        <p
+          className="rounded-lg border p-3 text-sm text-center"
+          style={{ borderColor: 'rgba(248,113,113,0.3)', background: 'rgba(248,113,113,0.08)', color: 'var(--nexora-alert)' }}
+        >
+          {error}
+        </p>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Foto — grande y centrada, lo primero que se ve. */}
+        <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="group relative w-40 h-40 rounded-2xl border border-dashed overflow-hidden flex flex-col items-center justify-center gap-2 transition-colors"
+            style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.02)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
+            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
           >
-            {error}
+            {imagePreview ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
+                <img src={imagePreview} alt="Vista previa" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="text-xs font-medium text-white">Cambiar foto</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <ImagePlus size={26} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
+                <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  Subir foto
+                </span>
+              </>
+            )}
+          </button>
+
+          {imagePreview && (
+            <button
+              type="button"
+              onClick={clearImage}
+              className="inline-flex items-center gap-1 text-xs transition-colors"
+              style={{ color: 'var(--nexora-ink-dim)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
+            >
+              <X size={12} />
+              Quitar foto
+            </button>
+          )}
+
+          <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Foto del producto (opcional). JPG o PNG, máximo 5MB.
           </p>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+          <input
+            ref={fileInputRef}
+            id="image"
+            type="file"
+            accept="image/jpeg,image/png"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="name" className="block text-center">Nombre</Label>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="Ej. Corte con barba"
+            required
+            className="text-center"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="description" className="block text-center">Descripción</Label>
+          <Textarea
+            id="description"
+            rows={3}
+            maxLength={DESCRIPTION_MAX_LENGTH}
+            value={form.description}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
+            placeholder="Lo que el agente usa para responder — cuanto más claro, mejor."
+          />
+          <p className="text-[11px] text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+            {form.description.length} / {DESCRIPTION_MAX_LENGTH}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name" className="block text-center">Nombre</Label>
+            <Label htmlFor="price" className="block text-center">Precio</Label>
             <Input
-              id="name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              id="price"
+              type="text"
+              inputMode="numeric"
+              value={form.price}
+              onChange={(e) => setForm((f) => ({ ...f, price: formatThousands(e.target.value) }))}
+              placeholder="20,000"
               required
+              className="text-center"
             />
           </div>
-
           <div className="space-y-1.5">
-            <Label htmlFor="description" className="block text-center">Descripción</Label>
-            <Textarea
-              id="description"
-              rows={3}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
+            <Label htmlFor="stock" className="block text-center">Stock (opcional)</Label>
+            <Input
+              id="stock"
+              type="number"
+              min="0"
+              step="1"
+              value={form.stock}
+              onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+              placeholder="—"
+              className="text-center"
             />
-            <p className="text-xs text-right" style={{ color: 'var(--nexora-ink-dim)' }}>
-              {form.description.length}/{DESCRIPTION_MAX_LENGTH}
-            </p>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="price" className="block text-center">Precio</Label>
-              <Input
-                id="price"
-                type="text"
-                inputMode="numeric"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: formatThousands(e.target.value) }))}
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="stock" className="block text-center">Stock (opcional)</Label>
-              <Input
-                id="stock"
-                type="number"
-                min="0"
-                step="1"
-                value={form.stock}
-                onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="low-stock-threshold" className="block text-center">
-                Aviso de stock bajo (opcional)
-              </Label>
-              <Input
-                id="low-stock-threshold"
-                type="number"
-                min="1"
-                step="1"
-                placeholder="5"
-                value={form.lowStockThreshold}
-                onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-              />
-            </div>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="block text-center">Categoría (opcional)</Label>
-            <Select
-              value={categorySelect}
-              onValueChange={(v) => setCategorySelect(v ?? "")}
-            >
-              <SelectTrigger className="w-full h-10 text-sm">
+            <Select value={categorySelect} onValueChange={(v) => setCategorySelect(v ?? "")}>
+              <SelectTrigger className="w-full h-10 text-sm justify-center">
                 <SelectValue placeholder="Sin categoría" />
               </SelectTrigger>
               <SelectContent>
@@ -222,69 +277,38 @@ export function ProductForm({
                 onChange={(e) => setCategoryOther(e.target.value)}
                 placeholder="Escribe la categoría"
                 maxLength={60}
-                className="mt-1.5"
+                className="mt-1.5 text-center"
               />
             )}
           </div>
-
-          <div className="space-y-2">
-            <Label className="block text-center">
-              Foto del producto (opcional) — la que el agente le muestra al cliente
+          <div className="space-y-1.5">
+            <Label htmlFor="low-stock-threshold" className="block text-center">
+              Aviso de stock bajo (opcional)
             </Label>
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="group relative w-32 h-32 rounded-2xl border border-dashed overflow-hidden flex flex-col items-center justify-center gap-1.5 transition-colors"
-                style={{ borderColor: 'rgba(255,255,255,0.2)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
-              >
-                {imagePreview ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
-                    <img src={imagePreview} alt="Vista previa" className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-xs font-medium text-white">Cambiar</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <ImagePlus size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
-                    <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-                      Subir foto
-                    </span>
-                  </>
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                id="image"
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </div>
-
-            <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-              JPG o PNG, máximo 5MB.
-            </p>
+            <Input
+              id="low-stock-threshold"
+              type="number"
+              min="1"
+              step="1"
+              placeholder="5"
+              value={form.lowStockThreshold}
+              onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
+              className="text-center"
+            />
           </div>
+        </div>
 
-          <div className="flex justify-center gap-3">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Agregar producto"}
+        <div className="flex justify-center gap-3 pt-2">
+          <Button type="submit" disabled={loading}>
+            {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Agregar producto"}
+          </Button>
+          {isEditing && (
+            <Button type="button" variant="outline" onClick={onDone}>
+              Cancelar
             </Button>
-            {isEditing && (
-              <Button type="button" variant="outline" onClick={onDone}>
-                Cancelar
-              </Button>
-            )}
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
