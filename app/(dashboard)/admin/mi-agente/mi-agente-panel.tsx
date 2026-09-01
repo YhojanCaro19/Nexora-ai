@@ -199,7 +199,7 @@ export function MiAgentePanel({
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         {/* ---- Vista previa (arriba en móvil, fija al costado en desktop) ---- */}
         <div className="order-1 lg:order-2">
           <div className="lg:sticky lg:top-6">
@@ -547,11 +547,8 @@ export function MiAgentePanel({
         </div>
       </div>
 
-      {/* ---- Barra de guardar (fija abajo) ---- */}
-      <div
-        className="sticky bottom-4 z-10 mx-auto mt-8 flex max-w-sm items-center justify-center gap-3 rounded-full border px-5 py-2.5 backdrop-blur"
-        style={{ borderColor: "var(--nexora-line)", background: "color-mix(in oklch, var(--nexora-panel) 88%, transparent)" }}
-      >
+      {/* ---- Guardar — al final de todo, quieto ---- */}
+      <div className="mt-12 flex flex-col items-center gap-2">
         <Button disabled={saving} onClick={handleSave}>
           {saving ? "Guardando..." : "Guardar"}
         </Button>

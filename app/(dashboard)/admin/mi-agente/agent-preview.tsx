@@ -92,24 +92,8 @@ function buildScript(cfg: AgentPreviewConfig): Bubble[] {
   ];
 }
 
-const CHIP_LABELS: Record<string, string> = {
-  tu: "Tutea",
-  usted: "De usted",
-  ninguno: "Sin emojis",
-  pocos: "Pocos emojis",
-  personalizado: "Emojis propios",
-  corta: "Respuestas cortas",
-  media: "Respuestas medias",
-  larga: "Respuestas largas",
-};
-
 export function AgentPreview(cfg: AgentPreviewConfig) {
   const script = buildScript(cfg);
-  const chips = [
-    cfg.addressForm !== "auto" ? CHIP_LABELS[cfg.addressForm] : null,
-    CHIP_LABELS[cfg.emojiMode],
-    cfg.responseLength ? CHIP_LABELS[cfg.responseLength] : null,
-  ].filter(Boolean) as string[];
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -117,76 +101,67 @@ export function AgentPreview(cfg: AgentPreviewConfig) {
         Vista previa
       </p>
 
-      {/* Teléfono */}
+      {/* iPhone */}
       <div
-        className="w-full max-w-[300px] overflow-hidden rounded-[26px] border shadow-xl"
-        style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-void)" }}
+        className="relative w-full max-w-[340px] rounded-[46px] p-[10px] shadow-2xl"
+        style={{ background: "#050506", border: "1px solid rgba(255,255,255,0.08)" }}
       >
-        {/* Barra del chat */}
+        {/* Isla flotante (Dynamic Island) */}
+        <div className="pointer-events-none absolute left-1/2 top-[18px] z-20 h-[26px] w-[92px] -translate-x-1/2 rounded-full bg-black" />
+
+        {/* Pantalla */}
         <div
-          className="flex items-center gap-2.5 border-b px-3.5 py-3"
-          style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+          className="overflow-hidden rounded-[38px]"
+          style={{ background: "var(--nexora-void)" }}
         >
-          <span
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-            style={{ background: "rgba(238,240,247,0.08)" }}
+          {/* Barra de estado + cabecera del chat */}
+          <div
+            className="border-b px-4 pb-3 pt-11"
+            style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
           >
-            <Bot size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
-          </span>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
-              {cfg.name || "Tu Agente"}
-            </p>
-            <p className="text-[11px]" style={{ color: "var(--nexora-signal)" }}>
-              en línea
-            </p>
+            <div className="flex items-center gap-3">
+              <span
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                style={{ background: "rgba(238,240,247,0.08)" }}
+              >
+                <Bot size={17} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold" style={{ color: "var(--nexora-ink)" }}>
+                  {cfg.name || "Tu Agente"}
+                </p>
+                <p className="text-[11px]" style={{ color: "var(--nexora-signal)" }}>
+                  en línea
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mensajes */}
+          <div className="flex min-h-[280px] flex-col gap-2 px-3.5 py-5">
+            {script.map((b, i) => (
+              <div
+                key={i}
+                className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13.5px] leading-snug ${
+                  b.from === "agente" ? "self-start rounded-bl-md" : "self-end rounded-br-md"
+                }`}
+                style={
+                  b.from === "agente"
+                    ? { background: "var(--nexora-secondary)", color: "var(--nexora-ink)" }
+                    : { background: "var(--nexora-nova)", color: "var(--nexora-nova-ink)" }
+                }
+              >
+                {b.text}
+              </div>
+            ))}
+          </div>
+
+          {/* Barra de gestos (home indicator) */}
+          <div className="flex justify-center pb-2 pt-1">
+            <span className="h-1 w-28 rounded-full" style={{ background: "rgba(255,255,255,0.22)" }} />
           </div>
         </div>
-
-        {/* Mensajes */}
-        <div className="flex flex-col gap-2 px-3 py-4">
-          {script.map((b, i) => (
-            <div
-              key={i}
-              className={`max-w-[82%] rounded-2xl px-3 py-2 text-[13px] leading-snug ${
-                b.from === "agente" ? "self-start rounded-bl-sm" : "self-end rounded-br-sm"
-              }`}
-              style={
-                b.from === "agente"
-                  ? { background: "var(--nexora-secondary)", color: "var(--nexora-ink)" }
-                  : { background: "var(--nexora-nova)", color: "var(--nexora-nova-ink)" }
-              }
-            >
-              {b.text}
-            </div>
-          ))}
-        </div>
       </div>
-
-      {/* Chips de la persona */}
-      {chips.length > 0 && (
-        <div className="flex flex-wrap justify-center gap-1.5">
-          {chips.map((c) => (
-            <span
-              key={c}
-              className="rounded-full border px-2 py-0.5 text-[11px]"
-              style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)" }}
-            >
-              {c}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {cfg.localPhrases.trim() && (
-        <p className="text-center text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-          Modismos: {cfg.localPhrases.trim()}
-        </p>
-      )}
-
-      <p className="max-w-[280px] text-center text-[10px]" style={{ color: "var(--nexora-ink-dim)" }}>
-        Muestra aproximada. Para probar el agente de verdad, usá el chat de abajo.
-      </p>
     </div>
   );
 }
