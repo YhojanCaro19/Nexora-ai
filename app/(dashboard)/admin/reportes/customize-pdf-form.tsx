@@ -85,12 +85,6 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-        La plantilla del reporte diario es la misma para todos los negocios — esto es lo
-        que se personaliza en tu encabezado: logo, correo y teléfono de contacto, NIT,
-        dirección y redes sociales.
-      </p>
-
       {error && (
         <p
           className="rounded-lg border p-3 text-sm text-center"
