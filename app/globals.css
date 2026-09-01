@@ -300,19 +300,28 @@ body {
   .aventhra-iridescent-bg { animation: none; }
 }
 
-/* Barrita del módulo activo del menú del dashboard (Sidebar.tsx): recorre
-   los colores de marca (cian → índigo → violeta → rosa) con un glow que
-   acompaña. Bajo reduced motion queda fija en cian. */
+/* Barrita del módulo activo del menú del dashboard (Sidebar.tsx): un
+   degradado de marca (cian → índigo → violeta → índigo → cian) que fluye
+   suave, mismo espíritu que .aventhra-iridescent de la landing. Sin rosa
+   (se veía chillón en una barra tan chica). El glow queda fijo, en un
+   tono medio, para no pelear con el color que va pasando. Bajo reduced
+   motion queda quieto. */
 @keyframes aventhra-navcycle {
-  0%, 100% { background-color: #4CC2E8; box-shadow: 0 0 10px 1px rgba(76,194,232,0.85); }
-  25%      { background-color: #818CF8; box-shadow: 0 0 10px 1px rgba(129,140,248,0.85); }
-  50%      { background-color: #A78BFA; box-shadow: 0 0 10px 1px rgba(167,139,250,0.85); }
-  75%      { background-color: #E879C7; box-shadow: 0 0 10px 1px rgba(232,121,199,0.85); }
+  to { background-position: center 100%; }
 }
 .aventhra-navcycle {
-  background-color: #4CC2E8;
-  box-shadow: 0 0 10px 1px rgba(76,194,232,0.85);
-  animation: aventhra-navcycle 7s ease-in-out infinite;
+  background-image: linear-gradient(
+    180deg,
+    #4CC2E8 0%,
+    #818CF8 25%,
+    #A78BFA 50%,
+    #818CF8 75%,
+    #4CC2E8 100%
+  );
+  background-size: 100% 200%;
+  background-position: center 0%;
+  box-shadow: 0 0 9px 1px rgba(129,140,248,0.55);
+  animation: aventhra-navcycle 5s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .aventhra-navcycle { animation: none; }

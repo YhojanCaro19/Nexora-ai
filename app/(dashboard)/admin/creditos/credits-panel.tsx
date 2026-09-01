@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Plus, ArrowUpCircle, type LucideIcon } from "lucide-react";
 import { CreditCoin } from "@/components/dashboard/shared/CreditCoin";
 import type { CreditBalance, CreditLedgerEntry } from "@/lib/services/creditService";
 import { formatShortDateTime } from "@/lib/utils/date";
@@ -25,6 +25,34 @@ const REASON_LABELS: Record<string, string> = {
 
 const reasonLabel = (reason: string) => REASON_LABELS[reason] ?? reason;
 const fmt = (n: number) => n.toLocaleString("es-CO");
+
+// Botón que en desktop es solo el ícono y, al pasar el mouse (o con foco),
+// revela el texto con una animación de ancho. En móvil (sin hover) muestra
+// el texto siempre.
+function ExpandingButton({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className="group inline-flex items-center rounded-full border px-3.5 py-2.5 text-sm font-medium transition-colors hover:border-white/25"
+      style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+    >
+      <Icon size={16} strokeWidth={1.75} className="shrink-0" />
+      <span className="grid grid-cols-[1fr] transition-[grid-template-columns] duration-300 ease-out sm:grid-cols-[0fr] sm:group-hover:grid-cols-[1fr] sm:group-focus-visible:grid-cols-[1fr]">
+        <span className="overflow-hidden whitespace-nowrap pl-2">{label}</span>
+      </span>
+    </button>
+  );
+}
 
 export function CreditsPanel({
   balance,
@@ -66,13 +94,9 @@ export function CreditsPanel({
 
       {/* ---- Comprar más / mejorar plan ---- */}
       <div className="flex flex-col items-center gap-3">
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <Button type="button" onClick={() => setShowBuy(true)}>
-            Comprar más créditos
-          </Button>
-          <Button type="button" variant="outline" onClick={() => setShowBuy(true)}>
-            Mejorar plan
-          </Button>
+        <div className="flex items-center justify-center gap-3">
+          <ExpandingButton icon={Plus} label="Comprar más créditos" onClick={() => setShowBuy(true)} />
+          <ExpandingButton icon={ArrowUpCircle} label="Mejorar plan" onClick={() => setShowBuy(true)} />
         </div>
         {showBuy && (
           <p className="max-w-sm text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
