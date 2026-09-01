@@ -23,7 +23,7 @@ import {
 // una vista de solo lectura acá, no se puede cambiar el estado desde
 // Clientes.
 import { StatusDot } from "@/app/(dashboard)/admin/pedidos/orders-table";
-import { IPhoneFrame } from "@/components/shared/IPhoneFrame";
+import { MacWindow } from "@/components/shared/MacWindow";
 import type { CustomerDetail } from "@/lib/services/customerService";
 import type { Order } from "@/lib/types/order";
 import type { Conversation } from "@/lib/services/conversationService";
@@ -338,64 +338,40 @@ function ConversationChatView({
         <span>Iniciada el {formatShortDate(conversation.created_at)}</span>
       </div>
 
-      <IPhoneFrame maxWidth={380}>
-        <div style={{ background: "#000" }}>
-          {/* Cabecera estilo iOS (modo oscuro) */}
-          <div
-            className="flex items-center gap-2 px-3 pb-2.5 pt-11"
-            style={{ background: "#1c1c1e", borderBottom: "1px solid rgba(255,255,255,0.08)" }}
-          >
-            <ChevronLeft size={22} strokeWidth={2.5} style={{ color: "#0a84ff" }} className="shrink-0" />
-            <div className="flex min-w-0 flex-1 flex-col items-center">
-              <span
-                className="mb-0.5 flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-semibold text-white"
-                style={{ background: "#48484a" }}
-              >
-                {contactName.trim().charAt(0).toUpperCase() || "C"}
-              </span>
-              <span className="truncate text-[13px] font-semibold" style={{ color: "#f5f5f7" }}>
-                {contactName}
-              </span>
-            </div>
-            <span className="w-[22px] shrink-0" />
-          </div>
-
-          {/* Mensajes */}
-          <div className="flex max-h-[58vh] min-h-[260px] flex-col gap-1.5 overflow-y-auto px-3 py-4">
-            {messages.length === 0 ? (
-              <p className="py-8 text-center text-xs" style={{ color: "#8e8e93" }}>
-                Esta conversación todavía no tiene mensajes.
-              </p>
-            ) : (
-              messages.map((message, i) => {
-                const outgoing = message.role === "user";
-                return (
-                  <div key={i} className={`flex flex-col ${outgoing ? "items-end" : "items-start"}`}>
-                    <div
-                      className="max-w-[78%] whitespace-pre-wrap rounded-[18px] px-3 py-2 text-[14px] leading-snug"
-                      style={
-                        outgoing
-                          ? { background: "#0a84ff", color: "#fff" }
-                          : { background: "#26262a", color: "#f5f5f7" }
-                      }
-                    >
-                      {message.content}
-                    </div>
-                    <span className="mt-0.5 px-1 text-[10px]" style={{ color: "#8e8e93" }}>
-                      {formatTimeOnly(message.at)}
-                    </span>
+      <MacWindow title={contactName} className="mx-auto max-w-2xl">
+        {/* Mensajes — estilo Mensajes de macOS, modo oscuro */}
+        <div
+          className="flex max-h-[60vh] min-h-[280px] flex-col gap-1.5 overflow-y-auto px-4 py-4"
+          style={{ background: "#1e1e1e" }}
+        >
+          {messages.length === 0 ? (
+            <p className="py-8 text-center text-xs" style={{ color: "#8e8e93" }}>
+              Esta conversación todavía no tiene mensajes.
+            </p>
+          ) : (
+            messages.map((message, i) => {
+              const outgoing = message.role === "user";
+              return (
+                <div key={i} className={`flex flex-col ${outgoing ? "items-end" : "items-start"}`}>
+                  <div
+                    className="max-w-[70%] whitespace-pre-wrap rounded-[18px] px-3.5 py-2 text-[14px] leading-snug"
+                    style={
+                      outgoing
+                        ? { background: "#0a84ff", color: "#fff" }
+                        : { background: "#3b3b3d", color: "#f5f5f7" }
+                    }
+                  >
+                    {message.content}
                   </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Barra de gestos */}
-          <div className="flex justify-center pb-2 pt-1" style={{ background: "#000" }}>
-            <span className="h-1 w-32 rounded-full" style={{ background: "rgba(255,255,255,0.3)" }} />
-          </div>
+                  <span className="mt-0.5 px-1 text-[10px]" style={{ color: "#8e8e93" }}>
+                    {formatTimeOnly(message.at)}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </div>
-      </IPhoneFrame>
+      </MacWindow>
     </div>
   );
 }
