@@ -37,7 +37,17 @@ function glyphLabel(name: string, index: number): string {
   return t ? t.slice(0, 3) : String(index);
 }
 
-function TableGlyph({ capacity, number, size = 1 }: { capacity: number; number: string | number; size?: number }) {
+function TableGlyph({
+  capacity,
+  number,
+  size = 1,
+  counterRotate = 0,
+}: {
+  capacity: number;
+  number: string | number;
+  size?: number;
+  counterRotate?: number;
+}) {
   const { side, head } = seatLayout(capacity);
   const rows = Math.max(side, 1);
   const seatH = 26 * size;
@@ -61,7 +71,12 @@ function TableGlyph({ capacity, number, size = 1 }: { capacity: number; number: 
         >
           <span
             className="flex items-center justify-center rounded-full"
-            style={{ height: 30 * size, width: 30 * size, background: "rgba(255,255,255,0.92)" }}
+            style={{
+              height: 30 * size,
+              width: 30 * size,
+              background: "rgba(255,255,255,0.92)",
+              transform: counterRotate ? `rotate(${-counterRotate}deg)` : undefined,
+            }}
           >
             <span
               className="aventhra-iridescent font-nexora font-extrabold leading-none"
@@ -179,17 +194,16 @@ export function TablesMap({
     });
   }
 
-  const totalSeats = tables.reduce((s, t) => s + (t.capacity ?? 0), 0);
   const editingIndex = tables.findIndex((t) => t.id === editingId);
   const editing = editingIndex >= 0 ? tables[editingIndex] : null;
 
   return (
     <div className="space-y-4">
-      <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-        {tables.length === 0
-          ? "Tu salón está vacío — agrega tu primera mesa."
-          : `${tables.length} mesa${tables.length === 1 ? "" : "s"} · ${totalSeats} sillas · arrastra para acomodar, toca para editar`}
-      </p>
+      {tables.length === 0 && (
+        <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+          Tu salón está vacío — agrega tu primera mesa.
+        </p>
+      )}
 
       <div
         ref={canvasRef}
@@ -250,7 +264,12 @@ export function TablesMap({
                   borderRadius: 18,
                 }}
               >
-                <TableGlyph capacity={t.capacity ?? 4} number={glyphLabel(t.name, i + 1)} size={0.9} />
+                <TableGlyph
+                  capacity={t.capacity ?? 4}
+                  number={glyphLabel(t.name, i + 1)}
+                  size={0.9}
+                  counterRotate={t.rotation ?? 0}
+                />
               </div>
 
               <div
