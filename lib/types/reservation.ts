@@ -116,6 +116,7 @@ export interface Reservation {
   status: ReservationStatus;
   source: "manual" | "agent";
   notes: string | null;
+  reminderSentAt: string | null;
   createdBy: string | null;
   createdByName?: string | null;
   createdAt: string;

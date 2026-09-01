@@ -58,5 +58,11 @@ create policy business_closures_member_all on public.business_closures for all u
 drop policy if exists reservations_member_all on public.reservations;
 create policy reservations_member_all on public.reservations for all using (public.is_business_member(business_id)) with check (public.is_business_member(business_id));
 
+-- ---- 8. Recordatorio de confirmación (1 día antes) ---------
+-- El cron /api/cron/reservation-reminders marca esta columna cuando manda
+-- el mensaje de confirmación al cliente.
+alter table public.reservations add column if not exists reminder_sent_at timestamptz;
+create index if not exists reservations_reminder_due_idx on public.reservations (starts_at) where (reminder_sent_at is null and status in ('pending','confirmed','seated'));
+
 -- VERIFICACIÓN (opcional): debe salir 1 fila.
 -- select conname from pg_constraint where conrelid='public.reservations'::regclass and contype='x';

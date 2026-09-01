@@ -94,6 +94,7 @@ function mapReservation(row: Record<string, unknown>): Reservation {
     status: row.status as ReservationStatus,
     source: (row.source as "manual" | "agent") ?? "manual",
     notes: (row.notes as string | null) ?? null,
+    reminderSentAt: (row.reminder_sent_at as string | null) ?? null,
     createdBy: (row.created_by as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,

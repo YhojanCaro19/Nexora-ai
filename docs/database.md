@@ -42,6 +42,16 @@ Distinta de `contact_requests` — confirmar con el equipo el caso de uso exacto
 ### Tablas operativas (todas con `business_id`, scoped por tenant)
 `orders`, `reservations`, `customers`, `products`, `conversations`, `agent_configs`, `subscriptions`, `agent_usage_log`, `report_downloads`.
 
+### Módulo de Reservas (`docs/sql/reservations-module.sql`)
+Sistema unificado de mesas y turnos/citas. Tablas: `booking_settings` (1×negocio: `mode` off/tables/appointments/both, `slot_minutes`, `default_duration_minutes`, `min_notice_minutes`, `max_advance_days`), `business_hours` (horario semanal, varias filas por `weekday` = turnos partidos), `booking_resources` (`kind` staff/table, `name`, `capacity`), `booking_services` (nombre + `duration_minutes` + `price`), `business_closures`, `reservations` (`kind`, `resource_id`, `customer_id`, `starts_at`/`ends_at`, `party_size`, `service_id`, `status`, `source` manual/agent, `reminder_sent_at`).
+
+**`reservations_no_overlap`** — exclusion constraint (`btree_gist`): imposible tener dos reservas activas (`status in ('pending','confirmed','seated')`) sobre el mismo `resource_id` en rangos `tstzrange` que se solapan. Esta es la garantía real de "no doble reserva", no lógica de aplicación.
+
+RLS: policy `<tabla>_member_all` para `is_business_member(business_id)` en las 6 tablas — mismo patrón que `orders`. El agente escribe con service role.
+
+### `account_change_requests`
+Solicitudes de cambio de la cuenta de acceso (Google) — ver `docs/decisions.md`. Columnas: `business_id`, `requested_by`, `member_role`, `current_email`, `requested_email`, `reason`, `contact_phone`, `status` (pending/approved/rejected/cancelled), `resolved_by`/`resolved_at`/`resolution_note`. **RLS activa sin ninguna policy** (deny-all) — solo `service_role` la toca, desde server actions que derivan `user_id`/`business_id` de la sesión. Índice único parcial: una sola solicitud `pending` por `requested_by`. Columna nueva en `business_members`: `access_email_changed_at` (límite de 1 cambio al año).
+
 ### `customers`
 Un cliente identificado por `business_id + phone + channel` — el mismo número puede ser un hilo distinto en cada canal (WhatsApp, el canal de prueba interno del agente, etc.).
 

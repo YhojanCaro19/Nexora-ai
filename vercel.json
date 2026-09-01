@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/daily-reports",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/reservation-reminders",
+      "schedule": "0 * * * *"
     }
   ]
 }

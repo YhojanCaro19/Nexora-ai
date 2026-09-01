@@ -406,6 +406,7 @@ function ReservationCard({
           </p>
           <p className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
             {r.source === "agent" ? "Pedido por el agente" : "Cargado a mano"} · {formatShortDate(r.createdAt)}
+            {r.reminderSentAt ? " · confirmación enviada ✓" : ""}
           </p>
           {r.notes && (
             <p className="mt-1 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
