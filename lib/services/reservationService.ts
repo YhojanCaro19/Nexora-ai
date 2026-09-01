@@ -183,6 +183,7 @@ export interface AvailabilityQuery {
   partySize?: number; // mesas
   serviceId?: string; // citas
   resourceId?: string; // limitar a un recurso puntual (ej. "con Angie")
+  durationMinutes?: number; // mesas: cuánto tiempo quiere el cliente la mesa
 }
 
 export async function computeAvailability(
@@ -232,7 +233,7 @@ export async function computeAvailability(
   const duration =
     q.kind === "appointment" && q.serviceId
       ? config.services.find((s) => s.id === q.serviceId)?.durationMinutes ?? settings.defaultDurationMinutes
-      : settings.defaultDurationMinutes;
+      : q.durationMinutes ?? settings.defaultDurationMinutes;
 
   // Reservas activas del día + un margen, para chequear solape en memoria.
   const dayEndUtcIso = new Date(dayStartLocalUtc + 24 * 60 * MIN + duration * MIN).toISOString();
@@ -310,18 +311,17 @@ export async function createReservation(
     return { error: "Fecha de inicio inválida.", data: null };
   }
 
-  // Duración y nombre del servicio (citas).
-  let durationMinutes = config.settings.defaultDurationMinutes;
+  // Duración:
+  //  - Mesa: la decide el CLIENTE (input.durationMinutes). Si no la dio,
+  //    se usa la duración por defecto del negocio como respaldo.
+  //  - Cita: la del servicio; si no hay servicio, la que pasen o el default.
+  let durationMinutes = input.durationMinutes ?? config.settings.defaultDurationMinutes;
   let serviceName: string | null = null;
-  if (input.kind === "appointment") {
-    if (input.serviceId) {
-      const service = config.services.find((s) => s.id === input.serviceId && s.active);
-      if (!service) return { error: "Ese servicio ya no está disponible.", data: null };
-      durationMinutes = service.durationMinutes;
-      serviceName = service.name;
-    } else if (input.durationMinutes) {
-      durationMinutes = input.durationMinutes;
-    }
+  if (input.kind === "appointment" && input.serviceId) {
+    const service = config.services.find((s) => s.id === input.serviceId && s.active);
+    if (!service) return { error: "Ese servicio ya no está disponible.", data: null };
+    durationMinutes = service.durationMinutes;
+    serviceName = service.name;
   }
   const endsAt = new Date(startsAt.getTime() + durationMinutes * MIN);
 

@@ -62,6 +62,15 @@ function kindForMode(mode: BookingMode): ReservationKind {
   return mode === "appointments" ? "appointment" : "table";
 }
 
+const DURATION_OPTIONS = [
+  { value: "60", label: "1 hora" },
+  { value: "90", label: "1 h 30" },
+  { value: "120", label: "2 horas" },
+  { value: "150", label: "2 h 30" },
+  { value: "180", label: "3 horas" },
+  { value: "240", label: "4 horas" },
+];
+
 function hhmmToMin(s: string): number {
   const [h, m] = s.split(":").map(Number);
   return h * 60 + m;
@@ -465,6 +474,7 @@ function NewReservationForm({
   const [kind, setKind] = useState<ReservationKind>(kindForMode(mode));
   const [time, setTime] = useState(initialTime ?? "19:00");
   const [partySize, setPartySize] = useState("2");
+  const [durMin, setDurMin] = useState(String(config.settings.defaultDurationMinutes || 120));
   const [serviceId, setServiceId] = useState<string>("");
   const [resourceId, setResourceId] = useState<string>("");
   const [customerName, setCustomerName] = useState("");
@@ -490,6 +500,7 @@ function NewReservationForm({
         startsAt: startsAt.toISOString(),
         resourceId: resourceId || undefined,
         partySize: kind === "table" ? Number(partySize) || 1 : undefined,
+        durationMinutes: kind === "table" ? Number(durMin) || undefined : undefined,
         serviceId: kind === "appointment" && serviceId ? serviceId : undefined,
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
@@ -536,12 +547,7 @@ function NewReservationForm({
         {kind === "table" ? (
           <div className="space-y-1">
             <Label className="block text-xs">Personas</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={partySize}
-              onChange={(e) => setPartySize(e.target.value)}
-            />
+            <Input type="number" inputMode="numeric" value={partySize} onChange={(e) => setPartySize(e.target.value)} />
           </div>
         ) : (
           <div className="space-y-1">
@@ -561,6 +567,24 @@ function NewReservationForm({
           </div>
         )}
       </div>
+
+      {kind === "table" && (
+        <div className="space-y-1">
+          <Label className="block text-xs">¿Por cuánto tiempo? (lo pide el cliente)</Label>
+          <Select value={durMin} onValueChange={(v) => setDurMin(v ?? "120")}>
+            <SelectTrigger className="w-full justify-between">
+              {DURATION_OPTIONS.find((d) => d.value === durMin)?.label ?? `${durMin} min`}
+            </SelectTrigger>
+            <SelectContent>
+              {DURATION_OPTIONS.map((d) => (
+                <SelectItem key={d.value} value={d.value}>
+                  {d.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-1">
         <Label className="block text-xs">{kind === "table" ? "Mesa" : "Empleado"} (opcional)</Label>

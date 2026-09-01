@@ -239,10 +239,10 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
 
   const askText =
     mode === "tables"
-      ? "a nombre de quién va la reserva, para cuántas personas, y la fecha y hora"
+      ? "a nombre de quién va la reserva, para cuántas personas, la fecha, la hora de llegada, y de qué hora a qué hora la quieren (o por cuánto tiempo) — eso lo decide el cliente, no asumas una duración"
       : mode === "appointments"
         ? "a nombre de quién es la cita, qué servicio quiere (y con qué empleado si tiene preferencia), y la fecha y hora"
-        : "si es mesa o turno, a nombre de quién, cuántas personas o qué servicio, y la fecha y hora";
+        : "si es mesa o turno, a nombre de quién, cuántas personas o qué servicio, la fecha y hora (para mesas también de qué hora a qué hora)";
 
   lines.push(
     `Para reservar SIEMPRE pregunta primero: ${askText}. Usa "consultar_disponibilidad" para ofrecer horas reales. Antes de llamar a "reservar", repite un resumen (nombre, fecha, hora, personas o servicio) y espera que el cliente confirme.`,
@@ -439,15 +439,23 @@ function buildTools(
         inputSchema: z.object({
           fecha: z.string().describe("Fecha en formato YYYY-MM-DD"),
           cantidad_personas: z.number().int().min(1).optional().describe("Para mesas"),
+          duracion_minutos: z
+            .number()
+            .int()
+            .min(30)
+            .max(600)
+            .optional()
+            .describe("Para mesas: por cuánto tiempo quiere la mesa el cliente (lo decide el cliente, no el negocio)"),
           servicio: z.string().optional().describe("Para citas: nombre del servicio"),
           empleado: z.string().optional().describe("Para citas: nombre del empleado si el cliente lo pidió"),
           tipo: z.enum(["mesa", "cita", "turno"]).optional(),
         }),
-        run: async ({ fecha, cantidad_personas, servicio, empleado, tipo }) => {
+        run: async ({ fecha, cantidad_personas, duracion_minutos, servicio, empleado, tipo }) => {
           const { slots, error } = await computeAvailability(businessId, {
             dateIso: fecha,
             kind: resolveKind(tipo),
             partySize: cantidad_personas,
+            durationMinutes: duracion_minutos,
             serviceId: findServiceId(servicio),
             resourceId: findStaffId(empleado),
           });
@@ -466,16 +474,23 @@ function buildTools(
           "Crea la reserva DEFINITIVA. Solo úsala cuando el cliente ya confirmó el resumen (nombre, fecha, hora y personas o servicio).",
         inputSchema: z.object({
           fecha: z.string().describe("YYYY-MM-DD"),
-          hora: z.string().describe("HH:MM en 24h"),
+          hora: z.string().describe("HH:MM en 24h — hora de inicio"),
           a_nombre_de: z.string().describe("Nombre de quien reserva"),
           telefono: z.string().optional(),
           cantidad_personas: z.number().int().min(1).optional().describe("Para mesas"),
+          duracion_minutos: z
+            .number()
+            .int()
+            .min(30)
+            .max(600)
+            .optional()
+            .describe("Para mesas: por cuánto tiempo quiere la mesa (lo decide el cliente). Ej. 120 = dos horas."),
           servicio: z.string().optional().describe("Para citas"),
           empleado: z.string().optional(),
           nota: z.string().optional(),
           tipo: z.enum(["mesa", "cita", "turno"]).optional(),
         }),
-        run: async ({ fecha, hora, a_nombre_de, telefono, cantidad_personas, servicio, empleado, nota, tipo }) => {
+        run: async ({ fecha, hora, a_nombre_de, telefono, cantidad_personas, duracion_minutos, servicio, empleado, nota, tipo }) => {
           const kind = resolveKind(tipo);
           const startsAt = await resolveLocalDateTime(businessId, fecha, hora);
           const result = await createReservation(
@@ -484,6 +499,7 @@ function buildTools(
               kind,
               startsAt,
               partySize: kind === "table" ? cantidad_personas : undefined,
+              durationMinutes: kind === "table" ? duracion_minutos : undefined,
               serviceId: findServiceId(servicio),
               resourceId: findStaffId(empleado),
               customerName: a_nombre_de,

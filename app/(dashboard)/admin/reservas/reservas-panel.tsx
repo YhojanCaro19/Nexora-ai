@@ -38,6 +38,7 @@ import {
   deleteBookingServiceAction,
 } from "./actions";
 import { ReservasAgenda } from "./reservas-agenda";
+import { TablesMap } from "./tables-map";
 
 type CatalogProduct = { id: string; name: string; price: number; active: boolean };
 
@@ -188,11 +189,15 @@ function SettingsSection({
         {mode !== "off" && (
           <div className="grid gap-6 sm:grid-cols-3">
             <QuestionField
-              question={mode === "tables" ? "¿Cuánto dura cada reserva?" : "¿Cada cuánto un turno?"}
+              question={mode === "tables" ? "Duración por defecto de la mesa" : "¿Cada cuánto un turno?"}
               unit="min"
               value={turnLength}
               onChange={setTurnLength}
-              hint={mode === "tables" ? "Cuánto se retiene la mesa." : "Si el turno lleva servicio, se usa esa duración."}
+              hint={
+                mode === "tables"
+                  ? "Solo si el cliente no dice de qué hora a qué hora. Él decide la duración."
+                  : "Si el turno lleva servicio, se usa esa duración."
+              }
             />
             <QuestionField
               question="Anticipación mínima"
@@ -553,12 +558,17 @@ function ConfigView({
         <>
           <HoursSection hours={config.hours} />
           {showTables && (
-            <ResourcesSection
-              kind="table"
-              items={resources.filter((r) => r.kind === "table")}
-              onAdd={(r) => setResources((p) => [...p, r])}
-              onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
-            />
+            <Section icon={UtensilsCrossed} title="Mesas">
+              <p className="mx-auto max-w-md text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+                El agente reserva la mesa más chica que alcance para el grupo. El cliente elige de qué hora a qué hora.
+              </p>
+              <TablesMap
+                tables={resources.filter((r) => r.kind === "table")}
+                onAdd={(r) => setResources((p) => [...p, r])}
+                onUpdate={(r) => setResources((p) => p.map((x) => (x.id === r.id ? r : x)))}
+                onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
+              />
+            </Section>
           )}
           {showAppointments && (
             <ResourcesSection
