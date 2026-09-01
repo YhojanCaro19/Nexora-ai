@@ -43,13 +43,26 @@ import { TablesMap } from "./tables-map";
 
 type CatalogProduct = { id: string; name: string; price: number; active: boolean };
 
-const MODE_OPTIONS: { value: BookingMode; label: string }[] = [
-  { value: "off", label: "No usa reservas ni turnos" },
-  { value: "tables", label: "Reserva de mesas (restaurante)" },
-  { value: "appointments", label: "Turnos y citas (con hora y empleado)" },
-  { value: "both", label: "Mesas y turnos" },
+const MODE_OPTIONS: { value: BookingMode; label: string; hint: string }[] = [
+  { value: "off", label: "No usa reservas ni turnos", hint: "El negocio no agenda nada (ej. una tienda)." },
+  {
+    value: "tables",
+    label: "Reserva de mesas (restaurante)",
+    hint: "El cliente reserva una mesa para X personas, de tal hora a tal hora.",
+  },
+  {
+    value: "appointments",
+    label: "Turnos y citas (con hora y empleado)",
+    hint: "El cliente agenda una cita con un empleado y un servicio a una hora fija (barbería, salón).",
+  },
+  {
+    value: "both",
+    label: "Mesas y turnos (los dos)",
+    hint: "Solo si el negocio hace ambas cosas: reserva mesas Y agenda citas con empleados (ej. un spa con salas y esteticistas).",
+  },
 ];
 const modeLabel = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.label ?? m;
+const modeHint = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.hint ?? "";
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
@@ -177,7 +190,7 @@ function SettingsSection({
   return (
     <Section icon={Settings2} title="¿Qué usa este negocio?">
       <div className="space-y-6">
-        <div className="mx-auto max-w-sm">
+        <div className="mx-auto max-w-sm space-y-2">
           <Select value={mode} onValueChange={(v) => v && onModeChange(v as BookingMode)}>
             <SelectTrigger className="h-11 w-full justify-between text-sm">{modeLabel(mode)}</SelectTrigger>
             <SelectContent>
@@ -188,6 +201,9 @@ function SettingsSection({
               ))}
             </SelectContent>
           </Select>
+          <p className="text-center text-[11px] leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
+            {modeHint(mode)}
+          </p>
         </div>
 
         {mode !== "off" && (
