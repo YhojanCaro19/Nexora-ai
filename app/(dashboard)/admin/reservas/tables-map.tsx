@@ -22,15 +22,26 @@ function seatLayout(capacity: number): { side: number; head: number } {
   return { side: (c - head) / 2, head };
 }
 
+// Mesa y sillas comparten fondo y borde — mismo gris.
+const SURFACE = "#3A404E";
+const SURFACE_BORDER = "#4C5464";
+
+// Etiqueta corta para el círculo de la mesa: el número del nombre
+// ("Mesa 5" → "5"), o las primeras letras, o el índice.
+function glyphLabel(name: string, index: number): string {
+  const num = name.match(/\d+/);
+  if (num) return num[0];
+  const trimmed = name.trim();
+  return trimmed ? trimmed.slice(0, 3) : String(index);
+}
+
 function TableGlyph({
   capacity,
   number,
-  active = false,
   size = 1,
 }: {
   capacity: number;
-  number: number;
-  active?: boolean;
+  number: string | number;
   size?: number;
 }) {
   const { side, head } = seatLayout(capacity);
@@ -39,12 +50,12 @@ function TableGlyph({
   const seatW = 16 * size;
   const gap = 6 * size;
   const tableW = 64 * size;
-  const seatColor = active ? "#818CF8" : "#878E9E";
+  const seatStyle = { height: seatH, width: seatW, background: SURFACE, border: `1.5px solid ${SURFACE_BORDER}` };
 
   const seatCol = (
     <div className="flex flex-col justify-center" style={{ gap }}>
       {Array.from({ length: side }).map((_, i) => (
-        <span key={i} className="shrink-0 rounded-[5px]" style={{ height: seatH, width: seatW, background: seatColor }} />
+        <span key={i} className="shrink-0 rounded-[5px]" style={seatStyle} />
       ))}
     </div>
   );
@@ -58,8 +69,8 @@ function TableGlyph({
           style={{
             width: tableW,
             minHeight: rows * (seatH + gap),
-            background: active ? "rgba(129,140,248,0.18)" : "#2A2E3C",
-            border: `1.5px solid ${active ? "#818CF8" : "#2A2E3C"}`,
+            background: SURFACE,
+            border: `1.5px solid ${SURFACE_BORDER}`,
           }}
         >
           <span
@@ -68,7 +79,7 @@ function TableGlyph({
           >
             <span
               className="aventhra-iridescent font-nexora font-extrabold leading-none"
-              style={{ fontSize: 14 * size }}
+              style={{ fontSize: (String(number).length > 1 ? 9 : 14) * size }}
             >
               {number}
             </span>
@@ -76,11 +87,13 @@ function TableGlyph({
         </div>
         <div className="flex flex-col justify-center" style={{ gap }}>
           {Array.from({ length: side }).map((_, i) => (
-            <span key={i} className="shrink-0 rounded-[5px]" style={{ height: seatH, width: seatW, background: seatColor }} />
+            <span key={i} className="shrink-0 rounded-[5px]" style={seatStyle} />
           ))}
         </div>
       </div>
-      {head === 1 && <span className="shrink-0 rounded-[5px]" style={{ height: seatW, width: seatH, background: seatColor }} />}
+      {head === 1 && (
+        <span className="shrink-0 rounded-[5px]" style={{ height: seatW, width: seatH, background: SURFACE, border: `1.5px solid ${SURFACE_BORDER}` }} />
+      )}
     </div>
   );
 }
@@ -144,7 +157,7 @@ export function TablesMap({
             className="flex flex-col items-center gap-2 rounded-2xl border px-2 py-3 transition-colors hover:bg-black/[0.04]"
             style={{ borderColor: editingId === t.id ? "#818CF8" : "transparent" }}
           >
-            <TableGlyph capacity={t.capacity ?? 4} number={i + 1} active={editingId === t.id} size={0.78} />
+            <TableGlyph capacity={t.capacity ?? 4} number={glyphLabel(t.name, i + 1)} size={0.78} />
             <span className="text-sm font-semibold" style={{ color: "#1C2434" }}>
               {t.name !== `Mesa ${i + 1}` ? t.name : `Mesa ${i + 1}`}
             </span>
@@ -274,9 +287,9 @@ function TableEditorModal({
           </button>
         </div>
 
-        {/* Dibujo en tiempo real — refleja el número y las sillas actuales */}
+        {/* Dibujo en tiempo real — refleja el nombre/número y las sillas actuales */}
         <div className="flex justify-center py-2">
-          <TableGlyph capacity={capacity} number={number} active size={0.9} />
+          <TableGlyph capacity={capacity} number={glyphLabel(name, number)} size={0.9} />
         </div>
 
         <div className="space-y-1.5">
