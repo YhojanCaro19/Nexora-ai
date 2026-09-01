@@ -156,8 +156,8 @@ export function TablesMap({
       const dyPx = ev.clientY - startY;
       if (Math.abs(dxPx) > 4 || Math.abs(dyPx) > 4) moved = true;
       last = {
-        x: clamp(origin.x + (dxPx / rect.width) * 1000, 40, 960),
-        y: clamp(origin.y + (dyPx / rect.height) * 1000, 40, 960),
+        x: clamp(origin.x + (dxPx / rect.width) * 1000, 45, 955),
+        y: clamp(origin.y + (dyPx / rect.height) * 1000, 90, 940),
       };
       setLocalPos((p) => ({ ...p, [t.id]: last }));
     }
@@ -237,30 +237,36 @@ export function TablesMap({
                 cursor: dragId === t.id ? "grabbing" : "grab",
               }}
             >
-              {/* toolbar de la mesa seleccionada — fuera de la rotación */}
+              {/* toolbar de la mesa seleccionada — flota bien arriba, fuera
+                  de la rotación y de las sillas de la cabecera */}
               {isSel && (
-                <div className="absolute -top-11 left-1/2 flex -translate-x-1/2 gap-1 rounded-lg border p-1"
-                  style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+                <div
+                  className="absolute bottom-full left-1/2 z-40 mb-3 flex -translate-x-1/2 gap-1 rounded-xl border p-1"
+                  style={{
+                    borderColor: "#3A3F4C",
+                    background: "#1E2029",
+                    boxShadow: "0 10px 24px -6px rgba(0,0,0,0.6)",
+                  }}
                 >
                   <button
                     type="button"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => rotate(t)}
-                    className="rounded-md p-1.5 hover:bg-white/[0.08]"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/[0.08]"
                     style={{ color: "var(--nexora-ink)" }}
                     title="Rotar"
                   >
-                    <RotateCw size={14} />
+                    <RotateCw size={15} />
                   </button>
                   <button
                     type="button"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => setEditingId(t.id)}
-                    className="rounded-md p-1.5 hover:bg-white/[0.08]"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white/[0.08]"
                     style={{ color: "var(--nexora-ink)" }}
                     title="Editar"
                   >
-                    <Pencil size={14} />
+                    <Pencil size={15} />
                   </button>
                 </div>
               )}
