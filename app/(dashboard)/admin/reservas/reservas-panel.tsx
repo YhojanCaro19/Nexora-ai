@@ -609,9 +609,6 @@ function ConfigView({
           <HoursSection hours={config.hours} />
           {showTables && (
             <Section icon={UtensilsCrossed} title="Mesas">
-              <p className="mx-auto max-w-md text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-                El agente reserva la mesa más chica que alcance para el grupo. El cliente elige de qué hora a qué hora.
-              </p>
               <TablesMap
                 tables={resources.filter((r) => r.kind === "table")}
                 onAdd={(r) => setResources((p) => [...p, r])}
