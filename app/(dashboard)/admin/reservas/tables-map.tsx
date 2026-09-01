@@ -39,7 +39,7 @@ function TableGlyph({
   const seatW = 16 * size;
   const gap = 6 * size;
   const tableW = 64 * size;
-  const seatColor = active ? "#818CF8" : "#C7CBD6";
+  const seatColor = active ? "#818CF8" : "#878E9E";
 
   const seatCol = (
     <div className="flex flex-col justify-center" style={{ gap }}>
@@ -132,8 +132,8 @@ export function TablesMap({
         style={{
           minHeight: "17rem",
           background:
-            "repeating-linear-gradient(0deg, rgba(15,23,42,0.045) 0 1px, transparent 1px 46px), repeating-linear-gradient(90deg, rgba(15,23,42,0.045) 0 1px, transparent 1px 46px), linear-gradient(180deg, #FFFFFF, #EEF1F6)",
-          boxShadow: "0 12px 44px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.7)",
+            "repeating-linear-gradient(0deg, rgba(15,23,42,0.06) 0 1px, transparent 1px 46px), repeating-linear-gradient(90deg, rgba(15,23,42,0.06) 0 1px, transparent 1px 46px), linear-gradient(180deg, #D7DAE1, #C2C6CF)",
+          boxShadow: "0 12px 44px -14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4)",
         }}
       >
         {tables.map((t, i) => (
@@ -158,8 +158,8 @@ export function TablesMap({
           type="button"
           onClick={addTable}
           disabled={pending}
-          className="flex h-36 w-36 flex-col items-center justify-center gap-2 self-center rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-black/[0.04] disabled:opacity-50"
-          style={{ borderColor: "rgba(15,23,42,0.2)", color: "#4B5563" }}
+          className="flex h-36 w-36 flex-col items-center justify-center gap-2 self-center rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-black/[0.05] disabled:opacity-50"
+          style={{ borderColor: "rgba(15,23,42,0.3)", color: "#3B424E" }}
         >
           <span
             className="flex h-11 w-11 items-center justify-center rounded-full"
