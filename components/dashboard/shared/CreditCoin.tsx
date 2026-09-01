@@ -33,7 +33,13 @@ export function CreditCoinIcon({
       {...props}
     >
       <circle cx="12" cy="12" r="9" />
-      <path d="M12 6.5 L13.4 10.6 L17.5 12 L13.4 13.4 L12 17.5 L10.6 13.4 L6.5 12 Z" />
+      {/* Chispa de 4 puntas, 8 vértices simétricos (4 externos + 4 internos),
+          rellena — misma forma que la moneda de marca. */}
+      <path
+        d="M12 7 L13.2 10.8 L17 12 L13.2 13.2 L12 17 L10.8 13.2 L7 12 L10.8 10.8 Z"
+        fill="currentColor"
+        stroke="none"
+      />
     </svg>
   );
 }

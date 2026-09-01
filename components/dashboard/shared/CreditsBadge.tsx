@@ -19,7 +19,7 @@ interface CreditsBadgeProps {
 export function CreditsBadge({ credits, href = null }: CreditsBadgeProps) {
   const inner = (
     <>
-      <CreditCoin className="h-7 w-7 drop-shadow-[0_0_9px_rgba(76,194,232,0.65)]" />
+      <CreditCoin className="h-7 w-7" />
       <span
         className="text-base font-semibold tabular-nums"
         style={{ color: "var(--nexora-ink)" }}

@@ -86,7 +86,7 @@ function ExpandingButton({
       className="group inline-flex items-center rounded-full border px-3.5 py-2.5 text-sm font-medium transition-colors hover:border-white/25"
       style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
     >
-      <Icon size={16} strokeWidth={2} className="shrink-0" stroke={`url(#${IR_GRADIENT_ID})`} />
+      <Icon size={22} strokeWidth={2} className="shrink-0" stroke={`url(#${IR_GRADIENT_ID})`} />
       <span className="grid grid-cols-[1fr] transition-[grid-template-columns] duration-300 ease-out sm:grid-cols-[0fr] sm:group-hover:grid-cols-[1fr] sm:group-focus-visible:grid-cols-[1fr]">
         <span className="overflow-hidden whitespace-nowrap pl-2">{label}</span>
       </span>
