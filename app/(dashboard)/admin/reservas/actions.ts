@@ -67,9 +67,9 @@ export async function saveBusinessHoursAction(input: BusinessHoursInput) {
 
 export async function createResourceAction(input: BookingResourceInput) {
   const profile = await requireAdmin();
-  if (!profile) return { error: "No autorizado" };
+  if (!profile) return { error: "No autorizado", data: null };
   const parsed = bookingResourceSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
   const result = await createResource(profile.businessId!, parsed.data);
   done();
   return result;
@@ -93,9 +93,9 @@ export async function deleteResourceAction(resourceId: string) {
 
 export async function createBookingServiceAction(input: BookingServiceInput) {
   const profile = await requireAdmin();
-  if (!profile) return { error: "No autorizado" };
+  if (!profile) return { error: "No autorizado", data: null };
   const parsed = bookingServiceSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
   const result = await createBookingService(profile.businessId!, parsed.data);
   done();
   return result;

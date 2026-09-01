@@ -176,16 +176,21 @@ export async function replaceBusinessHours(
 export async function createResource(
   businessId: string,
   input: BookingResourceInput
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; data: BookingResource | null }> {
   const supabase = await createClient();
-  const { error } = await supabase.from("booking_resources").insert({
-    business_id: businessId,
-    kind: input.kind,
-    name: input.name,
-    capacity: input.kind === "table" ? (input.capacity ?? null) : null,
-    active: input.active ?? true,
-  });
-  return { error: error ? translateError(error) : null };
+  const { data, error } = await supabase
+    .from("booking_resources")
+    .insert({
+      business_id: businessId,
+      kind: input.kind,
+      name: input.name,
+      capacity: input.kind === "table" ? (input.capacity ?? null) : null,
+      active: input.active ?? true,
+    })
+    .select("*")
+    .single();
+  if (error) return { error: translateError(error), data: null };
+  return { error: null, data: mapResource(data as Record<string, unknown>) };
 }
 
 export async function updateResource(
@@ -240,27 +245,32 @@ export async function deleteResource(
 export async function createBookingService(
   businessId: string,
   input: BookingServiceInput
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; data: BookingService | null }> {
   const supabase = await createClient();
 
   const { data: product } = await supabase
     .from("products")
-    .select("name, price, active")
+    .select("name, price")
     .eq("id", input.productId)
     .eq("business_id", businessId)
     .maybeSingle();
 
-  if (!product) return { error: "Ese producto ya no está en el catálogo." };
+  if (!product) return { error: "Ese producto ya no está en el catálogo.", data: null };
 
-  const { error } = await supabase.from("booking_services").insert({
-    business_id: businessId,
-    product_id: input.productId,
-    name: (product as { name: string }).name,
-    duration_minutes: input.durationMinutes,
-    price: (product as { price: number | null }).price ?? null,
-    active: true,
-  });
-  return { error: error ? translateError(error) : null };
+  const { data, error } = await supabase
+    .from("booking_services")
+    .insert({
+      business_id: businessId,
+      product_id: input.productId,
+      name: (product as { name: string }).name,
+      duration_minutes: input.durationMinutes,
+      price: (product as { price: number | null }).price ?? null,
+      active: true,
+    })
+    .select("*")
+    .single();
+  if (error) return { error: translateError(error), data: null };
+  return { error: null, data: mapService(data as Record<string, unknown>) };
 }
 
 export async function updateBookingServiceDuration(

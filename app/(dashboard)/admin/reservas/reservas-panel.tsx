@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import {
   CalendarDays,
   Settings2,
@@ -21,8 +20,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/currency";
-import { weekdayLabel, type BookingMode, type Reservation } from "@/lib/types/reservation";
-import type { BookingConfig as BookingConfigType } from "@/lib/services/bookingConfigService";
+import {
+  weekdayLabel,
+  type BookingMode,
+  type BookingResource,
+  type BookingService,
+  type BusinessHour,
+  type Reservation,
+} from "@/lib/types/reservation";
+import type { BookingConfig } from "@/lib/services/bookingConfigService";
 import {
   saveBookingSettingsAction,
   saveBusinessHoursAction,
@@ -33,7 +39,6 @@ import {
 } from "./actions";
 import { ReservasAgenda } from "./reservas-agenda";
 
-type Config = BookingConfigType;
 type CatalogProduct = { id: string; name: string; price: number; active: boolean };
 
 const MODE_OPTIONS: { value: BookingMode; label: string }[] = [
@@ -46,17 +51,14 @@ const modeLabel = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.l
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
+type Feed = { kind: "ok" | "error"; text: string } | null;
+
 // ---------------- primitivas ----------------
 
-// Sección plana: encabezado centrado con ícono + línea, luego el contenido
-// que fluye horizontal. Sin card de fondo. Mismo patrón que Perfil / Mi Agente.
 function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
     <section className="space-y-5">
-      <div
-        className="flex items-center justify-center gap-2 border-b pb-2"
-        style={{ borderColor: "var(--nexora-line)" }}
-      >
+      <div className="flex items-center justify-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
         <Icon size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
         <h3 className="font-nexora text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
           {title}
@@ -67,7 +69,7 @@ function Section({ icon: Icon, title, children }: { icon: LucideIcon; title: str
   );
 }
 
-function Feedback({ state }: { state: { kind: "ok" | "error"; text: string } | null }) {
+function Feedback({ state }: { state: Feed }) {
   if (!state) return null;
   return (
     <p
@@ -99,7 +101,6 @@ function NumInput({ value, onChange, className = "" }: { value: string; onChange
   );
 }
 
-// Lista simple separada por líneas — sin card, sin borde por ítem.
 function ItemList({ children }: { children: ReactNode }) {
   return (
     <div className="mx-auto max-w-sm divide-y" style={{ borderColor: "var(--nexora-line)" }}>
@@ -133,32 +134,38 @@ function AddBar({ children }: { children: ReactNode }) {
 
 // ---------------- secciones ----------------
 
-function SettingsSection({ config }: { config: Config }) {
-  const router = useRouter();
-  const [mode, setMode] = useState<BookingMode>(config.settings.mode);
-  const [turnLength, setTurnLength] = useState(String(config.settings.slotMinutes));
-  const [minNotice, setMinNotice] = useState(String(config.settings.minNoticeMinutes));
-  const [maxAdvance, setMaxAdvance] = useState(String(config.settings.maxAdvanceDays));
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+function SettingsSection({
+  settings,
+  onSaved,
+}: {
+  settings: BookingConfig["settings"];
+  onSaved: (s: BookingConfig["settings"]) => void;
+}) {
+  const [mode, setMode] = useState<BookingMode>(settings.mode);
+  const [turnLength, setTurnLength] = useState(String(settings.slotMinutes));
+  const [minNotice, setMinNotice] = useState(String(settings.minNoticeMinutes));
+  const [maxAdvance, setMaxAdvance] = useState(String(settings.maxAdvanceDays));
+  const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
   function save() {
     setFeedback(null);
+    const len = Number(turnLength) || 30;
+    const next = {
+      mode,
+      slotMinutes: len,
+      defaultDurationMinutes: len,
+      minNoticeMinutes: Number(minNotice) || 0,
+      maxAdvanceDays: Number(maxAdvance) || 1,
+    };
     start(async () => {
-      const len = Number(turnLength) || 30;
-      const result = await saveBookingSettingsAction({
-        mode,
-        slotMinutes: len,
-        defaultDurationMinutes: len,
-        minNoticeMinutes: Number(minNotice) || 0,
-        maxAdvanceDays: Number(maxAdvance) || 1,
-      });
+      const result = await saveBookingSettingsAction(next);
       if (result.error) {
         setFeedback({ kind: "error", text: result.error });
         return;
       }
       setFeedback({ kind: "ok", text: "Guardado." });
-      router.refresh();
+      onSaved(next);
     });
   }
 
@@ -246,18 +253,17 @@ function QuestionField({
 
 type DayRow = { weekday: number; open: boolean; opensAt: string; closesAt: string };
 
-function HoursSection({ config }: { config: Config }) {
-  const router = useRouter();
+function HoursSection({ hours }: { hours: BusinessHour[] }) {
   const initial: DayRow[] = useMemo(
     () =>
       WEEKDAYS.map((wd) => {
-        const block = config.hours.find((h) => h.weekday === wd);
+        const block = hours.find((h) => h.weekday === wd);
         return { weekday: wd, open: !!block, opensAt: block?.opensAt ?? "09:00", closesAt: block?.closesAt ?? "18:00" };
       }),
-    [config.hours]
+    [hours]
   );
   const [rows, setRows] = useState<DayRow[]>(initial);
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
   function patch(weekday: number, next: Partial<DayRow>) {
@@ -265,21 +271,15 @@ function HoursSection({ config }: { config: Config }) {
   }
   function save() {
     setFeedback(null);
+    const payload = rows.filter((r) => r.open).map((r) => ({ weekday: r.weekday, opensAt: r.opensAt, closesAt: r.closesAt }));
     start(async () => {
-      const hours = rows.filter((r) => r.open).map((r) => ({ weekday: r.weekday, opensAt: r.opensAt, closesAt: r.closesAt }));
-      const result = await saveBusinessHoursAction({ hours });
-      if (result.error) {
-        setFeedback({ kind: "error", text: result.error });
-        return;
-      }
-      setFeedback({ kind: "ok", text: "Horario guardado." });
-      router.refresh();
+      const result = await saveBusinessHoursAction({ hours: payload });
+      setFeedback(result.error ? { kind: "error", text: result.error } : { kind: "ok", text: "Horario guardado." });
     });
   }
 
   return (
     <Section icon={Clock} title="Horario de atención">
-      {/* Dos columnas en desktop → menos alto, menos scroll */}
       <div className="mx-auto grid max-w-2xl gap-x-6 gap-y-1.5 sm:grid-cols-2">
         {rows.map((r) => (
           <div
@@ -333,26 +333,39 @@ function HoursSection({ config }: { config: Config }) {
   );
 }
 
-function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "staff" }) {
-  const router = useRouter();
-  const list = config.resources.filter((r) => r.kind === kind);
+function ResourcesSection({
+  kind,
+  items,
+  onAdd,
+  onRemove,
+}: {
+  kind: "table" | "staff";
+  items: BookingResource[];
+  onAdd: (r: BookingResource) => void;
+  onRemove: (id: string) => void;
+}) {
   const isTable = kind === "table";
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("4");
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
   function add() {
-    if (!name.trim()) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
     setFeedback(null);
     start(async () => {
-      const result = await createResourceAction({ kind, name: name.trim(), capacity: isTable ? Number(capacity) || 1 : null });
-      if (result.error) {
-        setFeedback({ kind: "error", text: result.error });
+      const result = await createResourceAction({
+        kind,
+        name: trimmed,
+        capacity: isTable ? Number(capacity) || 1 : null,
+      });
+      if (result.error || !result.data) {
+        setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
         return;
       }
+      onAdd(result.data);
       setName("");
-      router.refresh();
     });
   }
   function remove(id: string) {
@@ -360,7 +373,7 @@ function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "s
     start(async () => {
       const result = await deleteResourceAction(id);
       if (result.error) setFeedback({ kind: "error", text: result.error });
-      else router.refresh();
+      else onRemove(id);
     });
   }
 
@@ -372,9 +385,9 @@ function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "s
           : "El agente agenda con el empleado que el cliente pida por nombre."}
       </p>
 
-      {list.length > 0 && (
+      {items.length > 0 && (
         <ItemList>
-          {list.map((r) => (
+          {items.map((r) => (
             <ItemLine key={r.id} onRemove={() => remove(r.id)} disabled={pending}>
               {r.name}
               {isTable && r.capacity != null && (
@@ -401,7 +414,7 @@ function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "s
             <NumInput value={capacity} onChange={setCapacity} className="h-10 w-16" />
           </div>
         )}
-        <Button type="button" size="sm" onClick={add} disabled={pending || !name.trim()}>
+        <Button type="button" size="sm" onClick={add} disabled={pending}>
           <Plus size={14} strokeWidth={2} /> Agregar
         </Button>
       </AddBar>
@@ -412,20 +425,23 @@ function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "s
 }
 
 function ServicesSection({
-  config,
-  countryIso2,
+  services,
   products,
+  countryIso2,
+  onAdd,
+  onRemove,
 }: {
-  config: Config;
-  countryIso2: string | null;
+  services: BookingService[];
   products: CatalogProduct[];
+  countryIso2: string | null;
+  onAdd: (s: BookingService) => void;
+  onRemove: (id: string) => void;
 }) {
-  const router = useRouter();
-  const usedIds = new Set(config.services.map((s) => s.productId).filter(Boolean));
+  const usedIds = new Set(services.map((s) => s.productId).filter(Boolean));
   const available = products.filter((p) => p.active && !usedIds.has(p.id));
   const [productId, setProductId] = useState("");
   const [duration, setDuration] = useState("30");
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
   function add() {
@@ -433,12 +449,12 @@ function ServicesSection({
     setFeedback(null);
     start(async () => {
       const result = await createBookingServiceAction({ productId, durationMinutes: Number(duration) || 30 });
-      if (result.error) {
-        setFeedback({ kind: "error", text: result.error });
+      if (result.error || !result.data) {
+        setFeedback({ kind: "error", text: result.error ?? "No se pudo agregar." });
         return;
       }
+      onAdd(result.data);
       setProductId("");
-      router.refresh();
     });
   }
   function remove(id: string) {
@@ -446,7 +462,7 @@ function ServicesSection({
     start(async () => {
       const result = await deleteBookingServiceAction(id);
       if (result.error) setFeedback({ kind: "error", text: result.error });
-      else router.refresh();
+      else onRemove(id);
     });
   }
 
@@ -456,9 +472,9 @@ function ServicesSection({
         El servicio sale del Catálogo. Elígelo y ponle cuánto dura — el agente lo usa para agendar y cobrar.
       </p>
 
-      {config.services.length > 0 && (
+      {services.length > 0 && (
         <ItemList>
-          {config.services.map((s) => (
+          {services.map((s) => (
             <ItemLine key={s.id} onRemove={() => remove(s.id)} disabled={pending}>
               {s.name}
               <span style={{ color: "var(--nexora-ink-dim)" }}>
@@ -516,23 +532,51 @@ function ConfigView({
   countryIso2,
   products,
 }: {
-  config: Config;
+  config: BookingConfig;
   countryIso2: string | null;
   products: CatalogProduct[];
 }) {
-  const mode = config.settings.mode;
+  // Estado local — el server persiste, la UI refleja al instante sin
+  // depender de router.refresh (que dejaba el botón "pegado").
+  const [settings, setSettings] = useState(config.settings);
+  const [resources, setResources] = useState(config.resources);
+  const [services, setServices] = useState(config.services);
+
+  const mode = settings.mode;
   const showTables = mode === "tables" || mode === "both";
   const showAppointments = mode === "appointments" || mode === "both";
 
   return (
     <div className="mx-auto max-w-3xl space-y-12">
-      <SettingsSection config={config} />
+      <SettingsSection settings={settings} onSaved={setSettings} />
       {mode !== "off" && (
         <>
-          <HoursSection config={config} />
-          {showTables && <ResourcesSection config={config} kind="table" />}
-          {showAppointments && <ResourcesSection config={config} kind="staff" />}
-          {showAppointments && <ServicesSection config={config} countryIso2={countryIso2} products={products} />}
+          <HoursSection hours={config.hours} />
+          {showTables && (
+            <ResourcesSection
+              kind="table"
+              items={resources.filter((r) => r.kind === "table")}
+              onAdd={(r) => setResources((p) => [...p, r])}
+              onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
+            />
+          )}
+          {showAppointments && (
+            <ResourcesSection
+              kind="staff"
+              items={resources.filter((r) => r.kind === "staff")}
+              onAdd={(r) => setResources((p) => [...p, r])}
+              onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
+            />
+          )}
+          {showAppointments && (
+            <ServicesSection
+              services={services}
+              products={products}
+              countryIso2={countryIso2}
+              onAdd={(s) => setServices((p) => [...p, s])}
+              onRemove={(id) => setServices((p) => p.filter((x) => x.id !== id))}
+            />
+          )}
         </>
       )}
     </div>
@@ -547,7 +591,7 @@ export function ReservasPanel({
   countryIso2,
   products,
 }: {
-  config: Config | null;
+  config: BookingConfig | null;
   upcoming: Reservation[];
   countryIso2: string | null;
   products: CatalogProduct[];
