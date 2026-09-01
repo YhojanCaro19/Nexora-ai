@@ -667,22 +667,25 @@ export function ReservasPanel({
 
   if (view === "chooser") {
     return (
-      <div className="mx-auto flex max-w-md flex-col gap-3">
+      <div className="space-y-6">
         <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
           Modo actual: <span style={{ color: "var(--nexora-ink)" }}>{modeLabel(config.settings.mode)}</span>
         </p>
-        <ChooserRow
-          icon={<CalendarDays size={18} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />}
-          label="Agenda"
-          sub={`${upcoming.length} reserva${upcoming.length === 1 ? "" : "s"} próxima${upcoming.length === 1 ? "" : "s"}`}
-          onClick={() => setView("agenda")}
-        />
-        <ChooserRow
-          icon={<Settings2 size={18} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />}
-          label="Configuración"
-          sub="Modo, horario, mesas, empleados y servicios"
-          onClick={() => setView("config")}
-        />
+        <div className="flex flex-col items-center justify-center gap-3 py-4 sm:flex-row sm:gap-6 sm:py-10">
+          <ChooserTile
+            icon={CalendarDays}
+            label="Agenda"
+            value={upcoming.length}
+            hint={`reserva${upcoming.length === 1 ? "" : "s"} próxima${upcoming.length === 1 ? "" : "s"}`}
+            onClick={() => setView("agenda")}
+          />
+          <ChooserTile
+            icon={Settings2}
+            label="Configuración"
+            hint="modo, horario, recursos"
+            onClick={() => setView("config")}
+          />
+        </div>
       </div>
     );
   }
@@ -707,34 +710,57 @@ export function ReservasPanel({
   );
 }
 
-function ChooserRow({
-  icon,
+// Mismo lenguaje visual que el chooser de Pedidos (pedidos-panel.tsx):
+// móvil = fila compacta; desktop = cuadrado grande centrado.
+function ChooserTile({
+  icon: Icon,
   label,
-  sub,
+  value,
+  hint,
   onClick,
 }: {
-  icon: ReactNode;
+  icon: LucideIcon;
   label: string;
-  sub: string;
+  value?: number;
+  hint: string;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-colors hover:bg-white/[0.04]"
+      className="flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-300 hover:bg-white/[0.04] sm:h-48 sm:w-48 sm:flex-col sm:items-center sm:justify-center sm:gap-3 sm:rounded-3xl sm:p-0 sm:text-center sm:hover:scale-105 sm:hover:bg-transparent"
       style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "var(--nexora-nova)")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)")}
     >
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nexora-muted)]">{icon}</span>
-      <span className="min-w-0 flex-1">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nexora-muted)] sm:h-auto sm:w-auto sm:rounded-none sm:bg-transparent">
+        <Icon size={20} strokeWidth={1.5} className="sm:hidden" style={{ color: "var(--nexora-nova)" }} />
+        <Icon size={32} strokeWidth={1.5} className="hidden sm:block" style={{ color: "var(--nexora-nova)" }} />
+      </span>
+
+      <span className="min-w-0 flex-1 sm:flex-none">
         <span className="block text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
           {label}
         </span>
-        <span className="block text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          {sub}
+        <span className="mt-0.5 block text-xs sm:hidden" style={{ color: "var(--nexora-ink-dim)" }}>
+          {value != null ? `${value} ` : ""}
+          {hint}
         </span>
       </span>
-      <ChevronRight size={16} strokeWidth={1.75} className="shrink-0" style={{ color: "var(--nexora-ink-dim)" }} />
+
+      {value != null && (
+        <span className="hidden text-2xl font-light sm:block" style={{ color: "var(--nexora-ink-dim)" }}>
+          {value}
+        </span>
+      )}
+
+      <ChevronRight
+        size={16}
+        strokeWidth={1.75}
+        className="shrink-0 sm:hidden"
+        style={{ color: "var(--nexora-ink-dim)" }}
+      />
     </button>
   );
 }

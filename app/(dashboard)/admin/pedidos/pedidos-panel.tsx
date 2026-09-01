@@ -1,11 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { Clock, CheckCircle2, XCircle, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { OrdersTable } from "./orders-table";
 import type { Order } from "@/lib/types/order";
-import type { BookingMode } from "@/lib/types/reservation";
 
 type View = "chooser" | "active" | "finished" | "rejected";
 
@@ -20,13 +18,11 @@ export function PedidosPanel({
   orders,
   countryIso2,
   industryType,
-  bookingMode = "off",
   isAdmin,
 }: {
   orders: Order[];
   countryIso2: string | null;
   industryType: string | null;
-  bookingMode?: BookingMode;
   isAdmin: boolean;
 }) {
   const [view, setView] = useState<View>("chooser");
@@ -67,27 +63,6 @@ export function PedidosPanel({
             count={rejected.length}
             onClick={() => changeView("rejected")}
           />
-        )}
-        {bookingMode !== "off" && (
-          <Link
-            href="/admin/reservas"
-            className="flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition-all duration-300 hover:bg-white/[0.04] sm:w-48 sm:h-48 sm:flex-col sm:items-center sm:justify-center sm:gap-3 sm:rounded-3xl sm:p-0 sm:text-center sm:hover:scale-105 sm:hover:bg-transparent"
-            style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nexora-muted)] sm:h-auto sm:w-auto sm:rounded-none sm:bg-transparent">
-              <CalendarDays size={20} strokeWidth={1.5} className="sm:hidden" style={{ color: "var(--nexora-nova)" }} />
-              <CalendarDays size={32} strokeWidth={1.5} className="hidden sm:block" style={{ color: "var(--nexora-nova)" }} />
-            </span>
-            <span className="min-w-0 flex-1 sm:flex-none">
-              <span className="block text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
-                Reservas
-              </span>
-              <span className="block text-xs mt-0.5 sm:hidden" style={{ color: "var(--nexora-ink-dim)" }}>
-                Ver la agenda
-              </span>
-            </span>
-            <ChevronRight size={16} strokeWidth={1.75} className="shrink-0 sm:hidden" style={{ color: "var(--nexora-ink-dim)" }} />
-          </Link>
         )}
       </div>
     );
