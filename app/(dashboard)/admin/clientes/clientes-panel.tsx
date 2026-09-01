@@ -17,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { CustomerDetailView } from "./customer-detail-view";
 import { getCustomerDetailAction } from "./actions";
 import { channelLabel } from "./channel-labels";
@@ -101,16 +100,12 @@ export function ClientesPanel({
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Clientes</CardTitle>
-        <CardDescription>
-          {customers.length === 0
-            ? "Todavía no hay clientes registrados."
-            : `${customers.length} cliente${customers.length === 1 ? "" : "s"} registrados.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
+      <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {customers.length === 0
+          ? "Todavía no hay clientes registrados."
+          : `${customers.length} cliente${customers.length === 1 ? "" : "s"} registrados.`}
+      </p>
         {/* Ícono e input como hermanos en flex con gap — ver misma nota
             en catalogo/products-table.tsx. */}
         {customers.length > 0 && (
@@ -176,7 +171,6 @@ export function ClientesPanel({
             )}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
+    </div>
   );
 }
