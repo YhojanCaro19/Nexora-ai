@@ -54,11 +54,16 @@ export function CreditsPanel({
 
         {balance && (
           <p className="mt-2 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-            {fmt(balance.plan)} del plan
-            {balance.renewsAt
-              ? ` (renueva ${new Date(balance.renewsAt).toLocaleDateString("es-CO")})`
-              : ""}{" "}
-            · {fmt(balance.topup)} en packs (no vencen)
+            {[
+              `${fmt(balance.plan)} del plan${
+                balance.renewsAt
+                  ? ` (renueva ${new Date(balance.renewsAt).toLocaleDateString("es-CO")})`
+                  : ""
+              }`,
+              balance.topup > 0 ? `${fmt(balance.topup)} en packs (no vencen)` : null,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
         {balance === null && (
