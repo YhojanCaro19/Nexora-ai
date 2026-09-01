@@ -23,6 +23,7 @@ import {
 // una vista de solo lectura acá, no se puede cambiar el estado desde
 // Clientes.
 import { StatusDot } from "@/app/(dashboard)/admin/pedidos/orders-table";
+import { IPhoneFrame } from "@/components/shared/IPhoneFrame";
 import type { CustomerDetail } from "@/lib/services/customerService";
 import type { Order } from "@/lib/types/order";
 import type { Conversation } from "@/lib/services/conversationService";
@@ -63,6 +64,7 @@ export function CustomerDetailView({
     return (
       <ConversationChatView
         conversation={activeConversation}
+        contactName={customer.name ?? "Cliente"}
         onBack={() => setActiveConversation(null)}
       />
     );
@@ -303,11 +305,16 @@ function ConversationsSection({
   );
 }
 
+// La conversación real del cliente con el agente, dentro de un iPhone.
+// El teléfono representa el lado del cliente: sus mensajes (role "user") van
+// a la derecha en azul; los del agente (role "assistant") a la izquierda.
 function ConversationChatView({
   conversation,
+  contactName,
   onBack,
 }: {
   conversation: Conversation;
+  contactName: string;
   onBack: () => void;
 }) {
   const messages = [...conversation.messages].sort(
@@ -334,36 +341,64 @@ function ConversationChatView({
         </p>
       </div>
 
-      <div
-        className="max-w-lg mx-auto rounded-2xl border p-4 space-y-3 max-h-[480px] overflow-y-auto"
-        style={{ borderColor: 'rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
-      >
-        {messages.length === 0 ? (
-          <p className="text-xs text-center py-8" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Esta conversación todavía no tiene mensajes.
-          </p>
-        ) : (
-          messages.map((message, i) => (
-            <div
-              key={i}
-              className={`flex flex-col ${message.role === "user" ? "items-end" : "items-start"}`}
-            >
-              <div
-                className="max-w-[80%] rounded-xl px-3 py-2 text-sm whitespace-pre-wrap"
-                style={{
-                  background: message.role === "user" ? 'var(--nexora-nova)' : 'rgba(255,255,255,0.06)',
-                  color: message.role === "user" ? 'var(--nexora-nova-ink)' : 'var(--nexora-ink)',
-                }}
+      <IPhoneFrame maxWidth={400}>
+        <div style={{ background: "#fafafa" }}>
+          {/* Cabecera estilo iOS */}
+          <div
+            className="flex items-center gap-2 px-3 pb-2.5 pt-11"
+            style={{ background: "#f4f4f5", borderBottom: "1px solid rgba(0,0,0,0.08)" }}
+          >
+            <ChevronLeft size={22} strokeWidth={2.5} style={{ color: "#0a84ff" }} className="shrink-0" />
+            <div className="flex min-w-0 flex-1 flex-col items-center">
+              <span
+                className="mb-0.5 flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                style={{ background: "#8e8e93" }}
               >
-                {message.content}
-              </div>
-              <span className="mt-1 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-                {formatTimeOnly(message.at)}
+                {contactName.trim().charAt(0).toUpperCase() || "C"}
+              </span>
+              <span className="truncate text-[13px] font-semibold" style={{ color: "#111" }}>
+                {contactName}
               </span>
             </div>
-          ))
-        )}
-      </div>
+            <span className="w-[22px] shrink-0" />
+          </div>
+
+          {/* Mensajes */}
+          <div className="flex max-h-[520px] min-h-[360px] flex-col gap-1.5 overflow-y-auto px-3 py-4">
+            {messages.length === 0 ? (
+              <p className="py-8 text-center text-xs" style={{ color: "#8e8e93" }}>
+                Esta conversación todavía no tiene mensajes.
+              </p>
+            ) : (
+              messages.map((message, i) => {
+                const outgoing = message.role === "user";
+                return (
+                  <div key={i} className={`flex flex-col ${outgoing ? "items-end" : "items-start"}`}>
+                    <div
+                      className="max-w-[78%] whitespace-pre-wrap rounded-[18px] px-3 py-2 text-[14px] leading-snug"
+                      style={
+                        outgoing
+                          ? { background: "#0a84ff", color: "#fff" }
+                          : { background: "#e9e9eb", color: "#111" }
+                      }
+                    >
+                      {message.content}
+                    </div>
+                    <span className="mt-0.5 px-1 text-[10px]" style={{ color: "#8e8e93" }}>
+                      {formatTimeOnly(message.at)}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Barra de gestos */}
+          <div className="flex justify-center pb-2 pt-1" style={{ background: "#fafafa" }}>
+            <span className="h-1 w-32 rounded-full" style={{ background: "rgba(0,0,0,0.28)" }} />
+          </div>
+        </div>
+      </IPhoneFrame>
     </div>
   );
 }
