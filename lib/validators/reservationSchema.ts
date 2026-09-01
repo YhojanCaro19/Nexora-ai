@@ -37,11 +37,11 @@ export const bookingResourceSchema = z.object({
 });
 export type BookingResourceInput = z.infer<typeof bookingResourceSchema>;
 
+// El servicio para agendar es un producto del catálogo — se elige de la
+// lista, solo se agrega la duración.
 export const bookingServiceSchema = z.object({
-  name: z.string().trim().min(1, "El nombre es obligatorio").max(80),
+  productId: z.string().uuid("Elige un producto del catálogo"),
   durationMinutes: z.number().int().min(5).max(600),
-  price: z.number().min(0).max(99999999).nullable().optional(),
-  active: z.boolean().optional(),
 });
 export type BookingServiceInput = z.infer<typeof bookingServiceSchema>;
 

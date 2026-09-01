@@ -58,6 +58,11 @@ create policy business_closures_member_all on public.business_closures for all u
 drop policy if exists reservations_member_all on public.reservations;
 create policy reservations_member_all on public.reservations for all using (public.is_business_member(business_id)) with check (public.is_business_member(business_id));
 
+-- ---- 8b. Servicio de cita = un producto del catálogo ------
+-- El servicio para agendar sale del catálogo (products), no se escribe a
+-- mano: booking_services referencia al producto y solo agrega la duración.
+alter table public.booking_services add column if not exists product_id uuid references public.products(id) on delete set null;
+
 -- ---- 8. Recordatorio de confirmación (1 día antes) ---------
 -- El cron /api/cron/reservation-reminders marca esta columna cuando manda
 -- el mensaje de confirmación al cliente.

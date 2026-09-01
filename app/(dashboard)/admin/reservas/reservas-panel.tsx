@@ -12,17 +12,14 @@ import {
   Users,
   UtensilsCrossed,
   Scissors,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { formatCurrency } from "@/lib/utils/currency";
-import {
-  weekdayLabel,
-  type BookingMode,
-  type Reservation,
-} from "@/lib/types/reservation";
+import { weekdayLabel, type BookingMode, type Reservation } from "@/lib/types/reservation";
 import type { BookingConfig as BookingConfigType } from "@/lib/services/bookingConfigService";
 import {
   saveBookingSettingsAction,
@@ -34,9 +31,8 @@ import {
 } from "./actions";
 import { ReservasAgenda } from "./reservas-agenda";
 
-// `BookingConfig` como tipo vive en dos lados (types/reservation.ts y el
-// service) — son estructuralmente iguales; se usa el del service acá.
 type Config = BookingConfigType;
+type CatalogProduct = { id: string; name: string; price: number; active: boolean };
 
 const MODE_OPTIONS: { value: BookingMode; label: string }[] = [
   { value: "off", label: "No usa reservas ni turnos" },
@@ -44,19 +40,40 @@ const MODE_OPTIONS: { value: BookingMode; label: string }[] = [
   { value: "appointments", label: "Turnos y citas (con hora y empleado)" },
   { value: "both", label: "Mesas y turnos" },
 ];
-
 const modeLabel = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.label ?? m;
 
-const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0]; // lun→dom para la UI
+const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
-function Section({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+// ---------------- primitivas de UI ----------------
+
+function Card({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
-        {icon}
+    <section
+      className="rounded-2xl border p-5 sm:p-7"
+      style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
+    >
+      <div className="mb-5 text-center">
+        <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
+          <Icon size={16} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
+        </div>
         <h3 className="font-nexora text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
           {title}
         </h3>
+        {description && (
+          <p className="mx-auto mt-1 max-w-sm text-xs leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
+            {description}
+          </p>
+        )}
       </div>
       {children}
     </section>
@@ -67,7 +84,7 @@ function Feedback({ state }: { state: { kind: "ok" | "error"; text: string } | n
   if (!state) return null;
   return (
     <p
-      className="rounded-lg border p-2.5 text-center text-xs"
+      className="mt-4 rounded-lg border p-2.5 text-center text-xs"
       style={
         state.kind === "error"
           ? { borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "var(--nexora-alert)" }
@@ -79,12 +96,67 @@ function Feedback({ state }: { state: { kind: "ok" | "error"; text: string } | n
   );
 }
 
-// ---------------- Configuración ----------------
+const numInputClass =
+  "rounded-lg border bg-transparent py-2 text-center text-base font-semibold outline-none [appearance:textfield] focus-visible:border-[var(--nexora-nova)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+
+function NumInput({
+  value,
+  onChange,
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+}) {
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${numInputClass} ${className}`}
+      style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+    />
+  );
+}
+
+function AddBar({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="mt-5 flex flex-wrap items-end justify-center gap-3 border-t pt-5"
+      style={{ borderColor: "var(--nexora-line)" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ItemRow({ children, onRemove, disabled }: { children: ReactNode; onRemove: () => void; disabled: boolean }) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5"
+      style={{ borderColor: "var(--nexora-line)", background: "rgba(255,255,255,0.02)" }}
+    >
+      <span className="min-w-0 truncate text-sm" style={{ color: "var(--nexora-ink)" }}>
+        {children}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        className="shrink-0 rounded-md p-1 transition-colors hover:bg-white/[0.06]"
+        style={{ color: "var(--nexora-alert)" }}
+      >
+        <Trash2 size={14} strokeWidth={1.75} />
+      </button>
+    </div>
+  );
+}
+
+// ---------------- secciones ----------------
 
 function SettingsSection({ config }: { config: Config }) {
   const [mode, setMode] = useState<BookingMode>(config.settings.mode);
-  // Un solo control: "¿cada cuánto un turno/reserva?" — escribe tanto la
-  // franja como la duración por defecto (para el usuario son lo mismo).
   const [turnLength, setTurnLength] = useState(String(config.settings.slotMinutes));
   const [minNotice, setMinNotice] = useState(String(config.settings.minNoticeMinutes));
   const [maxAdvance, setMaxAdvance] = useState(String(config.settings.maxAdvanceDays));
@@ -107,28 +179,21 @@ function SettingsSection({ config }: { config: Config }) {
   }
 
   return (
-    <Section
-      icon={<Settings2 size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />}
-      title="¿Qué usa este negocio?"
-    >
+    <Card icon={Settings2} title="¿Qué usa este negocio?">
       <div className="mx-auto max-w-sm space-y-6">
-        <div className="space-y-1.5">
-          <Select value={mode} onValueChange={(v) => v && setMode(v as BookingMode)}>
-            <SelectTrigger className="w-full justify-between">
-              {modeLabel(mode)}
-            </SelectTrigger>
-            <SelectContent>
-              {MODE_OPTIONS.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={mode} onValueChange={(v) => v && setMode(v as BookingMode)}>
+          <SelectTrigger className="h-11 w-full justify-between text-sm">{modeLabel(mode)}</SelectTrigger>
+          <SelectContent>
+            {MODE_OPTIONS.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {mode !== "off" && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             <QuestionField
               question={mode === "tables" ? "¿Cuánto dura cada reserva de mesa?" : "¿Cada cuánto sale un turno?"}
               unit="minutos"
@@ -136,8 +201,8 @@ function SettingsSection({ config }: { config: Config }) {
               onChange={setTurnLength}
               hint={
                 mode === "tables"
-                  ? "Cuánto tiempo se retiene la mesa. Ej. 90 = cada reserva ocupa la mesa hora y media."
-                  : "Cada 30, cada 60… Si el turno tiene un servicio asignado, se usa la duración de ese servicio."
+                  ? "Cuánto se retiene la mesa. Ej. 90 = hora y media por reserva."
+                  : "Cada 30, cada 60… Si el turno lleva un servicio, se usa la duración del servicio."
               }
             />
             <QuestionField
@@ -145,10 +210,10 @@ function SettingsSection({ config }: { config: Config }) {
               unit="minutos"
               value={minNotice}
               onChange={setMinNotice}
-              hint="Para que no reserven a última hora. Ej. 60 = no se puede reservar para dentro de la próxima hora."
+              hint="Para que no reserven a última hora. Ej. 60 = nada para la próxima hora."
             />
             <QuestionField
-              question="¿Hasta con cuántos días de anticipación se puede reservar?"
+              question="¿Hasta con cuántos días de anticipación?"
               unit="días"
               value={maxAdvance}
               onChange={setMaxAdvance}
@@ -164,7 +229,7 @@ function SettingsSection({ config }: { config: Config }) {
           </Button>
         </div>
       </div>
-    </Section>
+    </Card>
   );
 }
 
@@ -182,17 +247,10 @@ function QuestionField({
   hint: string;
 }) {
   return (
-    <div className="space-y-1.5 text-center">
+    <div className="space-y-2 text-center">
       <Label className="block text-sm font-medium">{question}</Label>
       <div className="flex items-center justify-center gap-2">
-        <input
-          type="number"
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-20 rounded-lg border bg-transparent py-2 text-center text-base font-semibold outline-none [appearance:textfield] focus-visible:border-[var(--nexora-nova)] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
-        />
+        <NumInput value={value} onChange={onChange} className="w-20" />
         <span className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
           {unit}
         </span>
@@ -211,12 +269,7 @@ function HoursSection({ config }: { config: Config }) {
     () =>
       WEEKDAYS.map((wd) => {
         const block = config.hours.find((h) => h.weekday === wd);
-        return {
-          weekday: wd,
-          open: !!block,
-          opensAt: block?.opensAt ?? "09:00",
-          closesAt: block?.closesAt ?? "18:00",
-        };
+        return { weekday: wd, open: !!block, opensAt: block?.opensAt ?? "09:00", closesAt: block?.closesAt ?? "18:00" };
       }),
     [config.hours]
   );
@@ -240,66 +293,63 @@ function HoursSection({ config }: { config: Config }) {
   }
 
   return (
-    <Section icon={<Clock size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />} title="Horario de atención">
-      <div className="mx-auto max-w-md space-y-2">
+    <Card icon={Clock} title="Horario de atención" description="Las franjas de la agenda salen de acá.">
+      <div className="mx-auto max-w-sm space-y-1.5">
         {rows.map((r) => (
-          <div key={r.weekday} className="flex items-center gap-3">
-            <label className="flex w-28 shrink-0 items-center gap-2 text-sm" style={{ color: "var(--nexora-ink)" }}>
-              <input
-                type="checkbox"
-                checked={r.open}
-                onChange={(e) => patch(r.weekday, { open: e.target.checked })}
-              />
-              {weekdayLabel(r.weekday)}
+          <div
+            key={r.weekday}
+            className="flex items-center justify-between gap-2 rounded-xl border px-3 py-2"
+            style={{
+              borderColor: "var(--nexora-line)",
+              background: r.open ? "rgba(255,255,255,0.02)" : "transparent",
+              opacity: r.open ? 1 : 0.6,
+            }}
+          >
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: "var(--nexora-ink)" }}>
+              <input type="checkbox" checked={r.open} onChange={(e) => patch(r.weekday, { open: e.target.checked })} />
+              <span className="w-16">{weekdayLabel(r.weekday)}</span>
             </label>
             {r.open ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <Input
                   type="time"
                   value={r.opensAt}
                   onChange={(e) => patch(r.weekday, { opensAt: e.target.value })}
-                  className="w-28"
+                  className="h-8 w-[7.5rem]"
                 />
-                <span style={{ color: "var(--nexora-ink-dim)" }}>—</span>
+                <span style={{ color: "var(--nexora-ink-dim)" }}>–</span>
                 <Input
                   type="time"
                   value={r.closesAt}
                   onChange={(e) => patch(r.weekday, { closesAt: e.target.value })}
-                  className="w-28"
+                  className="h-8 w-[7.5rem]"
                 />
               </div>
             ) : (
-              <span className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+              <span className="pr-2 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
                 Cerrado
               </span>
             )}
           </div>
         ))}
-        <Feedback state={feedback} />
-        <div className="flex justify-center pt-1">
-          <Button type="button" onClick={save} disabled={pending}>
-            {pending ? "Guardando..." : "Guardar horario"}
-          </Button>
-        </div>
       </div>
-    </Section>
+      <Feedback state={feedback} />
+      <div className="mt-4 flex justify-center">
+        <Button type="button" onClick={save} disabled={pending}>
+          {pending ? "Guardando..." : "Guardar horario"}
+        </Button>
+      </div>
+    </Card>
   );
 }
 
-function ResourcesSection({
-  config,
-  kind,
-}: {
-  config: Config;
-  kind: "table" | "staff";
-}) {
+function ResourcesSection({ config, kind }: { config: Config; kind: "table" | "staff" }) {
   const list = config.resources.filter((r) => r.kind === kind);
+  const isTable = kind === "table";
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("4");
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [pending, start] = useTransition();
-
-  const isTable = kind === "table";
 
   function add() {
     if (!name.trim()) return;
@@ -310,14 +360,10 @@ function ResourcesSection({
         name: name.trim(),
         capacity: isTable ? Number(capacity) || 1 : null,
       });
-      if (result.error) {
-        setFeedback({ kind: "error", text: result.error });
-        return;
-      }
-      setName("");
+      if (result.error) setFeedback({ kind: "error", text: result.error });
+      else setName("");
     });
   }
-
   function remove(id: string) {
     setFeedback(null);
     start(async () => {
@@ -327,108 +373,83 @@ function ResourcesSection({
   }
 
   return (
-    <Section
-      icon={
-        isTable ? (
-          <UtensilsCrossed size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
-        ) : (
-          <Users size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
-        )
-      }
+    <Card
+      icon={isTable ? UtensilsCrossed : Users}
       title={isTable ? "Mesas" : "Empleados"}
+      description={
+        isTable
+          ? "El agente reserva la mesa más chica que alcance para el grupo."
+          : "El agente agenda con el empleado que el cliente pida por nombre."
+      }
     >
-      <div className="mx-auto max-w-md space-y-3">
-        <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          {isTable
-            ? "Agrega cada mesa y cuántas personas caben. El agente reserva la mesa que alcance para el grupo."
-            : "Agrega cada empleado. El agente usa estos nombres para agendar con la persona que el cliente pida."}
-        </p>
+      <div className="mx-auto max-w-sm space-y-1.5">
         {list.length === 0 ? (
-          <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+          <p className="py-2 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
             {isTable ? "Todavía no hay mesas." : "Todavía no hay empleados."}
           </p>
         ) : (
-          <div className="divide-y divide-white/[0.06]">
-            {list.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="text-sm" style={{ color: "var(--nexora-ink)" }}>
-                  {r.name}
-                  {isTable && r.capacity != null && (
-                    <span style={{ color: "var(--nexora-ink-dim)" }}> · {r.capacity} personas</span>
-                  )}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remove(r.id)}
-                  disabled={pending}
-                  className="rounded-md p-1 transition-colors hover:bg-white/[0.06]"
-                  style={{ color: "var(--nexora-alert)" }}
-                >
-                  <Trash2 size={14} strokeWidth={1.75} />
-                </button>
-              </div>
-            ))}
+          list.map((r) => (
+            <ItemRow key={r.id} onRemove={() => remove(r.id)} disabled={pending}>
+              {r.name}
+              {isTable && r.capacity != null && (
+                <span style={{ color: "var(--nexora-ink-dim)" }}> · {r.capacity} sillas</span>
+              )}
+            </ItemRow>
+          ))
+        )}
+      </div>
+
+      <AddBar>
+        <div className="space-y-1">
+          <Label className="block text-center text-xs">{isTable ? "Nombre de la mesa" : "Nombre"}</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={isTable ? "Mesa 1" : "Angie"}
+            className="h-10 w-40 text-center"
+          />
+        </div>
+        {isTable && (
+          <div className="space-y-1">
+            <Label className="block text-center text-xs">Sillas</Label>
+            <NumInput value={capacity} onChange={setCapacity} className="h-10 w-20" />
           </div>
         )}
+        <Button type="button" size="sm" onClick={add} disabled={pending || !name.trim()}>
+          <Plus size={14} strokeWidth={2} /> Agregar
+        </Button>
+      </AddBar>
 
-        <div className="flex flex-wrap items-end justify-center gap-2">
-          <div className="space-y-1">
-            <Label className="block text-center text-xs">{isTable ? "Nombre de la mesa" : "Nombre del empleado"}</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={isTable ? "Mesa 1" : "Angie"}
-              className="w-40 text-center"
-            />
-          </div>
-          {isTable && (
-            <div className="space-y-1">
-              <Label className="block text-center text-xs">Sillas</Label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className="w-20 text-center"
-              />
-            </div>
-          )}
-          <Button type="button" size="sm" onClick={add} disabled={pending || !name.trim()}>
-            <Plus size={14} strokeWidth={2} /> Agregar
-          </Button>
-        </div>
-
-        <Feedback state={feedback} />
-      </div>
-    </Section>
+      <Feedback state={feedback} />
+    </Card>
   );
 }
 
-function ServicesSection({ config, countryIso2 }: { config: Config; countryIso2: string | null }) {
-  const [name, setName] = useState("");
+function ServicesSection({
+  config,
+  countryIso2,
+  products,
+}: {
+  config: Config;
+  countryIso2: string | null;
+  products: CatalogProduct[];
+}) {
+  const usedIds = new Set(config.services.map((s) => s.productId).filter(Boolean));
+  const available = products.filter((p) => p.active && !usedIds.has(p.id));
+  const [productId, setProductId] = useState("");
   const [duration, setDuration] = useState("30");
-  const [price, setPrice] = useState("");
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [pending, start] = useTransition();
 
   function add() {
-    if (!name.trim()) return;
+    if (!productId) return;
     setFeedback(null);
     start(async () => {
-      const result = await createBookingServiceAction({
-        name: name.trim(),
-        durationMinutes: Number(duration) || 30,
-        price: price.trim() ? Number(price) : null,
-      });
-      if (result.error) {
-        setFeedback({ kind: "error", text: result.error });
-        return;
-      }
-      setName("");
-      setPrice("");
+      const result = await createBookingServiceAction({ productId, durationMinutes: Number(duration) || 30 });
+      if (result.error) setFeedback({ kind: "error", text: result.error });
+      else setProductId("");
     });
   }
-
   function remove(id: string) {
     setFeedback(null);
     start(async () => {
@@ -438,104 +459,118 @@ function ServicesSection({ config, countryIso2 }: { config: Config; countryIso2:
   }
 
   return (
-    <Section icon={<Scissors size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />} title="Servicios">
-      <div className="mx-auto max-w-md space-y-3">
+    <Card
+      icon={Scissors}
+      title="Servicios"
+      description="El servicio sale del Catálogo. Elígelo y ponle cuánto dura — el agente lo usa para agendar y cobrar."
+    >
+      <div className="mx-auto max-w-sm space-y-1.5">
         {config.services.length === 0 ? (
-          <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-            Registra tus servicios con su duración — el agente los usa para agendar.
+          <p className="py-2 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+            Todavía no marcaste ningún producto del catálogo como servicio.
           </p>
         ) : (
-          <div className="divide-y divide-white/[0.06]">
-            {config.services.map((s) => (
-              <div key={s.id} className="flex items-center justify-between gap-3 py-2">
-                <span className="text-sm" style={{ color: "var(--nexora-ink)" }}>
-                  {s.name}
-                  <span style={{ color: "var(--nexora-ink-dim)" }}>
-                    {" · "}
-                    {s.durationMinutes} min
-                    {s.price != null ? ` · ${formatCurrency(s.price, countryIso2)}` : ""}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => remove(s.id)}
-                  disabled={pending}
-                  className="rounded-md p-1 transition-colors hover:bg-white/[0.06]"
-                  style={{ color: "var(--nexora-alert)" }}
-                >
-                  <Trash2 size={14} strokeWidth={1.75} />
-                </button>
-              </div>
-            ))}
-          </div>
+          config.services.map((s) => (
+            <ItemRow key={s.id} onRemove={() => remove(s.id)} disabled={pending}>
+              {s.name}
+              <span style={{ color: "var(--nexora-ink-dim)" }}>
+                {" · "}
+                {s.durationMinutes} min
+                {s.price != null ? ` · ${formatCurrency(s.price, countryIso2)}` : ""}
+              </span>
+            </ItemRow>
+          ))
         )}
+      </div>
 
-        <div className="flex flex-wrap items-end justify-center gap-2">
+      {products.length === 0 ? (
+        <p
+          className="mt-5 border-t pt-5 text-center text-xs"
+          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)" }}
+        >
+          Primero agrega tus servicios en el Catálogo.
+        </p>
+      ) : available.length === 0 ? (
+        <p
+          className="mt-5 border-t pt-5 text-center text-xs"
+          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)" }}
+        >
+          Ya marcaste todos los productos del catálogo como servicio.
+        </p>
+      ) : (
+        <AddBar>
           <div className="space-y-1">
-            <Label className="block text-center text-xs">Servicio</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Corte" className="w-36 text-center" />
+            <Label className="block text-center text-xs">Servicio del catálogo</Label>
+            <Select value={productId} onValueChange={(v) => setProductId(v ?? "")}>
+              <SelectTrigger className="h-10 w-48 justify-between text-sm">
+                {available.find((p) => p.id === productId)?.name ?? "Elegir…"}
+              </SelectTrigger>
+              <SelectContent>
+                {available.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label className="block text-center text-xs">Minutos</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-20 text-center"
-            />
+            <NumInput value={duration} onChange={setDuration} className="h-10 w-20" />
           </div>
-          <div className="space-y-1">
-            <Label className="block text-center text-xs">Precio (opcional)</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="w-28 text-center"
-            />
-          </div>
-          <Button type="button" size="sm" onClick={add} disabled={pending || !name.trim()}>
+          <Button type="button" size="sm" onClick={add} disabled={pending || !productId}>
             <Plus size={14} strokeWidth={2} /> Agregar
           </Button>
-        </div>
+        </AddBar>
+      )}
 
-        <Feedback state={feedback} />
-      </div>
-    </Section>
+      <Feedback state={feedback} />
+    </Card>
   );
 }
 
-function ConfigView({ config, countryIso2 }: { config: Config; countryIso2: string | null }) {
+function ConfigView({
+  config,
+  countryIso2,
+  products,
+}: {
+  config: Config;
+  countryIso2: string | null;
+  products: CatalogProduct[];
+}) {
   const mode = config.settings.mode;
   const showTables = mode === "tables" || mode === "both";
   const showAppointments = mode === "appointments" || mode === "both";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
+    <div className="mx-auto max-w-xl space-y-5">
       <SettingsSection config={config} />
       {mode !== "off" && (
         <>
           <HoursSection config={config} />
           {showTables && <ResourcesSection config={config} kind="table" />}
           {showAppointments && <ResourcesSection config={config} kind="staff" />}
-          {showAppointments && <ServicesSection config={config} countryIso2={countryIso2} />}
+          {showAppointments && (
+            <ServicesSection config={config} countryIso2={countryIso2} products={products} />
+          )}
         </>
       )}
     </div>
   );
 }
 
-// ---------------- Panel ----------------
+// ---------------- panel ----------------
 
 export function ReservasPanel({
   config,
   upcoming,
   countryIso2,
+  products,
 }: {
   config: Config | null;
   upcoming: Reservation[];
   countryIso2: string | null;
+  products: CatalogProduct[];
 }) {
   const [view, setView] = useState<"chooser" | "agenda" | "config">("chooser");
 
@@ -583,7 +618,7 @@ export function ReservasPanel({
       {view === "agenda" ? (
         <ReservasAgenda config={config} countryIso2={countryIso2} onConfigure={() => setView("config")} />
       ) : (
-        <ConfigView config={config} countryIso2={countryIso2} />
+        <ConfigView config={config} countryIso2={countryIso2} products={products} />
       )}
     </div>
   );

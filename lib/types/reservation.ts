@@ -84,6 +84,7 @@ export interface BookingResource {
 
 export interface BookingService {
   id: string;
+  productId: string | null;
   name: string;
   durationMinutes: number;
   price: number | null;

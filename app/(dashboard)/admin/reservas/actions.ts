@@ -9,7 +9,7 @@ import {
   updateResource,
   deleteResource,
   createBookingService,
-  updateBookingService,
+  updateBookingServiceDuration,
   deleteBookingService,
 } from "@/lib/services/bookingConfigService";
 import {
@@ -101,10 +101,13 @@ export async function createBookingServiceAction(input: BookingServiceInput) {
   return result;
 }
 
-export async function updateBookingServiceAction(serviceId: string, input: Partial<BookingServiceInput>) {
+export async function updateBookingServiceDurationAction(serviceId: string, durationMinutes: number) {
   const profile = await requireAdmin();
   if (!profile) return { error: "No autorizado" };
-  const result = await updateBookingService(serviceId, profile.businessId!, input);
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 600) {
+    return { error: "Duración inválida" };
+  }
+  const result = await updateBookingServiceDuration(serviceId, profile.businessId!, durationMinutes);
   done();
   return result;
 }

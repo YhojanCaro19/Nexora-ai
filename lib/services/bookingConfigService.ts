@@ -67,6 +67,7 @@ function mapResource(row: Record<string, unknown>): BookingResource {
 function mapService(row: Record<string, unknown>): BookingService {
   return {
     id: row.id as string,
+    productId: (row.product_id as string | null) ?? null,
     name: row.name as string,
     durationMinutes: row.duration_minutes as number,
     price: row.price != null ? Number(row.price) : null,
@@ -234,36 +235,43 @@ export async function deleteResource(
 
 // ---------- Servicios ----------
 
+// El servicio se elige del catálogo: se copia nombre y precio del producto
+// y solo se agrega la duración.
 export async function createBookingService(
   businessId: string,
   input: BookingServiceInput
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
+
+  const { data: product } = await supabase
+    .from("products")
+    .select("name, price, active")
+    .eq("id", input.productId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  if (!product) return { error: "Ese producto ya no está en el catálogo." };
+
   const { error } = await supabase.from("booking_services").insert({
     business_id: businessId,
-    name: input.name,
+    product_id: input.productId,
+    name: (product as { name: string }).name,
     duration_minutes: input.durationMinutes,
-    price: input.price ?? null,
-    active: input.active ?? true,
+    price: (product as { price: number | null }).price ?? null,
+    active: true,
   });
   return { error: error ? translateError(error) : null };
 }
 
-export async function updateBookingService(
+export async function updateBookingServiceDuration(
   serviceId: string,
   businessId: string,
-  input: Partial<BookingServiceInput>
+  durationMinutes: number
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const patch: Record<string, unknown> = {};
-  if (input.name !== undefined) patch.name = input.name;
-  if (input.durationMinutes !== undefined) patch.duration_minutes = input.durationMinutes;
-  if (input.price !== undefined) patch.price = input.price;
-  if (input.active !== undefined) patch.active = input.active;
-
   const { error } = await supabase
     .from("booking_services")
-    .update(patch)
+    .update({ duration_minutes: durationMinutes })
     .eq("id", serviceId)
     .eq("business_id", businessId);
   return { error: error ? translateError(error) : null };
