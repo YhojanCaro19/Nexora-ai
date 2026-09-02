@@ -36,6 +36,19 @@ const STATUS_ACTION_LABEL: Record<ReservationStatus, string> = {
 
 const WEEKDAY_HEADERS = ["L", "M", "M", "J", "V", "S", "D"];
 
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-1.5">
+      <dt className="shrink-0" style={{ color: "var(--nexora-ink-dim)" }}>
+        {label}:
+      </dt>
+      <dd className="min-w-0 break-words" style={{ color: "var(--nexora-ink)" }}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
 function toDateIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -351,30 +364,9 @@ function ReservationCard({
       style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
-            <span className="tabular-nums">
-              {slot ?? formatTimeOnly(r.startsAt)}
-            </span>
-            {"–"}
-            {formatTimeOnly(r.endsAt)} · {r.customerName || "Sin nombre"}
-          </p>
-          <p className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-            {r.resourceName ?? "—"}
-            {r.partySize ? ` · ${r.partySize} personas` : ""}
-            {r.serviceName ? ` · ${r.serviceName}` : ""}
-            {r.customerPhone ? ` · ${r.customerPhone}` : ""}
-          </p>
-          <p className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-            {r.source === "agent" ? "Pedido por el agente" : "Cargado a mano"} · {formatShortDate(r.createdAt)}
-            {r.reminderSentAt ? " · confirmación enviada ✓" : ""}
-          </p>
-          {r.notes && (
-            <p className="mt-1 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-              {r.notes}
-            </p>
-          )}
-        </div>
+        <p className="text-sm font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
+          {slot ?? formatTimeOnly(r.startsAt)}–{formatTimeOnly(r.endsAt)}
+        </p>
         <span
           className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
           style={{ color: STATUS_COLOR[r.status], background: "rgba(255,255,255,0.06)" }}
@@ -383,8 +375,28 @@ function ReservationCard({
         </span>
       </div>
 
+      <dl className="mt-2 space-y-1 text-xs">
+        <Field label="Cliente" value={r.customerName || "Sin nombre"} />
+        {r.kind === "table" ? (
+          <Field
+            label="Mesa"
+            value={`${r.resourceName ?? "—"}${r.partySize ? ` · ${r.partySize} personas` : ""}`}
+          />
+        ) : (
+          <Field label="Empleado" value={r.resourceName ?? "—"} />
+        )}
+        {r.serviceName && <Field label="Servicio" value={r.serviceName} />}
+        {r.customerPhone && <Field label="Teléfono" value={r.customerPhone} />}
+        {r.notes && <Field label="Nota" value={r.notes} />}
+      </dl>
+
+      <p className="mt-1.5 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+        {r.source === "agent" ? "Pedido por el agente" : "Cargado a mano"} · {formatShortDate(r.createdAt)}
+        {r.reminderSentAt ? " · confirmación enviada ✓" : ""}
+      </p>
+
       {next.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--nexora-line)" }}>
           {next.map((s) => (
             <button
               key={s}
