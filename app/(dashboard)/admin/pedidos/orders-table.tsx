@@ -220,6 +220,7 @@ export function OrdersTable({
       cliente: o.customer_name ?? "Sin identificar",
       telefono: o.customer_phone ?? "",
       estado: vocab.statusLabel[o.status as OrderStatus] ?? o.status,
+      origen: o.reservation_id ? "Reserva" : "Pedido normal",
       productos: o.items.map((item) => `${item.quantity}x ${item.name}`).join(" | "),
       total: o.total,
       gestionado_por: o.updated_by_name ?? "",
@@ -230,6 +231,7 @@ export function OrdersTable({
       { key: "cliente", label: "Cliente" },
       { key: "telefono", label: "Teléfono" },
       { key: "estado", label: "Estado" },
+      { key: "origen", label: "Origen" },
       { key: "productos", label: "Productos" },
       { key: "total", label: "Total" },
       { key: "gestionado_por", label: "Gestionado por" },
@@ -402,8 +404,11 @@ function OrderCard({
           <CalendarClock size={11} strokeWidth={2} style={{ color: 'var(--nexora-nova)' }} />
         </span>
       )}
-      <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
-        Pedido
+      <span
+        className="text-[11px] uppercase tracking-[0.12em]"
+        style={{ color: fromReservation ? 'var(--nexora-nova)' : 'var(--nexora-ink-dim)' }}
+      >
+        {fromReservation ? 'Pedido de reserva' : 'Pedido'}
       </span>
       <span className="text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
         #{number}
@@ -498,8 +503,21 @@ function OrderDetailView({
         <h2 className="font-nexora text-3xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
           Pedido #{number}
         </h2>
-        <div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <OrderStatusBadge status={status} vocab={vocab} />
+          {order.reservation_id && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide"
+              style={{
+                color: 'var(--nexora-nova)',
+                background: 'color-mix(in oklch, var(--nexora-nova) 12%, transparent)',
+                border: '1px solid color-mix(in oklch, var(--nexora-nova) 32%, transparent)',
+              }}
+            >
+              <CalendarClock size={13} strokeWidth={2} />
+              Pedido de reserva
+            </span>
+          )}
         </div>
       </div>
 
