@@ -445,7 +445,7 @@ function ResourcesSection({
             <NumInput value={capacity} onChange={setCapacity} className="h-10 w-16" />
           </div>
         )}
-        <Button type="button" size="sm" onClick={add} disabled={pending}>
+        <Button type="button" size="sm" className="h-10 px-4" onClick={add} disabled={pending}>
           <Plus size={14} strokeWidth={2} /> Agregar
         </Button>
       </AddBar>
@@ -560,7 +560,7 @@ function ServicesSection({
             <Label className="block text-center text-xs">Minutos</Label>
             <NumInput value={duration} onChange={setDuration} className="h-10 w-16" />
           </div>
-          <Button type="button" size="sm" onClick={add} disabled={pending || !productId}>
+          <Button type="button" size="sm" className="h-10 px-4" onClick={add} disabled={pending || !productId}>
             <Plus size={14} strokeWidth={2} /> Agregar
           </Button>
         </AddBar>
