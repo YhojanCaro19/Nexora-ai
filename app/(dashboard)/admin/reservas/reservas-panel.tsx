@@ -228,7 +228,7 @@ function SettingsSection({
               unit="min"
               value={minNotice}
               onChange={setMinNotice}
-              hint="Para que no reserven a última hora. Ej. 60 = nada para la próxima hora."
+              hint="Para que no reserven a última hora."
             />
             <QuestionField
               question="¿Con cuántos días de anticipación se puede reservar?"
