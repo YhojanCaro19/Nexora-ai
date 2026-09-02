@@ -26,10 +26,10 @@
       cifrados no se pueden descifrar en prod)
 
 ### B. Base de datos
-- [ ] **[TÚ]** Supabase → Database → Backups → snapshot
-- [ ] **[TÚ]** Supabase → SQL Editor → correr `docs/sql/channels-module.sql`
-- [ ] **[TÚ]** Verificar: `select column_name from information_schema.columns
-      where table_name = 'channel_connections';` → pasar el resultado a Claude
+- [x] **[TÚ]** Supabase → Database → Backups → snapshot
+- [x] **[TÚ]** Supabase → SQL Editor → correr `docs/sql/channels-module.sql`
+      — *hecho 2026-09-02, 15 columnas OK*
+- [x] **[TÚ]** Verificar columnas de `channel_connections` — *OK*
 
 ### C. Páginas legales (Meta las exige para la app)
 - [ ] **[CLAUDE]** Crear rutas públicas `/privacidad`, `/terminos`,
@@ -75,16 +75,17 @@
 
 ## FASE 1 — Fundaciones de código (Claude, probado con curl)
 
-- [ ] **[CLAUDE]** `lib/utils/tokenCrypto.ts` — cifrar/descifrar tokens
-      (AES-256-GCM, sin dependencia nueva)
-- [ ] **[CLAUDE]** `lib/services/metaGraphClient.ts` — wrapper de Graph API
-      (canje de code, token largo, debug_token, suscribir webhook, enviar)
-- [ ] **[CLAUDE]** `lib/services/channelConnectionService.ts` — CRUD de
+- [x] **[CLAUDE]** `lib/utils/tokenCrypto.ts` — cifrar/descifrar tokens
+      (AES-256-GCM). Round-trip verificado con la llave real
+- [x] **[CLAUDE]** `lib/types/channel.ts` — tipos/labels de los 3 canales
+- [x] **[CLAUDE]** `lib/services/metaGraphClient.ts` — wrapper de Graph API
+      (canje de code, token largo, debug_token, suscribir webhook)
+- [x] **[CLAUDE]** `lib/services/channelConnectionService.ts` — CRUD de
       `channel_connections` (service role, nunca expone el token al cliente)
-- [ ] **[CLAUDE]** `lib/services/metaChannelService.ts` — `sendMessage()`
+- [x] **[CLAUDE]** `lib/services/metaChannelService.ts` — `sendChannelMessage()`
       con las 3 formas de body (Messenger / IG / WhatsApp)
 - [ ] **[JUNTOS]** Probar envío con `curl` + un token de prueba de la
-      cuenta propia
+      cuenta propia *(requiere app de Meta creada — bloqueado por D)*
 
 ---
 
@@ -171,5 +172,8 @@
 
 ## Estado actual
 
-**2026-09-02** — Plan y SQL escritos. Secretos propios generados en
-`.env.local`. Siguiente: correr el SQL (B) y crear la app de Meta (D).
+**2026-09-02** — Fase 1 (código de fundaciones) terminada y commiteada.
+SQL corrido. Secretos propios en `.env.local`.
+**Bloqueador ahora:** crear la app de Meta (D) — sin ella no se puede
+probar nada contra Graph API ni seguir con Fase 2. Tarea del usuario.
+En paralelo, Claude puede hacer las páginas legales (C).
