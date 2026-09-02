@@ -22,9 +22,7 @@ export function CompletionRingCard({
 
       <div
         className="w-32 h-32 rounded-full flex items-center justify-center shrink-0"
-        style={{
-          background: `conic-gradient(from 180deg, #4CC2E8, #818CF8, #A78BFA ${percent * 3.6}deg, var(--nexora-line) ${percent * 3.6}deg)`,
-        }}
+        style={{ background: `conic-gradient(var(--nexora-nova) ${percent * 3.6}deg, var(--nexora-line) 0deg)` }}
       >
         <div
           className="w-[104px] h-[104px] rounded-full flex items-center justify-center"

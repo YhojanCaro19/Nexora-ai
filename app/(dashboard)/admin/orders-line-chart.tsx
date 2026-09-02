@@ -59,12 +59,19 @@ export function OrdersLineChart({ points }: { points: DailyTrendPoint[] }) {
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-32 mt-1">
-        <path d={areaPath} fill="var(--nexora-nova)" opacity={0.1} stroke="none" />
-        <path  
+        <defs>
+          <linearGradient id="aventhra-orders-line" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2={width} y2="0">
+            <stop offset="0%" stopColor="#4CC2E8" />
+            <stop offset="50%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#A78BFA" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill="url(#aventhra-orders-line)" opacity={0.16} stroke="none" />
+        <path
           d={linePath}
           fill="none"
-          stroke="var(--nexora-nova)"
-          strokeWidth={1}
+          stroke="url(#aventhra-orders-line)"
+          strokeWidth={1.4}
           strokeLinejoin="round"
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
@@ -76,8 +83,8 @@ export function OrdersLineChart({ points }: { points: DailyTrendPoint[] }) {
             cy={c.y}
             r={1.1}
             fill={i === coords.length - 1 ? '#FFFFFF' : 'var(--nexora-panel)'}
-            stroke="var(--nexora-nova)"
-            strokeWidth={0.8}
+            stroke="url(#aventhra-orders-line)"
+            strokeWidth={0.9}
             vectorEffect="non-scaling-stroke"
           />
         ))}
