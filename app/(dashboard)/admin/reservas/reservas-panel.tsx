@@ -231,7 +231,7 @@ function SettingsSection({
               hint="Para que no reserven a última hora. Ej. 60 = nada para la próxima hora."
             />
             <QuestionField
-              question="¿Con cuántos días de anticipación como máximo?"
+              question="¿Con cuántos días de anticipación se puede reservar?"
               unit="días"
               value={maxAdvance}
               onChange={setMaxAdvance}
