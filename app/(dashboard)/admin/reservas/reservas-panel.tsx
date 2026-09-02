@@ -416,12 +416,6 @@ function ResourcesSection({
 
   return (
     <Section icon={isTable ? UtensilsCrossed : Users} title={isTable ? "Mesas" : "Empleados"}>
-      <p className="mx-auto max-w-md text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-        {isTable
-          ? "El agente reserva la mesa más chica que alcance para el grupo."
-          : "El agente agenda con el empleado que el cliente pida por nombre."}
-      </p>
-
       {items.length > 0 && (
         <ItemList>
           {items.map((r) => (
