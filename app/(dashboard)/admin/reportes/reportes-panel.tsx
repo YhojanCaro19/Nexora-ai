@@ -2,23 +2,20 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Palette, History, Download, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
+import { Palette, History, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { CustomizePdfForm } from "./customize-pdf-form";
 import { ReportHistoryList } from "./report-history-list";
-import { SalesComparison } from "./sales-comparison";
 import type { BusinessBranding } from "@/lib/services/businessBrandingService";
 import type { ReportDownloadRecord } from "@/lib/services/reportHistoryService";
 
-type View = "chooser" | "customize" | "history" | "comparison";
+type View = "chooser" | "customize" | "history";
 
 export function ReportesPanel({
   branding,
   history,
-  countryIso2,
 }: {
   branding: BusinessBranding;
   history: ReportDownloadRecord[];
-  countryIso2: string | null;
 }) {
   const [view, setView] = useState<View>("chooser");
 
@@ -27,7 +24,6 @@ export function ReportesPanel({
       <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-6 py-4 sm:py-10">
         <ChooserButton icon={Palette} label="Personalizar PDF" onClick={() => setView("customize")} />
         <DownloadReportButton />
-        <ChooserButton icon={TrendingUp} label="Comparativa por período" onClick={() => setView("comparison")} />
         <ChooserButton icon={History} label="Historial de reportes" onClick={() => setView("history")} />
       </div>
     );
@@ -46,7 +42,6 @@ export function ReportesPanel({
 
       {view === "customize" && <CustomizePdfForm branding={branding} />}
       {view === "history" && <ReportHistoryList history={history} />}
-      {view === "comparison" && <SalesComparison countryIso2={countryIso2} />}
     </div>
   );
 }

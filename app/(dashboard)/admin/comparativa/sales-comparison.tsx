@@ -72,10 +72,9 @@ function Podium({
   );
 }
 
-// Vive dentro del propio módulo Reportes (no solo en Inicio, donde ya
-// existía la tendencia de 7 días fija) — acá el rango es elegible y
-// además trae el ranking de más vendidos del período completo, no solo
-// del día de hoy.
+// Módulo propio "Comparativa por período" (antes vivía dentro de Reportes)
+// — el rango es elegible y trae el ranking de más vendidos del período
+// completo, no solo del día de hoy como la tendencia fija de Inicio.
 export function SalesComparison({ countryIso2 }: { countryIso2: string | null }) {
   const [days, setDays] = useState(7);
   const [summary, setSummary] = useState<RangeSalesSummary | null | undefined>(undefined);
