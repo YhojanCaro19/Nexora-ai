@@ -28,7 +28,7 @@ export function CompletionRingCard({
           className="w-[104px] h-[104px] rounded-full flex items-center justify-center"
           style={{ background: 'var(--nexora-panel)' }}
         >
-          <span className="aventhra-iridescent font-nexora text-2xl font-bold">
+          <span className="font-mono-data text-2xl" style={{ color: 'var(--nexora-ink)' }}>
             {percent}%
           </span>
         </div>

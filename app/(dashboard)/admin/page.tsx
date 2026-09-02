@@ -44,25 +44,18 @@ export default async function AdminHomePage() {
           icon={Wallet}
           label="Ventas de hoy"
           value={formatCurrency(todayRevenue, countryIso2)}
-          accent
         />
         <IconStatCard
           icon={ShoppingBag}
           label="Pedidos de hoy"
           value={String(todayOrderCount)}
-          accent
           badge={
             pendingOrders > 0
               ? { text: `${pendingOrders} ${pendingOrders === 1 ? "nuevo" : "nuevos"}` }
               : undefined
           }
         />
-        <IconStatCard
-          icon={Receipt}
-          label="Ticket promedio del día"
-          value={formatCurrency(avgOrderValue, countryIso2)}
-          accent
-        />
+        <IconStatCard icon={Receipt} label="Ticket promedio del día" value={formatCurrency(avgOrderValue, countryIso2)} />
       </div>
 
       {bookingSettings && bookingSettings.mode !== "off" && (

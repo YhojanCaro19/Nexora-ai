@@ -8,15 +8,12 @@ export function IconStatCard({
   label,
   value,
   badge,
-  accent = false,
 }: {
   icon: LucideIcon;
   label: string;
   value: string;
   // Pastilla accionable (ej. "2 nuevos") arriba a la derecha de la tarjeta.
   badge?: { text: string };
-  // Cifra en el degradado iridiscente de la marca (para el KPI principal).
-  accent?: boolean;
 }) {
   return (
     <div
@@ -39,10 +36,7 @@ export function IconStatCard({
           </span>
         ) : null}
       </div>
-      <p
-        className={`text-2xl font-semibold${accent ? ' aventhra-iridescent' : ''}`}
-        style={accent ? undefined : { color: 'var(--nexora-ink)' }}
-      >
+      <p className="text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
         {value}
       </p>
       <p className="text-xs mt-1" style={{ color: 'var(--nexora-ink-dim)' }}>
