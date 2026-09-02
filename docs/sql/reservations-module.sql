@@ -63,6 +63,14 @@ alter table public.booking_resources add column if not exists pos_x integer;
 alter table public.booking_resources add column if not exists pos_y integer;
 alter table public.booking_resources add column if not exists rotation smallint not null default 0;
 
+-- ---- 8d. Cita completada = venta -----------------------------
+-- Al completar una cita con precio se genera un pedido (venta del día en
+-- que se prestó el servicio). service_price/service_product_id son foto
+-- del servicio al reservar; order_id evita duplicar el pedido.
+alter table public.reservations add column if not exists service_price numeric(12,2);
+alter table public.reservations add column if not exists service_product_id uuid references public.products(id) on delete set null;
+alter table public.reservations add column if not exists order_id uuid references public.orders(id) on delete set null;
+
 -- ---- 8b. Servicio de cita = un producto del catálogo ------
 -- El servicio para agendar sale del catálogo (products), no se escribe a
 -- mano: booking_services referencia al producto y solo agrega la duración.

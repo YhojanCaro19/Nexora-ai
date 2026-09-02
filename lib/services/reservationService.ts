@@ -11,7 +11,7 @@
 // agente llama estas funciones desde un route handler con el cliente que
 // le pasen — para el motor conversacional se usa el admin client, igual
 // que con `orders`.
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { getTimezoneForCountry, startOfDayInTimezone } from "@/lib/utils/timezone";
 import { getBookingConfig, getBookingSettings } from "@/lib/services/bookingConfigService";
@@ -27,7 +27,9 @@ import {
 import type { CreateReservationInput } from "@/lib/validators/reservationSchema";
 import { createReservationSchema } from "@/lib/validators/reservationSchema";
 
-type Client = Awaited<ReturnType<typeof createClient>>;
+// Acepta tanto el cliente de sesión (createClient) como el admin
+// (createAdminClient) — el cron de mantenimiento pasa el admin.
+type Client = Awaited<ReturnType<typeof createClient>> | ReturnType<typeof createAdminClient>;
 
 const MIN = 60 * 1000;
 
@@ -91,6 +93,7 @@ function mapReservation(row: Record<string, unknown>): Reservation {
     partySize: (row.party_size as number | null) ?? null,
     serviceId: (row.service_id as string | null) ?? null,
     serviceName: (row.service_name as string | null) ?? null,
+    servicePrice: row.service_price != null ? Number(row.service_price) : null,
     status: row.status as ReservationStatus,
     source: (row.source as "manual" | "agent") ?? "manual",
     notes: (row.notes as string | null) ?? null,
@@ -317,11 +320,15 @@ export async function createReservation(
   //  - Cita: la del servicio; si no hay servicio, la que pasen o el default.
   let durationMinutes = input.durationMinutes ?? config.settings.defaultDurationMinutes;
   let serviceName: string | null = null;
+  let servicePrice: number | null = null;
+  let serviceProductId: string | null = null;
   if (input.kind === "appointment" && input.serviceId) {
     const service = config.services.find((s) => s.id === input.serviceId && s.active);
     if (!service) return { error: "Ese servicio ya no está disponible.", data: null };
     durationMinutes = service.durationMinutes;
     serviceName = service.name;
+    servicePrice = service.price;
+    serviceProductId = service.productId;
   }
   const endsAt = new Date(startsAt.getTime() + durationMinutes * MIN);
 
@@ -367,6 +374,8 @@ export async function createReservation(
       party_size: input.partySize ?? null,
       service_id: input.serviceId ?? null,
       service_name: serviceName,
+      service_price: servicePrice,
+      service_product_id: serviceProductId,
       status: "confirmed", // decisión: el agente auto-confirma
       source: ctx.source,
       notes: input.notes ?? null,
@@ -418,6 +427,76 @@ export async function updateReservationStatus(
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", reservationId)
     .eq("business_id", businessId);
+  if (error) return { error: translateError(error) };
 
-  return { error: error ? translateError(error) : null };
+  // Una cita completada ES una venta — se registra como pedido en el día
+  // en que se completó (mejor dicho: el día en que se prestó el servicio).
+  if (status === "completed") {
+    await recordCompletedAppointmentAsOrder(businessId, reservationId, supabase);
+  }
+
+  return { error: null };
+}
+
+// Si la reserva es una cita con precio y todavía no generó un pedido, crea
+// uno terminal (picked_up) con la fecha del servicio para que cuente en
+// "ventas de hoy" y en los reportes. Idempotente vía reservations.order_id.
+export async function recordCompletedAppointmentAsOrder(
+  businessId: string,
+  reservationId: string,
+  passed?: Client
+): Promise<void> {
+  const supabase = await client(passed);
+  const { data: r } = await supabase
+    .from("reservations")
+    .select("kind, service_name, service_price, service_product_id, customer_id, ends_at, order_id")
+    .eq("id", reservationId)
+    .eq("business_id", businessId)
+    .maybeSingle();
+
+  const row = r as {
+    kind: string;
+    service_name: string | null;
+    service_price: number | string | null;
+    service_product_id: string | null;
+    customer_id: string | null;
+    ends_at: string;
+    order_id: string | null;
+  } | null;
+
+  if (!row || row.kind !== "appointment" || row.order_id) return;
+  const price = row.service_price != null ? Number(row.service_price) : null;
+  if (price == null || Number.isNaN(price) || price <= 0) return;
+
+  const { data: order, error } = await supabase
+    .from("orders")
+    .insert({
+      business_id: businessId,
+      customer_id: row.customer_id,
+      status: "picked_up",
+      items: [
+        {
+          product_id: row.service_product_id ?? "",
+          name: row.service_name ?? "Servicio",
+          quantity: 1,
+          unit_price: price,
+        },
+      ],
+      total: price,
+      // Fecha del servicio, no la de ahora — así cae en el día correcto
+      // aunque se complete/auto-complete con retraso.
+      created_at: row.ends_at,
+    })
+    .select("id")
+    .single();
+
+  if (error || !order) {
+    console.error("[recordCompletedAppointmentAsOrder] no se pudo crear el pedido:", error);
+    return;
+  }
+
+  await supabase
+    .from("reservations")
+    .update({ order_id: (order as { id: string }).id })
+    .eq("id", reservationId);
 }

@@ -317,7 +317,7 @@ function HoursSection({ hours }: { hours: BusinessHour[] }) {
         {rows.map((r) => (
           <div
             key={r.weekday}
-            className="flex items-center justify-between gap-2 border-b py-2.5"
+            className="flex items-center justify-between gap-2 border-b py-2.5 sm:last:col-span-2 sm:last:mx-auto sm:last:w-[calc(50%-1.25rem)]"
             style={{ borderColor: "var(--nexora-line)", opacity: r.open ? 1 : 0.5 }}
           >
             <label className="flex cursor-pointer items-center gap-2.5 text-sm" style={{ color: "var(--nexora-ink)" }}>

@@ -17,6 +17,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { getTimezoneForCountry, formatLongDateInTimezone } from "@/lib/utils/timezone";
+import { recordCompletedAppointmentAsOrder } from "@/lib/services/reservationService";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -51,14 +52,31 @@ export async function GET(request: Request) {
 
   // 1) Auto-completar: toda reserva activa cuyo `ends_at` ya pasó se marca
   //    como "completed". Así sale del exclusion constraint y la mesa /
-  //    empleado queda 100% libre, y la agenda deja de mostrarla como activa.
-  const { data: completed } = await admin
+  //    empleado queda libre, y la agenda deja de mostrarla como activa.
+  //    Además, cada cita completada con precio genera un pedido (venta del
+  //    día del servicio) — por eso se procesan una por una.
+  const { data: toComplete } = await admin
     .from("reservations")
-    .update({ status: "completed", updated_at: nowIso })
+    .select("id, business_id, kind")
     .in("status", ["confirmed", "seated"])
-    .lt("ends_at", nowIso)
-    .select("id");
-  const autoCompleted = (completed ?? []).length;
+    .lt("ends_at", nowIso);
+
+  let autoCompleted = 0;
+  for (const rc of (toComplete as { id: string; business_id: string; kind: string }[]) ?? []) {
+    const { error: upErr } = await admin
+      .from("reservations")
+      .update({ status: "completed", updated_at: nowIso })
+      .eq("id", rc.id);
+    if (upErr) continue;
+    autoCompleted++;
+    if (rc.kind === "appointment") {
+      try {
+        await recordCompletedAppointmentAsOrder(rc.business_id, rc.id, admin);
+      } catch (err) {
+        console.error(`[reservation-reminders] error registrando venta de la cita ${rc.id}:`, err);
+      }
+    }
+  }
 
   // Ventana 23–25 h: con el cron corriendo cada hora, cada reserva cae en
   // exactamente una pasada (no se manda dos veces gracias a reminder_sent_at).

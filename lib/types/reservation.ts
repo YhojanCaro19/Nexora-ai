@@ -119,6 +119,7 @@ export interface Reservation {
   partySize: number | null;
   serviceId: string | null;
   serviceName: string | null;
+  servicePrice: number | null;
   status: ReservationStatus;
   source: "manual" | "agent";
   notes: string | null;
