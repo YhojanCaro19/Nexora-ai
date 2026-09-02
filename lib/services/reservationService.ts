@@ -178,6 +178,31 @@ export async function getUpcomingReservations(
   return ((data as Record<string, unknown>[]) ?? []).map(mapReservation);
 }
 
+// Reservas de HOY (día local del negocio), activas o completadas, para el
+// Inicio del admin. Ordenadas por hora.
+export async function getTodayReservations(businessId: string, passed?: Client): Promise<Reservation[]> {
+  const supabase = await client(passed);
+  const timezone = await getBusinessTimezone(supabase, businessId);
+  const now = new Date();
+  const dayStart = startOfDayInTimezone(timezone, now);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * MIN);
+
+  const { data, error } = await supabase
+    .from("reservations")
+    .select(SELECT_WITH_JOINS)
+    .eq("business_id", businessId)
+    .in("status", ["pending", "confirmed", "seated", "completed", "no_show"])
+    .gte("starts_at", dayStart.toISOString())
+    .lt("starts_at", dayEnd.toISOString())
+    .order("starts_at", { ascending: true });
+
+  if (error) {
+    console.error("[getTodayReservations] error:", error);
+    return [];
+  }
+  return ((data as Record<string, unknown>[]) ?? []).map(mapReservation);
+}
+
 // ---------- Disponibilidad ----------
 
 export interface AvailabilityQuery {

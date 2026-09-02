@@ -2,16 +2,25 @@
 import { Wallet, ShoppingBag, Receipt } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAdminDashboardStats } from "@/lib/services/dashboardService";
+import { getBookingSettings } from "@/lib/services/bookingConfigService";
+import { getTodayReservations } from "@/lib/services/reservationService";
 import { IconStatCard } from "@/components/dashboard/shared/IconStatCard";
 import { SalesTrendChart } from "./sales-trend-chart";
 import { OrdersLineChart } from "./orders-line-chart";
 import { CompletionRingCard } from "./completion-ring-card";
 import { PendingOrdersPreview } from "./pending-orders-preview";
+import { TodayReservations } from "./today-reservations";
 import { formatCurrency } from "@/lib/utils/currency";
 
 export default async function AdminHomePage() {
   const profile = await getSessionProfile();
-  const stats = profile?.businessId ? await getAdminDashboardStats(profile.businessId) : null;
+  const businessId = profile?.businessId ?? null;
+  const stats = businessId ? await getAdminDashboardStats(businessId) : null;
+  const bookingSettings = businessId ? await getBookingSettings(businessId) : null;
+  const todayReservations =
+    businessId && bookingSettings && bookingSettings.mode !== "off"
+      ? await getTodayReservations(businessId)
+      : [];
 
   const countryIso2 = stats?.countryIso2 ?? null;
   const todayRevenue = stats?.todayRevenue ?? 0;
@@ -48,6 +57,10 @@ export default async function AdminHomePage() {
         />
         <IconStatCard icon={Receipt} label="Ticket promedio del día" value={formatCurrency(avgOrderValue, countryIso2)} />
       </div>
+
+      {bookingSettings && bookingSettings.mode !== "off" && (
+        <TodayReservations mode={bookingSettings.mode} reservations={todayReservations} />
+      )}
 
       {/* Dos filas reales de cuadrícula — cada fila comparte alto
           (items-stretch), sin dejar hueco. Fila 1: la gráfica grande con
