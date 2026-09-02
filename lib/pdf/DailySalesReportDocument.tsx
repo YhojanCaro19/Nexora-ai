@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   contactLabel: { fontWeight: 700 },
   socialRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 8, marginTop: 4 },
   socialItem: { fontSize: 9, color: "#6b7280" },
-  logo: { width: 52, height: 52, objectFit: "contain" },
+  logo: { width: 110, height: 110, objectFit: "contain" },
   title: { fontSize: 14, fontWeight: 700, marginBottom: 2, textAlign: "center" },
   dateLine: { fontSize: 10, color: "#6b7280", marginBottom: 20, textAlign: "center" },
   summaryRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
