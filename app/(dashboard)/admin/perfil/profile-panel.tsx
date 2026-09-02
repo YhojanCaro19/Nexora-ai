@@ -389,13 +389,6 @@ function AccessChangeSection({
   );
 }
 
-// Formatea un conteo de tokens en algo legible: 1 234 567 → "1,2 M".
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} M`;
-  if (n >= 1_000) return `${(n / 1_000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} k`;
-  return n.toLocaleString("es-CO");
-}
-
 function GroupLabel({ children }: { children: ReactNode }) {
   return (
     <p
@@ -487,7 +480,31 @@ function BillingSection({
                   label="Mensajes respondidos"
                   value={agentUsage.replyCount.toLocaleString("es-CO")}
                 />
-                <Row label="Tokens usados" value={formatTokens(agentUsage.totalTokens)} mono />
+                <Row
+                  label="Entrada"
+                  value={agentUsage.totalInputTokens.toLocaleString("es-CO")}
+                  mono
+                />
+                <Row
+                  label="Salida"
+                  value={agentUsage.totalOutputTokens.toLocaleString("es-CO")}
+                  mono
+                />
+                <Row
+                  label="Caché · lectura"
+                  value={agentUsage.totalCacheReadTokens.toLocaleString("es-CO")}
+                  mono
+                />
+                <Row
+                  label="Caché · escritura"
+                  value={agentUsage.totalCacheCreationTokens.toLocaleString("es-CO")}
+                  mono
+                />
+                <Row
+                  label="Total de tokens"
+                  value={agentUsage.totalTokens.toLocaleString("es-CO")}
+                  mono
+                />
                 {agentUsage.lastUsedAt && (
                   <Row
                     label="Última actividad"
@@ -498,9 +515,12 @@ function BillingSection({
                   className="pt-2 text-center text-[11px] leading-relaxed"
                   style={{ color: "var(--nexora-ink-dim)" }}
                 >
-                  Incluye el texto que el agente lee y escribe en cada respuesta
-                  (contexto, catálogo y memoria de la conversación), no solo el
-                  mensaje final — por eso el número es más alto de lo que parece.
+                  Mismo desglose que el panel de Anthropic (Usage): entrada,
+                  salida y caché de prompt. Para que las cifras cuadren, en ese
+                  panel elige el rango de los últimos {agentUsage.windowDays}{" "}
+                  días y suma las cuatro columnas. La caché de lectura se factura
+                  a una fracción del precio, pero aquí cuenta como token
+                  procesado.
                 </p>
               </>
             ) : (
