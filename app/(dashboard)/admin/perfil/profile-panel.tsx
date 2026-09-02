@@ -64,6 +64,7 @@ const SECURITY_EVENT_LABELS: Record<string, string> = {
   collaborator_removed: "Eliminó a un colaborador",
   report_downloaded: "Descargó un reporte",
   account_change_requested: "Pidió cambiar su cuenta de acceso",
+  session_device_mismatch: "Sesión cerrada: se intentó usar desde otro dispositivo",
 };
 
 type SectionKey =
@@ -551,12 +552,14 @@ function SecurityHistorySection({
       label: describeUserAgent(l.userAgent),
       detail: l.ip,
       createdAt: l.createdAt,
+      alert: false,
     })),
     ...events.map((e) => ({
       id: e.id,
       label: SECURITY_EVENT_LABELS[e.eventType] ?? e.eventType,
       detail: null as string | null,
       createdAt: e.createdAt,
+      alert: e.eventType === "session_device_mismatch",
     })),
   ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
@@ -574,9 +577,15 @@ function SecurityHistorySection({
         <div
           key={it.id}
           className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
-          style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
+          style={{
+            borderColor: it.alert ? "rgba(248,113,113,0.35)" : "rgba(255,255,255,0.1)",
+            background: it.alert ? "rgba(248,113,113,0.07)" : "rgba(255,255,255,0.02)",
+          }}
         >
-          <span className="min-w-0 text-sm" style={{ color: "var(--nexora-ink)" }}>
+          <span
+            className="min-w-0 text-sm"
+            style={{ color: it.alert ? "var(--nexora-alert)" : "var(--nexora-ink)" }}
+          >
             {it.label}
           </span>
           <span className="shrink-0 text-right text-xs" style={{ color: "var(--nexora-ink-dim)" }}>

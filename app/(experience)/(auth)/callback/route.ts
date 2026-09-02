@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getClientIp, getUserAgent } from "@/lib/utils/request";
 import { logLoginEvent } from "@/lib/services/loginEventService";
+import { DEVICE_COOKIE, deviceFingerprint } from "@/lib/auth/session-guard";
 
 // Callback de Google OAuth — único método de autenticación de AVENTHRA.
 // Intercambia el `code` por una sesión, resuelve el rol y manda al panel.
@@ -73,6 +75,18 @@ export async function GET(request: Request) {
   const ip = await getClientIp();
   const userAgent = await getUserAgent();
   await logLoginEvent(user.id, businessId, ip, userAgent);
+
+  // Ata la sesión a este navegador/equipo (ver lib/auth/session-guard.ts).
+  // Un inicio de sesión explícito siempre re-ata al dispositivo actual, así
+  // que cambiar de navegador legítimamente solo cuesta volver a entrar.
+  const cookieStore = await cookies();
+  cookieStore.set(DEVICE_COOKIE, await deviceFingerprint(userAgent), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 400 * 24 * 60 * 60,
+  });
 
   return NextResponse.redirect(`${origin}${ROLE_PREFIX[role] ?? "/login"}`);
 }

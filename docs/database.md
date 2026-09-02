@@ -146,9 +146,9 @@ Historial de descargas del reporte diario (Reportes → Historial de reportes).
 RLS: SELECT/INSERT para `is_business_admin(business_id)`, sin UPDATE/DELETE (es un log). Gestión vía `lib/services/reportHistoryService.ts`.
 
 ### `profile_security_events` y `user_login_events` (`docs/sql/profile-security-events.sql`)
-Historial de seguridad personal (Perfil → "Historial de seguridad"): línea de tiempo por persona con inicios de sesión (`user_login_events`: `ip`, `user_agent`) + eventos propios (`profile_security_events`: `event_type` — `profile_updated`, `avatar_updated`, `signed_out_all_devices`, `collaborator_added` / `collaborator_updated` / `collaborator_deactivated` / `collaborator_reactivated` / `collaborator_removed`, `report_downloaded`, `account_change_requested`).
+Historial de seguridad personal (Perfil → "Historial de seguridad"): línea de tiempo por persona con inicios de sesión (`user_login_events`: `ip`, `user_agent`) + eventos propios (`profile_security_events`: `event_type` — `profile_updated`, `avatar_updated`, `signed_out_all_devices`, `collaborator_added` / `collaborator_updated` / `collaborator_deactivated` / `collaborator_reactivated` / `collaborator_removed`, `report_downloaded`, `account_change_requested`, `session_device_mismatch` = sesión cerrada por `proxy.ts` al detectar que se usó desde otro navegador/equipo).
 
-Ambas: `user_id` + `business_id`, sin policy de INSERT (se escribe con `createAdminClient()` desde server actions / route handlers que derivan ids de `getSessionProfile()`), SELECT acotado a `auth.uid() = user_id` — cada quien ve solo lo suyo, no basta con ser miembro del negocio. Gestión vía `lib/services/profileSecurityLogService.ts` y `loginEventService.ts`; el perfil los fusiona y ordena por fecha en `SecurityHistorySection`.
+Ambas: `user_id` + `business_id`, sin policy de INSERT (se escribe con service role — desde server actions / route handlers que derivan ids de `getSessionProfile()`, o desde `proxy.ts` vía `lib/auth/session-guard.ts`), SELECT acotado a `auth.uid() = user_id` — cada quien ve solo lo suyo, no basta con ser miembro del negocio. Gestión vía `lib/services/profileSecurityLogService.ts` y `loginEventService.ts`; el perfil los fusiona y ordena por fecha en `SecurityHistorySection` (el evento de dispositivo sale en rojo).
 
 ## RAG del catálogo (búsqueda vectorial)
 

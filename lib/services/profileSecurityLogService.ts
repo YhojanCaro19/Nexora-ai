@@ -27,7 +27,10 @@ export type ProfileSecurityEventType =
   | "collaborator_reactivated"
   | "collaborator_removed"
   | "report_downloaded"
-  | "account_change_requested";
+  | "account_change_requested"
+  // proxy.ts detectó que la sesión se usó desde otro navegador/equipo
+  // (huella de dispositivo distinta) y la cerró por seguridad.
+  | "session_device_mismatch";
 
 export interface ProfileSecurityEvent {
   id: string;

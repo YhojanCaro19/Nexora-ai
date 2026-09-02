@@ -12,7 +12,9 @@ Este proyecto corre sobre Next.js + Supabase, sin servidores propios administrad
 
 **Qué es el riesgo real:** que alguien cambie un `id` en la URL o en el payload de un formulario y así acceda a datos de otro negocio o de otro usuario, sin pasar por ningún chequeo de permisos.
 
-**Ya resuelto:** la sesión vive en una cookie `httpOnly` (Supabase Auth vía `@supabase/ssr`), no en la URL — no es posible "copiar" la sesión de otro con solo ver un link. RLS filtra por `business_id` en las tablas que ya cubrimos.
+**Ya resuelto:** la sesión vive en una cookie `httpOnly` (Supabase Auth vía `@supabase/ssr`, flujo PKCE — ningún token en la URL ni en `localStorage`), no en la URL — no es posible "copiar" la sesión de otro con solo ver un link. `proxy.ts` (matcher `/admin` · `/superadmin` · `/colaborador`) manda a `/login` cualquier ruta del panel abierta sin sesión válida, y valida que el prefijo de la ruta coincida con el rol. RLS filtra por `business_id` en las tablas que ya cubrimos.
+
+**Capa extra — sesión atada al dispositivo:** al iniciar sesión se guarda una cookie `httpOnly` `av_dev` con el SHA-256 del User-Agent (`lib/auth/session-guard.ts`). En cada request al panel `proxy.ts` compara esa huella con la del navegador actual; si no coincide (cookies copiadas a otro navegador/equipo) cierra la sesión de verdad (`signOut` global) y registra `session_device_mismatch` en `profile_security_events` (visible en rojo en Perfil → Historial de seguridad). Sumado al cierre automático por inactividad de 60 min, también en `proxy.ts`. Límite: un atacante que falsee su User-Agent idéntico al de la víctima pasa la huella — barrera proporcional, no anti-robo perfecto.
 
 **Falta auditar:** cualquier server action o ruta dinámica que reciba un `id` desde el cliente (URL, query param, o `formData`) y lo use para leer/escribir sin verificar que pertenece al `business_id` de la sesión actual. El patrón correcto siempre es:
 
