@@ -18,9 +18,11 @@
 ### A. Secretos y variables de entorno
 - [x] **[JUNTOS]** Generar `CHANNELS_TOKEN_KEY`, `META_WEBHOOK_VERIFY_TOKEN`,
       `META_OAUTH_STATE_SECRET` en `.env.local` — *hecho 2026-09-02*
-- [ ] **[JUNTOS]** Agregar a `.env.local` cuando exista la app de Meta:
-      `META_APP_ID`, `NEXT_PUBLIC_META_APP_ID`, `META_APP_SECRET`,
-      `META_CONFIG_ID`, `META_GRAPH_VERSION=v21.0`
+- [x] **[JUNTOS]** `.env.local`: `META_APP_ID`, `NEXT_PUBLIC_META_APP_ID`,
+      `META_APP_SECRET`, `META_GRAPH_VERSION=v21.0` — *hecho 2026-09-02*
+- [ ] **[JUNTOS]** `.env.local`: `META_CONFIG_ID` (falta el Paso E)
+- [ ] **[JUNTOS]** `META_WEBHOOK_VERIFY_TOKEN` se rotó 2026-09-02 (quedó
+      expuesto en sesión antes de estar conectado a nada — sin impacto)
 - [ ] **[JUNTOS]** Replicar las 8 variables en Vercel → Project → Settings →
       Environment Variables (mismos valores que local — si no, los tokens
       cifrados no se pueden descifrar en prod)
