@@ -145,6 +145,11 @@ Historial de descargas del reporte diario (Reportes → Historial de reportes).
 
 RLS: SELECT/INSERT para `is_business_admin(business_id)`, sin UPDATE/DELETE (es un log). Gestión vía `lib/services/reportHistoryService.ts`.
 
+### `profile_security_events` y `user_login_events` (`docs/sql/profile-security-events.sql`)
+Historial de seguridad personal (Perfil → "Historial de seguridad"): línea de tiempo por persona con inicios de sesión (`user_login_events`: `ip`, `user_agent`) + eventos propios (`profile_security_events`: `event_type` — `profile_updated`, `avatar_updated`, `signed_out_all_devices`, `collaborator_added` / `collaborator_updated` / `collaborator_deactivated` / `collaborator_reactivated` / `collaborator_removed`, `report_downloaded`, `account_change_requested`).
+
+Ambas: `user_id` + `business_id`, sin policy de INSERT (se escribe con `createAdminClient()` desde server actions / route handlers que derivan ids de `getSessionProfile()`), SELECT acotado a `auth.uid() = user_id` — cada quien ve solo lo suyo, no basta con ser miembro del negocio. Gestión vía `lib/services/profileSecurityLogService.ts` y `loginEventService.ts`; el perfil los fusiona y ordena por fecha en `SecurityHistorySection`.
+
 ## RAG del catálogo (búsqueda vectorial)
 
 Para negocios con catálogos grandes o búsqueda en lenguaje natural — **no es lo que evita que el agente invente productos** (eso ya lo resuelve el tool-calling contra datos reales, sea SQL exacto o vectorial); es para cuando SQL exacto no alcanza por volumen o ambigüedad del lenguaje del cliente.

@@ -18,7 +18,16 @@ export type ProfileSecurityEventType =
   | "password_changed"
   | "signed_out_all_devices"
   | "avatar_updated"
-  | "profile_updated";
+  | "profile_updated"
+  // Acceso a datos del negocio — acciones sensibles que quedan en el
+  // historial personal de quien las hizo (auth.uid() = user_id).
+  | "collaborator_added"
+  | "collaborator_updated"
+  | "collaborator_deactivated"
+  | "collaborator_reactivated"
+  | "collaborator_removed"
+  | "report_downloaded"
+  | "account_change_requested";
 
 export interface ProfileSecurityEvent {
   id: string;

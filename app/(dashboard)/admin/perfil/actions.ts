@@ -115,6 +115,10 @@ export async function requestAccountChangeAction(input: { requestedEmail: string
     input: parsed.data,
   });
 
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "account_change_requested");
+  }
+
   revalidatePath("/admin/perfil");
   revalidatePath("/colaborador/perfil");
   return result;

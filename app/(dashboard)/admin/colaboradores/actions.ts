@@ -18,6 +18,7 @@ import {
 } from "@/lib/validators/collaboratorSchema";
 import { translateError } from "@/lib/errors/translate";
 import { signOtpVerification, isOtpVerificationValid, OTP_COOKIE } from "@/lib/services/otpService";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
 export async function createCollaboratorAction(input: CollaboratorInput) {
@@ -32,6 +33,9 @@ export async function createCollaboratorAction(input: CollaboratorInput) {
   }
 
   const result = await createCollaborator(profile.businessId, profile.userId, parsed.data);
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "collaborator_added");
+  }
   revalidatePath("/admin/colaboradores");
   return result;
 }
@@ -51,6 +55,9 @@ export async function updateCollaboratorAction(
   }
 
   const result = await updateCollaborator(collaboratorMemberId, profile.businessId, parsed.data);
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "collaborator_updated");
+  }
   revalidatePath("/admin/colaboradores");
   return result;
 }
@@ -65,6 +72,13 @@ export async function setCollaboratorActiveAction(collaboratorMemberId: string, 
   }
 
   const result = await setCollaboratorActive(collaboratorMemberId, profile.businessId, isActive);
+  if (!result.error) {
+    await logProfileSecurityEvent(
+      profile.userId,
+      profile.businessId,
+      isActive ? "collaborator_reactivated" : "collaborator_deactivated"
+    );
+  }
   revalidatePath("/admin/colaboradores");
   return result;
 }
@@ -155,6 +169,9 @@ export async function verifyAndDeleteCollaboratorAction(collaboratorMemberId: st
 
   const result = await deleteCollaborator(collaboratorMemberId, profile.businessId);
   cookieStore.delete(OTP_COOKIE.name);
+  if (!result.error) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "collaborator_removed");
+  }
   revalidatePath("/admin/colaboradores");
   return result;
 }

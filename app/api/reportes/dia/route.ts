@@ -9,6 +9,7 @@ import { getSessionProfile } from "@/lib/auth/get-session";
 import { getDailySalesSummary } from "@/lib/services/reportService";
 import { renderDailySalesReportPdf } from "@/lib/pdf/renderDailySalesReport";
 import { logReportDownload } from "@/lib/services/reportHistoryService";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 
 export async function GET() {
@@ -40,6 +41,7 @@ export async function GET() {
   if (logError) {
     console.error("[GET /api/reportes/dia] no se pudo registrar la descarga:", logError);
   }
+  await logProfileSecurityEvent(profile.userId, profile.businessId, "report_downloaded");
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {

@@ -40,10 +40,10 @@ export default async function ColaboradorPerfilPage() {
 
       <ProfilePanel
         details={details}
-        businessId={profile.businessId}
         loginEvents={loginEvents}
         securityEvents={securityEvents}
         billing={billing}
+        agentUsage={null}
         accessChange={accessChange}
         currentLocale={locale}
         canManageBilling={false}

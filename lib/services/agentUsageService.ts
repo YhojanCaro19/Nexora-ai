@@ -4,7 +4,7 @@
 // aunque todavía no se cobre por uso. Va con service role porque
 // `agent_usage_log` no tiene policy de INSERT (solo SELECT para el admin
 // del negocio) — mismo criterio que `businessBrandingService.ts`.
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { estimateCostUsd, estimateCacheSavingsUsd } from "@/lib/config/modelPricing";
 
 export interface AgentTurnUsage {
@@ -41,6 +41,74 @@ export async function logAgentUsage(
   if (error) {
     console.error("[logAgentUsage] error:", error);
   }
+}
+
+// Consumo del agente de UN negocio, para que su propio admin lo vea en
+// Perfil → Plan (hereda la misma fuente que el panel de superadmin, pero
+// SIN precios — al dueño solo le mostramos tokens gastados). Va por el
+// cliente normal: `agent_usage_log` tiene SELECT para is_business_admin
+// (RLS), así que un colaborador recibe null y la UI simplemente no lo
+// muestra. Se agrega en JS por el mismo motivo que getAgentUsageByBusiness.
+export interface OwnAgentUsage {
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalCacheReadTokens: number;
+  totalCacheCreationTokens: number;
+  /** Volumen total procesado: entrada fresca + caché leído + caché escrito + salida. */
+  totalTokens: number;
+  turnCount: number;
+  lastUsedAt: string | null;
+}
+
+export async function getAgentUsageForBusiness(
+  businessId: string
+): Promise<OwnAgentUsage | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("agent_usage_log")
+    .select(
+      "input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, created_at"
+    )
+    .eq("business_id", businessId);
+
+  if (error) {
+    console.error("[getAgentUsageForBusiness] error:", error);
+    return null;
+  }
+  if (!data || data.length === 0) {
+    return {
+      totalInputTokens: 0,
+      totalOutputTokens: 0,
+      totalCacheReadTokens: 0,
+      totalCacheCreationTokens: 0,
+      totalTokens: 0,
+      turnCount: 0,
+      lastUsedAt: null,
+    };
+  }
+
+  let input = 0;
+  let output = 0;
+  let cacheRead = 0;
+  let cacheCreation = 0;
+  let lastUsedAt: string | null = null;
+  for (const row of data) {
+    input += row.input_tokens ?? 0;
+    output += row.output_tokens ?? 0;
+    cacheRead += row.cache_read_input_tokens ?? 0;
+    cacheCreation += row.cache_creation_input_tokens ?? 0;
+    if (!lastUsedAt || row.created_at > lastUsedAt) lastUsedAt = row.created_at;
+  }
+
+  return {
+    totalInputTokens: input,
+    totalOutputTokens: output,
+    totalCacheReadTokens: cacheRead,
+    totalCacheCreationTokens: cacheCreation,
+    totalTokens: input + output + cacheRead + cacheCreation,
+    turnCount: data.length,
+    lastUsedAt,
+  };
 }
 
 export interface BusinessAgentUsage {

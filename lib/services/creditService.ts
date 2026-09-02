@@ -36,10 +36,23 @@ export async function getCreditBalance(businessId: string): Promise<CreditBalanc
   };
 }
 
+// Lo que el plan incluye cada ciclo (cupos v5) + topes de estructura.
+// Se hereda tal cual de la tabla `plans` que administra el superadmin.
+export interface PlanEntitlements {
+  monthlyCredits: number;
+  agentConversations: number;
+  campaigns: number;
+  images: number;
+  maxBusinesses: number;
+  maxCollaborators: number | null;
+}
+
 export interface BillingSummary {
   planName: string | null;
+  planKey: string | null;
   renewsAt: string | null;
   credits: { total: number; plan: number; topup: number } | null;
+  entitlements: PlanEntitlements | null;
 }
 
 // Resumen de plan + créditos para la pantalla de Perfil. Degrada suave:
@@ -55,23 +68,49 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
   if (error || !data) return null;
 
   let planName: string | null = null;
+  let entitlements: PlanEntitlements | null = null;
   if (data.plan_key) {
     const { data: plan } = await supabase
       .from("plans")
-      .select("name")
+      .select(
+        "name, monthly_credits, included_agent_conversations, included_campaigns, included_images, max_businesses, max_collaborators"
+      )
       .eq("key", data.plan_key)
       .maybeSingle();
-    planName = (plan as { name: string } | null)?.name ?? data.plan_key;
+    const p = plan as
+      | {
+          name: string;
+          monthly_credits: number | null;
+          included_agent_conversations: number | null;
+          included_campaigns: number | null;
+          included_images: number | null;
+          max_businesses: number | null;
+          max_collaborators: number | null;
+        }
+      | null;
+    planName = p?.name ?? data.plan_key;
+    if (p) {
+      entitlements = {
+        monthlyCredits: p.monthly_credits ?? 0,
+        agentConversations: p.included_agent_conversations ?? 0,
+        campaigns: p.included_campaigns ?? 0,
+        images: p.included_images ?? 0,
+        maxBusinesses: p.max_businesses ?? 1,
+        maxCollaborators: p.max_collaborators ?? null,
+      };
+    }
   }
 
   return {
     planName,
+    planKey: data.plan_key ?? null,
     renewsAt: data.plan_renews_at ?? null,
     credits: {
       total: data.plan_balance + data.topup_balance,
       plan: data.plan_balance,
       topup: data.topup_balance,
     },
+    entitlements,
   };
 }
 

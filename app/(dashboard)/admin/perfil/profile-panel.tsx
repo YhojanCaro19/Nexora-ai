@@ -17,7 +17,7 @@ import {
   LogOut,
   MonitorSmartphone,
   ShieldCheck,
-  SlidersHorizontal,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -39,6 +39,8 @@ import type { ProfileDetails } from "@/lib/services/profileService";
 import type { LoginEvent } from "@/lib/services/loginEventService";
 import type { ProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import type { AccessChangeEligibility } from "@/lib/services/accountChangeService";
+import type { BillingSummary } from "@/lib/services/creditService";
+import type { OwnAgentUsage } from "@/lib/services/agentUsageService";
 import { industryTypes } from "@/lib/validators/businessSchema";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -55,13 +57,14 @@ const SECURITY_EVENT_LABELS: Record<string, string> = {
   signed_out_all_devices: "Cerró sesión en todos los dispositivos",
   avatar_updated: "Actualizó su foto de perfil",
   profile_updated: "Actualizó su nombre o teléfono",
+  collaborator_added: "Agregó un colaborador",
+  collaborator_updated: "Editó los datos de un colaborador",
+  collaborator_deactivated: "Desactivó a un colaborador",
+  collaborator_reactivated: "Reactivó a un colaborador",
+  collaborator_removed: "Eliminó a un colaborador",
+  report_downloaded: "Descargó un reporte",
+  account_change_requested: "Pidió cambiar su cuenta de acceso",
 };
-
-export interface BillingSummary {
-  planName: string | null;
-  renewsAt: string | null;
-  credits: { total: number; plan: number; topup: number } | null;
-}
 
 type SectionKey =
   | "personal"
@@ -75,10 +78,10 @@ type SectionKey =
 
 interface ProfilePanelProps {
   details: ProfileDetails;
-  businessId: string | null;
   loginEvents: LoginEvent[];
   securityEvents: ProfileSecurityEvent[];
   billing: BillingSummary | null;
+  agentUsage: OwnAgentUsage | null;
   accessChange: AccessChangeEligibility;
   currentLocale: Locale;
   canManageBilling: boolean;
@@ -209,13 +212,7 @@ function PersonalDataSection({ details }: { details: ProfileDetails }) {
   );
 }
 
-function AccountInfoSection({
-  details,
-  businessId,
-}: {
-  details: ProfileDetails;
-  businessId: string | null;
-}) {
+function AccountInfoSection({ details }: { details: ProfileDetails }) {
   return (
     <dl className="mx-auto max-w-sm divide-y divide-white/[0.06]">
       <Row label="Correo de acceso" value={details.email ?? "—"} mono />
@@ -224,7 +221,6 @@ function AccountInfoSection({
       {details.industryType && (
         <Row label="Tipo de negocio" value={industryLabel(details.industryType)} />
       )}
-      {businessId && <Row label="ID de negocio" value={businessId} mono />}
       <Row
         label="Último acceso"
         value={details.lastSignInAt ? formatShortDateTime(details.lastSignInAt) : "—"}
@@ -392,11 +388,31 @@ function AccessChangeSection({
   );
 }
 
+// Formatea un conteo de tokens en algo legible: 1 234 567 → "1,2 M".
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} M`;
+  if (n >= 1_000) return `${(n / 1_000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} k`;
+  return n.toLocaleString("es-CO");
+}
+
+function GroupLabel({ children }: { children: ReactNode }) {
+  return (
+    <p
+      className="pt-4 pb-1 text-center text-[11px] font-semibold uppercase tracking-wide"
+      style={{ color: "var(--nexora-ink-dim)" }}
+    >
+      {children}
+    </p>
+  );
+}
+
 function BillingSection({
   billing,
+  agentUsage,
   canManageBilling,
 }: {
   billing: BillingSummary | null;
+  agentUsage: OwnAgentUsage | null;
   canManageBilling: boolean;
 }) {
   if (!billing) {
@@ -407,17 +423,80 @@ function BillingSection({
     );
   }
 
+  const ent = billing.entitlements;
+  const hasUsage = agentUsage && agentUsage.turnCount > 0;
+
   return (
     <div className="mx-auto max-w-sm space-y-5">
       <dl className="divide-y divide-white/[0.06]">
         <Row label="Plan" value={billing.planName ?? "—"} />
         {billing.renewsAt && <Row label="Renueva el" value={formatShortDate(billing.renewsAt)} />}
+
+        {ent && (
+          <>
+            <GroupLabel>Incluido cada mes</GroupLabel>
+            {ent.agentConversations > 0 && (
+              <Row
+                label="Conversaciones del agente"
+                value={ent.agentConversations.toLocaleString("es-CO")}
+              />
+            )}
+            {ent.campaigns > 0 && (
+              <Row label="Campañas de marketing" value={ent.campaigns.toLocaleString("es-CO")} />
+            )}
+            {ent.images > 0 && (
+              <Row label="Imágenes con IA" value={ent.images.toLocaleString("es-CO")} />
+            )}
+            {ent.monthlyCredits > 0 && (
+              <Row
+                label="Créditos de respaldo"
+                value={ent.monthlyCredits.toLocaleString("es-CO")}
+              />
+            )}
+            <Row
+              label="Negocios"
+              value={ent.maxBusinesses <= 1 ? "1" : `Hasta ${ent.maxBusinesses}`}
+            />
+            {ent.maxCollaborators != null && (
+              <Row label="Colaboradores" value={`Hasta ${ent.maxCollaborators}`} />
+            )}
+          </>
+        )}
+
         {billing.credits && (
           <>
-            <Row label="Créditos disponibles" value={billing.credits.total.toLocaleString("es-CO")} />
-            <Row label="Del plan" value={billing.credits.plan.toLocaleString("es-CO")} />
+            <GroupLabel>Créditos disponibles ahora</GroupLabel>
+            <Row label="Total" value={billing.credits.total.toLocaleString("es-CO")} />
             {billing.credits.topup > 0 && (
               <Row label="En recargas" value={billing.credits.topup.toLocaleString("es-CO")} />
+            )}
+          </>
+        )}
+
+        {agentUsage && (
+          <>
+            <GroupLabel>Consumo del agente</GroupLabel>
+            {hasUsage ? (
+              <>
+                <Row label="Tokens usados" value={formatTokens(agentUsage.totalTokens)} mono />
+                <Row
+                  label="Conversaciones atendidas"
+                  value={agentUsage.turnCount.toLocaleString("es-CO")}
+                />
+                {agentUsage.lastUsedAt && (
+                  <Row
+                    label="Última actividad"
+                    value={formatShortDateTime(agentUsage.lastUsedAt)}
+                  />
+                )}
+              </>
+            ) : (
+              <p
+                className="py-3 text-center text-xs"
+                style={{ color: "var(--nexora-ink-dim)" }}
+              >
+                Tu agente todavía no ha atendido conversaciones.
+              </p>
             )}
           </>
         )}
@@ -434,27 +513,71 @@ function BillingSection({
   );
 }
 
-function SecurityHistorySection({ events }: { events: ProfileSecurityEvent[] }) {
-  if (events.length === 0) {
+function describeUserAgent(userAgent: string | null): string {
+  if (!userAgent || userAgent === "unknown") return "Inicio de sesión";
+  let os = "";
+  if (userAgent.includes("Windows")) os = "Windows";
+  else if (userAgent.includes("Mac OS X") || userAgent.includes("Macintosh")) os = "macOS";
+  else if (userAgent.includes("iPhone") || userAgent.includes("iPad")) os = "iOS";
+  else if (userAgent.includes("Android")) os = "Android";
+  else if (userAgent.includes("Linux")) os = "Linux";
+  let browser = "";
+  if (userAgent.includes("Edg/")) browser = "Edge";
+  else if (userAgent.includes("OPR/") || userAgent.includes("Opera")) browser = "Opera";
+  else if (userAgent.includes("Firefox/")) browser = "Firefox";
+  else if (userAgent.includes("Chrome/")) browser = "Chrome";
+  else if (userAgent.includes("Safari/")) browser = "Safari";
+  const both = [browser, os].filter(Boolean).join(" en ");
+  return both ? `Inicio de sesión · ${both}` : "Inicio de sesión";
+}
+
+// Historial de seguridad = línea de tiempo unificada: inicios de sesión +
+// eventos propios (perfil, foto, cierre global) + accesos sensibles a
+// datos del negocio (colaboradores, reportes). Todo ordenado por fecha.
+function SecurityHistorySection({
+  events,
+  loginEvents,
+}: {
+  events: ProfileSecurityEvent[];
+  loginEvents: LoginEvent[];
+}) {
+  const items = [
+    ...loginEvents.map((l) => ({
+      id: `login-${l.id}`,
+      label: describeUserAgent(l.userAgent),
+      detail: l.ip,
+      createdAt: l.createdAt,
+    })),
+    ...events.map((e) => ({
+      id: e.id,
+      label: SECURITY_EVENT_LABELS[e.eventType] ?? e.eventType,
+      detail: null as string | null,
+      createdAt: e.createdAt,
+    })),
+  ].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+  if (items.length === 0) {
     return (
       <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
         Todavía no hay eventos de seguridad.
       </p>
     );
   }
+
   return (
     <div className="mx-auto max-w-md space-y-2">
-      {events.map((e) => (
+      {items.map((it) => (
         <div
-          key={e.id}
+          key={it.id}
           className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5"
           style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.02)" }}
         >
-          <span className="text-sm" style={{ color: "var(--nexora-ink)" }}>
-            {SECURITY_EVENT_LABELS[e.eventType] ?? e.eventType}
+          <span className="min-w-0 text-sm" style={{ color: "var(--nexora-ink)" }}>
+            {it.label}
           </span>
-          <span className="shrink-0 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-            {formatShortDateTime(e.createdAt)}
+          <span className="shrink-0 text-right text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            {formatShortDateTime(it.createdAt)}
+            {it.detail ? ` · ${it.detail}` : ""}
           </span>
         </div>
       ))}
@@ -497,8 +620,9 @@ function PreferencesSection({ currentLocale }: { currentLocale: Locale }) {
           ))}
         </div>
         <p className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-          Por ahora aplica a la landing y al inicio de sesión. La traducción del
-          panel está en camino.
+          Por ahora aplica a la landing y al inicio de sesión. La traducción
+          completa del panel — y más idiomas — llega cuando el producto esté
+          terminado.
         </p>
       </div>
     </div>
@@ -509,10 +633,10 @@ function PreferencesSection({ currentLocale }: { currentLocale: Locale }) {
 
 export function ProfilePanel({
   details,
-  businessId,
   loginEvents,
   securityEvents,
   billing,
+  agentUsage,
   accessChange,
   currentLocale,
   canManageBilling,
@@ -532,7 +656,7 @@ export function ProfilePanel({
     { key: "sign-out-all", label: "Cerrar sesión en todos los dispositivos", icon: LogOut },
     { key: "login-history", label: "Inicios de sesión", icon: MonitorSmartphone },
     { key: "security-history", label: "Historial de seguridad", icon: ShieldCheck },
-    { key: "preferences", label: "Preferencias", icon: SlidersHorizontal },
+    { key: "preferences", label: "Idioma", icon: Languages },
   ];
 
   const titleFor = (k: SectionKey) => rows.find((r) => r.key === k)?.label ?? "";
@@ -581,16 +705,22 @@ export function ProfilePanel({
       ) : (
         <SectionView title={titleFor(view)} onBack={() => setView("list")}>
           {view === "personal" && <PersonalDataSection details={details} />}
-          {view === "account" && <AccountInfoSection details={details} businessId={businessId} />}
+          {view === "account" && <AccountInfoSection details={details} />}
           {view === "access-change" && (
             <AccessChangeSection details={details} accessChange={accessChange} />
           )}
           {view === "billing" && (
-            <BillingSection billing={billing} canManageBilling={canManageBilling} />
+            <BillingSection
+              billing={billing}
+              agentUsage={agentUsage}
+              canManageBilling={canManageBilling}
+            />
           )}
           {view === "sign-out-all" && <SignOutAllDevices />}
           {view === "login-history" && <ActiveSessionsPreview events={loginEvents} />}
-          {view === "security-history" && <SecurityHistorySection events={securityEvents} />}
+          {view === "security-history" && (
+            <SecurityHistorySection events={securityEvents} loginEvents={loginEvents} />
+          )}
           {view === "preferences" && <PreferencesSection currentLocale={currentLocale} />}
         </SectionView>
       )}
