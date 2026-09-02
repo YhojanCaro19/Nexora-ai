@@ -33,13 +33,19 @@
       — *hecho 2026-09-02, 15 columnas OK*
 - [x] **[TÚ]** Verificar columnas de `channel_connections` — *OK*
 
-### C. Páginas legales (Meta las exige para la app)
-- [ ] **[CLAUDE]** Crear rutas públicas `/privacidad`, `/terminos`,
-      `/borrado-de-datos` bajo `app/(experience)` con borrador base
-- [ ] **[TÚ]** Revisar / ajustar el contenido legal real (qué datos se
-      guardan de los clientes, cuánto tiempo, cómo se piden que se borren) —
-      idealmente con un abogado
-- [ ] **[JUNTOS]** Desplegar y confirmar que las 3 URLs cargan en producción
+### C. Páginas legales + despliegue (Meta las exige SOLO para App Review)
+> **2026-09-02:** `aventhra.online` está parqueado en Hostinger, la app
+> NUNCA se ha desplegado (solo corre en localhost). Meta valida estas URLs
+> en vivo, así que no se pueden cargar hasta que haya un deploy real.
+> En **modo desarrollo** no hacen falta → se dejan vacías por ahora.
+- [x] **[TÚ]** Campos de Privacidad / Condiciones / Eliminación de datos
+      dejados vacíos en la app de Meta — *2026-09-02, guardado OK*
+- [ ] **[FUTURO]** Primer deploy de AVENTHRA (Vercel) + conectar
+      `aventhra.online` (DNS en Hostinger → Vercel)
+- [ ] **[CLAUDE]** Crear rutas `/privacidad`, `/terminos`,
+      `/borrado-de-datos` con borrador base
+- [ ] **[TÚ]** Revisar / ajustar el contenido legal real con un abogado
+- [ ] **[JUNTOS]** Confirmar que las 3 URLs cargan en producción
 
 ### D. Crear la app de Meta
 - [ ] **[TÚ]** `developers.facebook.com` → My Apps → Create App → tipo
@@ -105,6 +111,14 @@
 ---
 
 ## FASE 3 — Webhook + agente respondiendo (Messenger end-to-end)
+
+> **Sin deploy:** el webhook necesita una URL pública HTTPS (Meta no llama a
+> `localhost`). Para probar sin desplegar → túnel temporal durante la
+> sesión: `cloudflared tunnel --url http://localhost:3000` o
+> `ngrok http 3000`. Se registra esa URL como Callback y se cambia por la
+> real cuando AVENTHRA por fin se despliegue. El flujo de "Conectar"
+> (Fase 2) SÍ funciona en localhost.
+
 
 - [ ] **[CLAUDE]** `app/api/webhooks/meta/route.ts` — GET handshake +
       POST con verificación de firma `X-Hub-Signature-256`
