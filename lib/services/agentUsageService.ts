@@ -43,6 +43,13 @@ export async function logAgentUsage(
   }
 }
 
+// Ventana del "consumo del agente" que ve el dueño en Perfil. Va acotado
+// a los últimos 30 días — si no, el total crece para siempre y nunca
+// cuadra con nada que el dueño pueda comparar (ej. el panel de Anthropic
+// muestra ventanas móviles / reset mensual). 30 días ≈ "este mes", que es
+// el marco con el que se piensan los cupos del plan.
+export const OWN_AGENT_USAGE_WINDOW_DAYS = 30;
+
 // Consumo del agente de UN negocio, para que su propio admin lo vea en
 // Perfil → Plan (hereda la misma fuente que el panel de superadmin, pero
 // SIN precios — al dueño solo le mostramos tokens gastados). Va por el
@@ -60,28 +67,34 @@ export interface OwnAgentUsage {
   // mensaje entrante del cliente (ver logAgentUsage en runAgentTurn). NO es
   // el número de conversaciones/hilos — eso es `conversationCount`.
   replyCount: number;
-  // Hilos de conversación distintos que ha tenido el agente de este negocio
-  // (filas de `conversations`), histórico. Comparable con el cupo de
-  // "conversaciones" del plan, aunque ese es mensual y esto es acumulado.
+  // Hilos de conversación con actividad del agente en la ventana (filas de
+  // `conversations` actualizadas en los últimos 30 días).
   conversationCount: number;
   lastUsedAt: string | null;
+  // Días que cubre la ventana — para rotularlo en la UI.
+  windowDays: number;
 }
 
 export async function getAgentUsageForBusiness(
   businessId: string
 ): Promise<OwnAgentUsage | null> {
   const supabase = await createClient();
+  const since = new Date(
+    Date.now() - OWN_AGENT_USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  ).toISOString();
   const [{ data, error }, { count: conversationCount, error: convError }] = await Promise.all([
     supabase
       .from("agent_usage_log")
       .select(
         "input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, created_at"
       )
-      .eq("business_id", businessId),
+      .eq("business_id", businessId)
+      .gte("created_at", since),
     supabase
       .from("conversations")
       .select("id", { count: "exact", head: true })
-      .eq("business_id", businessId),
+      .eq("business_id", businessId)
+      .gte("updated_at", since),
   ]);
 
   if (error) {
@@ -114,6 +127,7 @@ export async function getAgentUsageForBusiness(
     replyCount: (data ?? []).length,
     conversationCount: conversationCount ?? 0,
     lastUsedAt,
+    windowDays: OWN_AGENT_USAGE_WINDOW_DAYS,
   };
 }
 

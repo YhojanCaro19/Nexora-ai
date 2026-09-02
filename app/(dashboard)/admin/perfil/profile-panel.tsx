@@ -476,7 +476,7 @@ function BillingSection({
 
         {agentUsage && (
           <>
-            <GroupLabel>Consumo del agente</GroupLabel>
+            <GroupLabel>Consumo del agente · últimos {agentUsage.windowDays} días</GroupLabel>
             {hasUsage ? (
               <>
                 <Row
@@ -494,13 +494,21 @@ function BillingSection({
                     value={formatShortDateTime(agentUsage.lastUsedAt)}
                   />
                 )}
+                <p
+                  className="pt-2 text-center text-[11px] leading-relaxed"
+                  style={{ color: "var(--nexora-ink-dim)" }}
+                >
+                  Incluye el texto que el agente lee y escribe en cada respuesta
+                  (contexto, catálogo y memoria de la conversación), no solo el
+                  mensaje final — por eso el número es más alto de lo que parece.
+                </p>
               </>
             ) : (
               <p
                 className="py-3 text-center text-xs"
                 style={{ color: "var(--nexora-ink-dim)" }}
               >
-                Tu agente todavía no ha respondido mensajes.
+                Tu agente no ha respondido mensajes en los últimos {agentUsage.windowDays} días.
               </p>
             )}
           </>
