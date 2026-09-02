@@ -235,7 +235,7 @@ function SettingsSection({
               unit="días"
               value={maxAdvance}
               onChange={setMaxAdvance}
-              hint="Ej. 30 = no más de un mes adelante."
+              hint="Cuántos días hacia adelante como máximo puede pedir una reserva el cliente."
             />
           </div>
         )}
