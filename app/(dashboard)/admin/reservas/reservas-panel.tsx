@@ -522,10 +522,6 @@ function ServicesSection({
 
   return (
     <Section icon={Scissors} title="Servicios">
-      <p className="mx-auto max-w-md text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-        El servicio sale del Catálogo. Elígelo y ponle cuánto dura — el agente lo usa para agendar y cobrar.
-      </p>
-
       {services.length > 0 && (
         <ItemList>
           {services.map((s) => (
