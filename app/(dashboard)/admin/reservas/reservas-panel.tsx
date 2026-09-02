@@ -213,7 +213,7 @@ function SettingsSection({
         </div>
 
         {mode !== "off" && (
-          <div className={`grid gap-6 ${showTurnLength ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+          <div className="mx-auto max-w-md divide-y" style={{ borderColor: "var(--nexora-line)" }}>
             {showTurnLength && (
               <QuestionField
                 question="¿Cada cuánto un turno?"
@@ -235,7 +235,7 @@ function SettingsSection({
               unit="días"
               value={maxAdvance}
               onChange={setMaxAdvance}
-              hint="Ej. 30 = no se puede reservar para más de un mes adelante."
+              hint="Ej. 30 = no más de un mes adelante."
             />
           </div>
         )}
@@ -265,17 +265,21 @@ function QuestionField({
   hint: string;
 }) {
   return (
-    <div className="space-y-2 text-center">
-      <Label className="block text-xs font-medium">{question}</Label>
-      <div className="flex items-center justify-center gap-1.5">
-        <NumInput value={value} onChange={onChange} className="w-16" />
-        <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+    <div className="flex items-center justify-between gap-4 py-4">
+      <div className="min-w-0">
+        <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
+          {question}
+        </p>
+        <p className="mt-1 text-xs leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
+          {hint}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <NumInput value={value} onChange={onChange} className="h-10 w-16" />
+        <span className="w-8 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
           {unit}
         </span>
       </div>
-      <p className="text-[11px] leading-snug" style={{ color: "var(--nexora-ink-dim)" }}>
-        {hint}
-      </p>
     </div>
   );
 }
