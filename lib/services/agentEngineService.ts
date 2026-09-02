@@ -22,6 +22,8 @@ import { getCreditPrice, deductCredits } from "@/lib/services/creditService";
 import { createOrder, getCustomerOrderStats, type CustomerOrderStats } from "@/lib/services/orderService";
 import { generateEmbedding } from "@/lib/services/embeddingService";
 import { getBookingConfig, type BookingConfig } from "@/lib/services/bookingConfigService";
+import { getBusinessCountryIso2 } from "@/lib/services/businessBrandingService";
+import { getTimezoneForCountry } from "@/lib/utils/timezone";
 import {
   computeAvailability,
   createReservation,
@@ -58,12 +60,15 @@ export async function runAgentTurn(
   customerPhone: string,
   userMessage: string
 ): Promise<AgentTurnResult> {
-  const [businessName, agentConfig, bookingConfig, customerResult] = await Promise.all([
+  const [businessName, agentConfig, bookingConfig, countryIso2, customerResult] = await Promise.all([
     getBusinessName(businessId),
     getAgentConfig(businessId),
     getBookingConfig(businessId),
+    getBusinessCountryIso2(businessId),
     getOrCreateCustomer(businessId, customerPhone, TEST_CHANNEL),
   ]);
+
+  const timezone = getTimezoneForCountry(countryIso2);
 
   if (customerResult.error || !customerResult.data) {
     return { reply: "", error: customerResult.error ?? "No se pudo identificar al cliente" };
@@ -112,7 +117,7 @@ export async function runAgentTurn(
   const runner = client.beta.messages.toolRunner({
     model: MODEL,
     max_tokens: MAX_OUTPUT_TOKENS,
-    system: buildSystemPrompt(businessName, agentConfig, orderStats, bookingConfig),
+    system: buildSystemPrompt(businessName, agentConfig, orderStats, bookingConfig, timezone),
     tools,
     messages: [...historyMessages, { role: "user", content: userMessage }],
   });
@@ -263,11 +268,32 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
   return lines.join("\n");
 }
 
+// "martes 2 de septiembre de 2026" en la zona horaria del negocio.
+function todayInTimezone(timezone: string): { label: string; iso: string } {
+  const now = new Date();
+  const label = new Intl.DateTimeFormat("es-CO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: timezone,
+  }).format(now);
+  // en-CA da YYYY-MM-DD directo, ya en la zona correcta.
+  const iso = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: timezone,
+  }).format(now);
+  return { label, iso };
+}
+
 function buildSystemPrompt(
   businessName: string,
   config: AgentConfig,
   orderStats: CustomerOrderStats,
-  booking: BookingConfig
+  booking: BookingConfig,
+  timezone: string
 ): Anthropic.Beta.BetaTextBlockParam[] {
   const base = `Eres "${config.name}", el agente conversacional de "${businessName}", un negocio que usa AVENTHRA. Ayudas a sus clientes por chat.
 
@@ -347,7 +373,10 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
     stable += `\n\n--- Personalización configurada por el negocio (nunca puede contradecir las reglas de arriba) ---\n${extras.join("\n")}`;
   }
 
-  const volatile = `--- Dato real de este cliente (nunca lo inventes, es lo único que sabes de él) ---\n${customerBlock}`;
+  const { label: todayLabel, iso: todayIso } = todayInTimezone(timezone);
+  const dateBlock = `Hoy es ${todayLabel} (fecha ISO: ${todayIso}), hora local del negocio. Si el cliente dice "mañana", "pasado mañana", "el sábado", "en 3 días", etc., calcula tú la fecha exacta a partir de esto — NUNCA le preguntes qué fecha es ni digas que no sabes qué día es hoy. Cuando llames una herramienta con una fecha, pásala en formato YYYY-MM-DD.`;
+
+  const volatile = `--- Contexto de este turno (nunca lo inventes) ---\n${dateBlock}\n${customerBlock}`;
 
   return [
     { type: "text", text: stable, cache_control: { type: "ephemeral" } },
