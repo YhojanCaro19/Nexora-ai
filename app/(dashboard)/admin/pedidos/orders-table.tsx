@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
-import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download, ListFilter, Check, XCircle } from "lucide-react";
+import { ChevronLeft, Package, Receipt, AlertTriangle, Search, Download, ListFilter, Check, XCircle, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
@@ -375,6 +375,7 @@ function OrderCard({
 }) {
   const [hovered, setHovered] = useState(false);
   const awaitingReview = order.status === "pending" && !!order.payment_proof_url;
+  const fromReservation = !!order.reservation_id;
   return (
     <button
       onClick={onClick}
@@ -390,6 +391,15 @@ function OrderCard({
           title="Comprobante esperando revisión"
         >
           <Receipt size={11} strokeWidth={2} style={{ color: 'var(--nexora-nova)' }} />
+        </span>
+      )}
+      {fromReservation && (
+        <span
+          className="absolute top-2 left-2 flex items-center justify-center rounded-full p-1"
+          style={{ background: 'color-mix(in oklch, var(--nexora-nova) 18%, transparent)' }}
+          title="Viene de un turno de Reservas"
+        >
+          <CalendarClock size={11} strokeWidth={2} style={{ color: 'var(--nexora-nova)' }} />
         </span>
       )}
       <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
@@ -536,6 +546,16 @@ function OrderDetailView({
               <InfoRow label="Teléfono" value={order.customer_phone} />
             )}
             <InfoRow label="Fecha" value={formatShortDateTime(order.created_at)} />
+            {order.reservation_id && (
+              <InfoRow
+                label="Origen"
+                value={
+                  order.reservation_starts_at
+                    ? `Turno de Reservas · ${formatShortDateTime(order.reservation_starts_at)}`
+                    : "Turno de Reservas"
+                }
+              />
+            )}
             {order.updated_by_name && (
               <InfoRow
                 label={status === "rejected" ? "Rechazado por" : "Gestionado por"}

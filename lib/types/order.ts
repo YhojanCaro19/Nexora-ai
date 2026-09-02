@@ -39,6 +39,12 @@ export interface Order {
   // guarda el mismo user_id en updated_by, así que un solo campo alcanza,
   // sin duplicar el mismo nombre en dos propiedades distintas.
   updated_by_name?: string | null;
+  // Si el pedido nació de un turno/cita completado en el módulo de
+  // Reservas (`reservations.order_id`), estos traen la reserva de origen
+  // — solo getOrders() los llena. El pedido se creó ya finalizado y no se
+  // gestiona desde acá, se gestiona desde Reservas.
+  reservation_id?: string | null;
+  reservation_starts_at?: string | null;
 }
 
 // Ajustar si en Supabase hay un CHECK distinto en orders.status.

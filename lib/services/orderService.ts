@@ -12,8 +12,11 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   const supabase = await createClient();
   const [{ data, error }, { data: members }] = await Promise.all([
     supabase
+      // `reservations(...)` se embebe por la FK reservations.order_id →
+      // orders.id: si el pedido nació de un turno completado, trae la
+      // reserva de origen para marcarlo como tal en la UI.
       .from("orders")
-      .select("*, customers(name, phone)")
+      .select("*, customers(name, phone), reservations(id, starts_at, kind)")
       .eq("business_id", businessId)
       .order("created_at", { ascending: false }),
     // orders.updated_by/rejected_by referencian auth.users, no
@@ -38,14 +41,18 @@ export async function getOrders(businessId: string): Promise<Order[]> {
   // trabaja con customer_name/customer_phone planos, no con un objeto
   // `customers` anidado.
   return (data ?? []).map((row) => {
-    const { customers, ...order } = row as Order & {
+    const { customers, reservations, ...order } = row as Order & {
       customers: { name: string | null; phone: string | null } | null;
+      reservations: { id: string; starts_at: string; kind: string }[] | null;
     };
+    const reservation = reservations?.[0] ?? null;
     return {
       ...order,
       customer_name: customers?.name ?? null,
       customer_phone: customers?.phone ?? null,
       updated_by_name: order.updated_by ? nameByUserId.get(order.updated_by) ?? null : null,
+      reservation_id: reservation?.id ?? null,
+      reservation_starts_at: reservation?.starts_at ?? null,
     };
   });
 }

@@ -454,27 +454,32 @@ export async function updateReservationStatus(
     .eq("business_id", businessId);
   if (error) return { error: translateError(error) };
 
-  // Una cita completada ES una venta — se registra como pedido en el día
-  // en que se completó (mejor dicho: el día en que se prestó el servicio).
+  // Un turno/cita completado ES una venta — se registra como pedido
+  // (finalizado) el día en que se marcó como completado. Una reserva de
+  // MESA no genera ingreso: no se registra pedido (lo que el cliente
+  // consume en la mesa es un pedido normal aparte).
   if (status === "completed") {
-    await recordCompletedAppointmentAsOrder(businessId, reservationId, supabase);
+    await recordCompletedAppointmentAsOrder(businessId, reservationId, updatedByUserId, supabase);
   }
 
   return { error: null };
 }
 
-// Si la reserva es una cita con precio y todavía no generó un pedido, crea
-// uno terminal (picked_up) con la fecha del servicio para que cuente en
-// "ventas de hoy" y en los reportes. Idempotente vía reservations.order_id.
+// Si la reserva es un turno/cita con precio y todavía no generó un pedido,
+// crea uno FINALIZADO (picked_up) con la fecha de AHORA — el día en que se
+// marca como completado — para que cuente en "ventas de hoy" y en los
+// reportes, y quede el registro en Pedidos → finalizados. Idempotente vía
+// `reservations.order_id`. Las reservas de mesa nunca pasan por acá.
 export async function recordCompletedAppointmentAsOrder(
   businessId: string,
   reservationId: string,
+  completedByUserId?: string | null,
   passed?: Client
 ): Promise<void> {
   const supabase = await client(passed);
   const { data: r } = await supabase
     .from("reservations")
-    .select("kind, service_name, service_price, service_product_id, customer_id, ends_at, order_id")
+    .select("kind, service_name, service_price, service_product_id, customer_id, order_id")
     .eq("id", reservationId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -485,7 +490,6 @@ export async function recordCompletedAppointmentAsOrder(
     service_price: number | string | null;
     service_product_id: string | null;
     customer_id: string | null;
-    ends_at: string;
     order_id: string | null;
   } | null;
 
@@ -493,6 +497,7 @@ export async function recordCompletedAppointmentAsOrder(
   const price = row.service_price != null ? Number(row.service_price) : null;
   if (price == null || Number.isNaN(price) || price <= 0) return;
 
+  const nowIso = new Date().toISOString();
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
@@ -508,9 +513,12 @@ export async function recordCompletedAppointmentAsOrder(
         },
       ],
       total: price,
-      // Fecha del servicio, no la de ahora — así cae en el día correcto
-      // aunque se complete/auto-complete con retraso.
-      created_at: row.ends_at,
+      // El día en que se marca como completado (decisión del usuario), no
+      // la hora de fin del turno — así la venta cae donde el negocio la
+      // cerró, aunque el turno haya sido días antes.
+      created_at: nowIso,
+      updated_by: completedByUserId ?? null,
+      updated_at: nowIso,
     })
     .select("id")
     .single();

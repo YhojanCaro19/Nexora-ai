@@ -71,7 +71,7 @@ export async function GET(request: Request) {
     autoCompleted++;
     if (rc.kind === "appointment") {
       try {
-        await recordCompletedAppointmentAsOrder(rc.business_id, rc.id, admin);
+        await recordCompletedAppointmentAsOrder(rc.business_id, rc.id, null, admin);
       } catch (err) {
         console.error(`[reservation-reminders] error registrando venta de la cita ${rc.id}:`, err);
       }
