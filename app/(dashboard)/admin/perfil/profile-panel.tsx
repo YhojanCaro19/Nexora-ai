@@ -424,7 +424,7 @@ function BillingSection({
   }
 
   const ent = billing.entitlements;
-  const hasUsage = agentUsage && agentUsage.turnCount > 0;
+  const hasUsage = agentUsage && agentUsage.replyCount > 0;
 
   return (
     <div className="mx-auto max-w-sm space-y-5">
@@ -478,11 +478,15 @@ function BillingSection({
             <GroupLabel>Consumo del agente</GroupLabel>
             {hasUsage ? (
               <>
-                <Row label="Tokens usados" value={formatTokens(agentUsage.totalTokens)} mono />
                 <Row
-                  label="Conversaciones atendidas"
-                  value={agentUsage.turnCount.toLocaleString("es-CO")}
+                  label="Conversaciones"
+                  value={agentUsage.conversationCount.toLocaleString("es-CO")}
                 />
+                <Row
+                  label="Mensajes respondidos"
+                  value={agentUsage.replyCount.toLocaleString("es-CO")}
+                />
+                <Row label="Tokens usados" value={formatTokens(agentUsage.totalTokens)} mono />
                 {agentUsage.lastUsedAt && (
                   <Row
                     label="Última actividad"
@@ -495,7 +499,7 @@ function BillingSection({
                 className="py-3 text-center text-xs"
                 style={{ color: "var(--nexora-ink-dim)" }}
               >
-                Tu agente todavía no ha atendido conversaciones.
+                Tu agente todavía no ha respondido mensajes.
               </p>
             )}
           </>
@@ -598,32 +602,24 @@ function PreferencesSection({ currentLocale }: { currentLocale: Locale }) {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-5">
-      <div className="space-y-2 text-center">
-        <Label className="block text-center">Idioma</Label>
-        <div className="flex justify-center gap-2">
-          {(["es", "en"] as Locale[]).map((loc) => (
-            <button
-              key={loc}
-              type="button"
-              onClick={() => pick(loc)}
-              disabled={pending}
-              className="rounded-lg border px-4 py-2 text-sm uppercase transition-colors disabled:opacity-50"
-              style={
-                loc === currentLocale
-                  ? { borderColor: "var(--nexora-nova)", color: "var(--nexora-ink)", background: "rgba(255,255,255,0.04)" }
-                  : { borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)" }
-              }
-            >
-              {loc === "es" ? "Español" : "English"}
-            </button>
-          ))}
-        </div>
-        <p className="text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-          Por ahora aplica a la landing y al inicio de sesión. La traducción
-          completa del panel — y más idiomas — llega cuando el producto esté
-          terminado.
-        </p>
+    <div className="mx-auto max-w-sm">
+      <div className="flex justify-center gap-2">
+        {(["es", "en"] as Locale[]).map((loc) => (
+          <button
+            key={loc}
+            type="button"
+            onClick={() => pick(loc)}
+            disabled={pending}
+            className="rounded-lg border px-4 py-2 text-sm uppercase transition-colors disabled:opacity-50"
+            style={
+              loc === currentLocale
+                ? { borderColor: "var(--nexora-nova)", color: "var(--nexora-ink)", background: "rgba(255,255,255,0.04)" }
+                : { borderColor: "var(--nexora-line)", color: "var(--nexora-ink-dim)" }
+            }
+          >
+            {loc === "es" ? "Español" : "English"}
+          </button>
+        ))}
       </div>
     </div>
   );

@@ -56,7 +56,14 @@ export interface OwnAgentUsage {
   totalCacheCreationTokens: number;
   /** Volumen total procesado: entrada fresca + caché leído + caché escrito + salida. */
   totalTokens: number;
-  turnCount: number;
+  // Cada fila de agent_usage_log = un turno del agente = una respuesta a un
+  // mensaje entrante del cliente (ver logAgentUsage en runAgentTurn). NO es
+  // el número de conversaciones/hilos — eso es `conversationCount`.
+  replyCount: number;
+  // Hilos de conversación distintos que ha tenido el agente de este negocio
+  // (filas de `conversations`), histórico. Comparable con el cupo de
+  // "conversaciones" del plan, aunque ese es mensual y esto es acumulado.
+  conversationCount: number;
   lastUsedAt: string | null;
 }
 
@@ -64,27 +71,25 @@ export async function getAgentUsageForBusiness(
   businessId: string
 ): Promise<OwnAgentUsage | null> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("agent_usage_log")
-    .select(
-      "input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, created_at"
-    )
-    .eq("business_id", businessId);
+  const [{ data, error }, { count: conversationCount, error: convError }] = await Promise.all([
+    supabase
+      .from("agent_usage_log")
+      .select(
+        "input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, created_at"
+      )
+      .eq("business_id", businessId),
+    supabase
+      .from("conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("business_id", businessId),
+  ]);
 
   if (error) {
     console.error("[getAgentUsageForBusiness] error:", error);
     return null;
   }
-  if (!data || data.length === 0) {
-    return {
-      totalInputTokens: 0,
-      totalOutputTokens: 0,
-      totalCacheReadTokens: 0,
-      totalCacheCreationTokens: 0,
-      totalTokens: 0,
-      turnCount: 0,
-      lastUsedAt: null,
-    };
+  if (convError) {
+    console.error("[getAgentUsageForBusiness] error contando conversaciones:", convError);
   }
 
   let input = 0;
@@ -92,7 +97,7 @@ export async function getAgentUsageForBusiness(
   let cacheRead = 0;
   let cacheCreation = 0;
   let lastUsedAt: string | null = null;
-  for (const row of data) {
+  for (const row of data ?? []) {
     input += row.input_tokens ?? 0;
     output += row.output_tokens ?? 0;
     cacheRead += row.cache_read_input_tokens ?? 0;
@@ -106,7 +111,8 @@ export async function getAgentUsageForBusiness(
     totalCacheReadTokens: cacheRead,
     totalCacheCreationTokens: cacheCreation,
     totalTokens: input + output + cacheRead + cacheCreation,
-    turnCount: data.length,
+    replyCount: (data ?? []).length,
+    conversationCount: conversationCount ?? 0,
     lastUsedAt,
   };
 }
