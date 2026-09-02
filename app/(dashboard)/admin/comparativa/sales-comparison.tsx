@@ -169,19 +169,67 @@ export function SalesComparison({ countryIso2 }: { countryIso2: string | null })
                 {/* Podio del top 3 */}
                 <Podium items={summary.items} countryIso2={countryIso2} />
 
-                {/* Del 4º en adelante, lista simple */}
+                {/* Del 4º en adelante, en tabla */}
                 {summary.items.length > 3 && (
-                  <div className="divide-y divide-white/[0.06] pt-2">
-                    {summary.items.slice(3, 10).map((item, i) => (
-                      <div key={item.name} className="flex items-center justify-between gap-3 py-2.5">
-                        <span className="truncate text-sm" style={{ color: 'var(--nexora-ink)' }}>
-                          {i + 4}. {item.name}
-                        </span>
-                        <span className="shrink-0 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-                          {item.quantity} und · {formatCurrency(item.subtotal, countryIso2)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto pt-2">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b" style={{ borderColor: 'var(--nexora-line)' }}>
+                          <th
+                            className="py-2 pr-3 text-left text-[11px] font-semibold uppercase tracking-wide"
+                            style={{ color: 'var(--nexora-ink-dim)' }}
+                          >
+                            #
+                          </th>
+                          <th
+                            className="py-2 pr-3 text-left text-[11px] font-semibold uppercase tracking-wide"
+                            style={{ color: 'var(--nexora-ink-dim)' }}
+                          >
+                            Producto
+                          </th>
+                          <th
+                            className="py-2 pr-3 text-right text-[11px] font-semibold uppercase tracking-wide"
+                            style={{ color: 'var(--nexora-ink-dim)' }}
+                          >
+                            Cant.
+                          </th>
+                          <th
+                            className="py-2 text-right text-[11px] font-semibold uppercase tracking-wide"
+                            style={{ color: 'var(--nexora-ink-dim)' }}
+                          >
+                            Subtotal
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summary.items.slice(3, 10).map((item, i) => (
+                          <tr
+                            key={item.name}
+                            className="border-b last:border-0"
+                            style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+                          >
+                            <td className="py-2.5 pr-3" style={{ color: 'var(--nexora-ink-dim)' }}>
+                              {i + 4}
+                            </td>
+                            <td className="py-2.5 pr-3" style={{ color: 'var(--nexora-ink)' }}>
+                              {item.name}
+                            </td>
+                            <td
+                              className="py-2.5 pr-3 text-right font-mono-data"
+                              style={{ color: 'var(--nexora-ink-dim)' }}
+                            >
+                              {item.quantity}
+                            </td>
+                            <td
+                              className="py-2.5 text-right font-mono-data"
+                              style={{ color: 'var(--nexora-ink)' }}
+                            >
+                              {formatCurrency(item.subtotal, countryIso2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
 
