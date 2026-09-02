@@ -25,7 +25,7 @@ export function SalesTrendChart({
         <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>
           Ventas de la semana
         </p>
-        <p className="text-2xl sm:text-3xl font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>
+        <p className="aventhra-iridescent font-nexora text-2xl sm:text-3xl font-semibold mt-1">
           {formatCurrency(todayRevenue, countryIso2)}
         </p>
       </div>
@@ -58,7 +58,9 @@ export function SalesTrendChart({
                   className="absolute bottom-0 left-0 right-0 rounded-md transition-all duration-300"
                   style={{
                     height: `${heightPct}%`,
-                    background: isToday ? 'var(--nexora-nova)' : 'rgba(255,255,255,0.28)',
+                    background: isToday
+                      ? 'linear-gradient(180deg, #A78BFA, #818CF8 55%, #4CC2E8)'
+                      : 'rgba(255,255,255,0.28)',
                   }}
                 />
               </div>

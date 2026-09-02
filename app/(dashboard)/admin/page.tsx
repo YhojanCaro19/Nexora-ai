@@ -44,6 +44,7 @@ export default async function AdminHomePage() {
           icon={Wallet}
           label="Ventas de hoy"
           value={formatCurrency(todayRevenue, countryIso2)}
+          accent
         />
         <IconStatCard
           icon={ShoppingBag}
