@@ -236,6 +236,17 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
     const staff = booking.resources.filter((r) => r.active && r.kind === "staff").map((r) => r.name);
     if (staff.length > 0) lines.push(`Empleados con los que se puede agendar: ${staff.join(", ")}.`);
   }
+  if (mode !== "appointments") {
+    const tables = booking.resources
+      .filter((r) => r.active && r.kind === "table")
+      .map((r) => `${r.name} (${r.capacity ?? "?"} personas)`);
+    if (tables.length > 0) {
+      const maxCap = Math.max(...booking.resources.filter((r) => r.kind === "table").map((r) => r.capacity ?? 0));
+      lines.push(
+        `Mesas del salón: ${tables.join(", ")}. La más grande es para ${maxCap} personas. No prometas una mesa para un grupo más grande que eso.`
+      );
+    }
+  }
 
   const askText =
     mode === "tables"
@@ -353,7 +364,10 @@ function buildTools(
 ) {
   const tools = [];
 
-  if (activeToolKeys.includes("catalogo_productos")) {
+  // Herramientas de SOLO LECTURA: siempre disponibles. El agente nunca
+  // debe quedarse sin poder consultar el catálogo o las FAQ solo porque un
+  // toggle esté apagado — si el dato existe en el negocio, el agente lo usa.
+  {
     tools.push(
       betaZodTool({
         name: "catalogo_productos",
@@ -397,7 +411,7 @@ function buildTools(
     );
   }
 
-  if (activeToolKeys.includes("responder_faq")) {
+  {
     tools.push(
       betaZodTool({
         name: "responder_faq",
@@ -411,11 +425,11 @@ function buildTools(
     );
   }
 
-  const bookingEnabled =
-    booking.settings.mode !== "off" &&
-    (activeToolKeys.includes("reservar_mesa") || activeToolKeys.includes("agendar_cita"));
-
-  if (bookingEnabled) {
+  // Si el negocio configuró reservas (mode != off), el agente SIEMPRE tiene
+  // las herramientas de agenda — no depende del toggle de "Mi Agente". Que
+  // un negocio active el módulo de Reservas ya es señal suficiente de que
+  // el agente debe manejarlas.
+  if (booking.settings.mode !== "off") {
     const defaultKind: "table" | "appointment" =
       booking.settings.mode === "appointments" ? "appointment" : "table";
     const resolveKind = (tipo?: string): "table" | "appointment" =>

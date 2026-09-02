@@ -7,12 +7,13 @@
 // panel. Lo que SÍ es editable desde el panel es qué combinación de ESTAS
 // herramientas trae cada industria por defecto (ver industry_agent_templates
 // en Supabase y agentTemplateService.ts).
-// "agendar_cita" y "reservar_mesa" están de vuelta con motor real (módulo
-// Reservas — reservationService/bookingConfigService, ver
-// docs/sql/reservations-module.sql). El agente solo las ofrece si además
-// el negocio tiene `booking_settings.mode != 'off'`. "reservar_habitacion"
-// y "verificar_comprobante" siguen sin implementarse — sanitizeToolKeys()
-// filtra cualquier dato viejo que las mencione.
+// Ojo: `catalogo_productos`, `responder_faq`, `agendar_cita` y
+// `reservar_mesa` YA NO dependen del toggle de "Mi Agente" — el motor
+// (agentEngineService) las expone siempre que el dato exista (catálogo/FAQ
+// siempre; reservas si `booking_settings.mode != 'off'`). El toggle de
+// `enabled_tools` solo controla `tomar_pedido` y `recordatorios`. Estas
+// keys se mantienen acá para el seed por industria y la UI de Mi Agente.
+// "reservar_habitacion" y "verificar_comprobante" siguen sin implementarse.
 export const AGENT_TOOLS = [
   { key: "tomar_pedido", label: "Tomar pedidos", description: "Registra pedidos de productos directamente en la conversación." },
   { key: "catalogo_productos", label: "Mostrar catálogo de productos", description: "Responde con productos disponibles, precios y fotos." },
