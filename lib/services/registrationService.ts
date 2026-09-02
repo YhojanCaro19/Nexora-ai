@@ -216,10 +216,22 @@ export async function processApprovedPayment(tx: WompiTransaction): Promise<void
     return;
   }
 
-  await admin
+  // Marca "paid" de forma ATÓMICA: el `.eq("status","pending")` +
+  // `.select()` hace que solo UNA de dos entregas concurrentes del webhook
+  // (Wompi reintenta) se lleve la fila. Si no vino nada, otra entrega ya
+  // la tomó → esta se corta acá y no vuelve a acreditar el plan.
+  const { data: claimed } = await admin
     .from("checkout_sessions")
     .update({ status: "paid", wompi_transaction_id: tx.id, updated_at: new Date().toISOString() })
-    .eq("id", session.id);
+    .eq("id", session.id)
+    .in("status", ["pending", "expired"])
+    .select("id")
+    .maybeSingle();
+
+  if (!claimed) {
+    console.warn("[processApprovedPayment] la sesión ya fue tomada por otra entrega:", tx.reference);
+    return;
+  }
 
   const email = (tx.customer_email ?? "").trim().toLowerCase();
   if (!email) {

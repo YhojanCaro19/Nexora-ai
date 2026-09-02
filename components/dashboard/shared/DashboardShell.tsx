@@ -3,6 +3,7 @@
 import { LogOut } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { CreditsBadge } from './CreditsBadge';
+import { TabSessionGuard } from './TabSessionGuard';
 import { logout } from '@/app/(experience)/(auth)/actions';
 import { ADMIN_NAV, SUPERADMIN_NAV, getColaboradorNav } from '@/lib/constants/nav-items';
 
@@ -36,18 +37,21 @@ export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = n
     role === 'admin' ? ADMIN_NAV : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
 
   return (
-    // min-h-screen + md:h-screen (no h-screen solo) a propósito: en
-    // escritorio se necesita la altura EXACTA de 100vh con overflow-hidden
-    // para que el sidebar fijo + scroll interno del <main> funcionen (como
-    // antes). En móvil, ese mismo patrón ("h-screen + overflow interno
-    // anidado") es la causa real de "la página se corta y no deja bajar
-    // más" — iOS Safari calcula mal la altura de un contenedor con
-    // overflow-y-auto anidado dentro de un 100vh cuando la barra de
-    // direcciones dinámica cambia de tamaño, y el contenido de más abajo
-    // queda atrapado sin poder desplazarse. En móvil, en cambio, dejamos
-    // que la página completa se desplace de forma nativa (sin
-    // overflow-hidden ni scroll interno) — el patrón normal y confiable de
-    // cualquier sitio web.
+    // TabSessionGuard: "login por pestaña" — no renderiza nada del panel
+    // hasta que ESTA pestaña se activa (ver el componente).
+    <TabSessionGuard>
+    {/* min-h-screen + md:h-screen (no h-screen solo) a propósito: en
+        escritorio se necesita la altura EXACTA de 100vh con overflow-hidden
+        para que el sidebar fijo + scroll interno del <main> funcionen (como
+        antes). En móvil, ese mismo patrón ("h-screen + overflow interno
+        anidado") es la causa real de "la página se corta y no deja bajar
+        más" — iOS Safari calcula mal la altura de un contenedor con
+        overflow-y-auto anidado dentro de un 100vh cuando la barra de
+        direcciones dinámica cambia de tamaño, y el contenido de más abajo
+        queda atrapado sin poder desplazarse. En móvil, en cambio, dejamos
+        que la página completa se desplace de forma nativa (sin
+        overflow-hidden ni scroll interno) — el patrón normal y confiable de
+        cualquier sitio web. */}
     <div className="min-h-screen flex flex-col md:h-screen md:flex-row md:overflow-hidden" style={{ background: 'var(--nexora-void)' }}>
       <Sidebar groups={groups} roleLabel={LABEL_BY_ROLE[role]} userName={userName} avatarUrl={avatarUrl} />
       <div className="flex-1 min-w-0 flex flex-col">
@@ -111,5 +115,6 @@ export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = n
         <main className="flex-1 min-h-0 md:overflow-y-auto p-4 pb-24 md:p-8">{children}</main>
       </div>
     </div>
+    </TabSessionGuard>
   );
 };

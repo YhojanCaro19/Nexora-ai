@@ -20,6 +20,15 @@ import { createClient } from "@supabase/supabase-js";
 
 export const DEVICE_COOKIE = "av_dev";
 
+// Cookie de "esta pestaña acaba de iniciar sesión" — la pone el callback
+// de Google, un solo uso, vida corta. La consume /api/auth/claim-tab la
+// primera vez que una pestaña carga el panel; después esa pestaña se
+// acuerda vía sessionStorage (por pestaña, no se comparte). Cualquier OTRA
+// pestaña (URL pegada, nueva pestaña) no tiene el grant ni el
+// sessionStorage → la mandan a /login. La URL nunca alcanza para entrar.
+export const TAB_GRANT_COOKIE = "av_tab_grant";
+export const TAB_GRANT_TTL_SECONDS = 120;
+
 // Huella estable del navegador/equipo: SHA-256 del User-Agent completo.
 // Un cambio de navegador o de equipo la cambia; una actualización menor
 // del mismo navegador normalmente no (Chrome congela la versión menor en

@@ -3,7 +3,12 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getClientIp, getUserAgent } from "@/lib/utils/request";
 import { logLoginEvent } from "@/lib/services/loginEventService";
-import { DEVICE_COOKIE, deviceFingerprint } from "@/lib/auth/session-guard";
+import {
+  DEVICE_COOKIE,
+  deviceFingerprint,
+  TAB_GRANT_COOKIE,
+  TAB_GRANT_TTL_SECONDS,
+} from "@/lib/auth/session-guard";
 
 // Callback de Google OAuth — único método de autenticación de AVENTHRA.
 // Intercambia el `code` por una sesión, resuelve el rol y manda al panel.
@@ -86,6 +91,17 @@ export async function GET(request: Request) {
     sameSite: "lax",
     path: "/",
     maxAge: 400 * 24 * 60 * 60,
+  });
+
+  // Grant de un solo uso para "login por pestaña": solo la pestaña que
+  // completó este login puede canjearlo en /api/auth/claim-tab. Cualquier
+  // otra pestaña (URL pegada, pestaña nueva) se va a /login.
+  cookieStore.set(TAB_GRANT_COOKIE, crypto.randomUUID(), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: TAB_GRANT_TTL_SECONDS,
   });
 
   return NextResponse.redirect(`${origin}${ROLE_PREFIX[role] ?? "/login"}`);

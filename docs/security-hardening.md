@@ -16,6 +16,23 @@ Este proyecto corre sobre Next.js + Supabase, sin servidores propios administrad
 
 **Capa extra — sesión atada al dispositivo:** al iniciar sesión se guarda una cookie `httpOnly` `av_dev` con el SHA-256 del User-Agent (`lib/auth/session-guard.ts`). En cada request al panel `proxy.ts` compara esa huella con la del navegador actual; si no coincide (cookies copiadas a otro navegador/equipo) cierra la sesión de verdad (`signOut` global) y registra `session_device_mismatch` en `profile_security_events` (visible en rojo en Perfil → Historial de seguridad). Sumado al cierre automático por inactividad de 60 min, también en `proxy.ts`. Límite: un atacante que falsee su User-Agent idéntico al de la víctima pasa la huella — barrera proporcional, no anti-robo perfecto.
 
+**Capa extra — login por pestaña:** la sesión vive en cookies (compartidas entre pestañas por diseño del navegador — no hay primitiva HTTP "por pestaña"), pero AVENTHRA exige que CADA pestaña se active. El callback de Google pone `av_tab_grant` (httpOnly, un solo uso, 2 min); `TabSessionGuard` (client, envuelve todo el panel en `DashboardShell`) lo canjea en `/api/auth/claim-tab` la primera vez y recuerda la pestaña en `sessionStorage` (por-pestaña). Un refresh mantiene el `sessionStorage` → entra. Cualquier otra pestaña (URL pegada, abrir-en-pestaña-nueva) no tiene grant ni `sessionStorage` → a `/login`. El guard no renderiza nada del panel hasta canjear, así que una pestaña no autorizada no llega a pintar contenido. Límite honesto: es enforcement del lado del cliente (no hay forma server-side de distinguir pestañas); el payload RSC de la primera carga podría leerse con devtools — pero quien tiene tus cookies válidas + tu navegador abierto ya tiene acceso de todas formas. La garantía dura ("la URL no loguea") la dan las cookies httpOnly + `proxy.ts` + `av_dev`.
+
+---
+
+## 8. Cabeceras de seguridad y superficie de ataque
+
+`next.config.ts` → `headers()` aplica a todas las respuestas: `X-Frame-Options: DENY` + `Content-Security-Policy: frame-ancestors 'none'` (clickjacking), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Strict-Transport-Security` (2 años + preload), `Permissions-Policy` (cámara/mic/geo denegados). **Pendiente:** un CSP completo con `script-src` — necesita una pasada dedicada por el 3D (three.js), Supabase, Google OAuth y Wompi para no romper nada.
+
+**Endpoints de desarrollo:** `/api/_dev/*` se eliminó (era `backfill-embeddings`, una migración de un solo uso). Regla: ningún endpoint `_dev` / debug se mergea a `main` — se corre local y se borra.
+
+**Auditoría 2026-09-02 (hallazgos abiertos, no bloqueantes):**
+- **Rate limiting en memoria** (`lib/utils/rateLimit.ts`): por-instancia, no global. En serverless con varias lambdas el límite efectivo se multiplica. Fix real = store compartido (Upstash Redis / tabla Postgres con `INSERT ... ON CONFLICT`). Hoy frena el caso real (ráfagas); revisar antes de escalar tráfico.
+- **`getClientIp`** confía en `x-forwarded-for` (primer valor). Correcto en Vercel (lo setea el edge). Si se despliega detrás de otro proxy, ese header es falsificable → bypass de rate-limit. Documentar la dependencia de Vercel.
+- **Webhook Wompi sin chequeo de frescura del `timestamp`**: un evento válido capturado se puede reenviar indefinidamente. Mitigado por: firma + reconfirmación server-to-server + idempotencia. La carrera check-then-act de `processApprovedPayment` se cerró con un `UPDATE ... WHERE status IN ('pending','expired') RETURNING` atómico (2026-09-02).
+- **`conversations` / `appendConversationTurn`**: hoy el `UPDATE` filtra solo por `id` (cubierto por RLS + contexto de sesión). Cuando llegue el canal de WhatsApp (admin client, sin sesión) hay que agregar `.eq("business_id", ...)` explícito o se vuelve un IDOR.
+- **`findBusinessIdByOwnerEmail`** pagina `listUsers` hasta 20×1000 por webhook aprobado — mover el email a una columna indexada antes de que la base de usuarios crezca.
+
 **Falta auditar:** cualquier server action o ruta dinámica que reciba un `id` desde el cliente (URL, query param, o `formData`) y lo use para leer/escribir sin verificar que pertenece al `business_id` de la sesión actual. El patrón correcto siempre es:
 
 ```typescript
