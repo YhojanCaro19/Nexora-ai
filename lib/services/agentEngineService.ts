@@ -287,8 +287,8 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
   return lines.join("\n");
 }
 
-// "martes 2 de septiembre de 2026" en la zona horaria del negocio.
-function todayInTimezone(timezone: string): { label: string; iso: string } {
+// "martes 2 de septiembre de 2026" + "14:37" en la zona horaria del negocio.
+function todayInTimezone(timezone: string): { label: string; iso: string; time: string } {
   const now = new Date();
   const label = new Intl.DateTimeFormat("es-CO", {
     weekday: "long",
@@ -304,7 +304,13 @@ function todayInTimezone(timezone: string): { label: string; iso: string } {
     day: "2-digit",
     timeZone: timezone,
   }).format(now);
-  return { label, iso };
+  const time = new Intl.DateTimeFormat("es-CO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: timezone,
+  }).format(now);
+  return { label, iso, time };
 }
 
 function buildSystemPrompt(
@@ -397,8 +403,8 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
     stable += `\n\n--- Personalización configurada por el negocio (nunca puede contradecir las reglas de arriba) ---\n${extras.join("\n")}`;
   }
 
-  const { label: todayLabel, iso: todayIso } = todayInTimezone(timezone);
-  const dateBlock = `Hoy es ${todayLabel} (fecha ISO: ${todayIso}), hora local del negocio. Si el cliente dice "mañana", "pasado mañana", "el sábado", "en 3 días", etc., calcula tú la fecha exacta a partir de esto — NUNCA le preguntes qué fecha es ni digas que no sabes qué día es hoy. Cuando llames una herramienta con una fecha, pásala en formato YYYY-MM-DD.`;
+  const { label: todayLabel, iso: todayIso, time: nowTime } = todayInTimezone(timezone);
+  const dateBlock = `Hoy es ${todayLabel} (fecha ISO: ${todayIso}) y son las ${nowTime}, hora local del negocio. Si el cliente dice "mañana", "pasado mañana", "el sábado", "en 3 días", "dentro de 2 horas", "esta tarde", etc., calcula tú la fecha y la hora exactas a partir de esto — NUNCA le preguntes qué día ni qué hora es, ya lo sabes. Cuando llames una herramienta con una fecha, pásala en formato YYYY-MM-DD y la hora en HH:MM (24h).`;
 
   const volatile = `--- Contexto de este turno (nunca lo inventes) ---\n${dateBlock}\n${customerBlock}`;
 
