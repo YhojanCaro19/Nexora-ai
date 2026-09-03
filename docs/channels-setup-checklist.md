@@ -144,26 +144,26 @@
       POST con verificación de firma `X-Hub-Signature-256`, enrutado por
       `body.object`, resolución `external_id → negocio`, ignora echos /
       no-texto, dedupe en memoria por id de mensaje
-- [x] **[CLAUDE]** Parámetro `channel` en `runAgentTurn` (default `test`)
-- [ ] **[TÚ]** Instalar y levantar un túnel:
-      `brew install cloudflared` → `cloudflared tunnel --url http://localhost:3000`
-      → copiar la URL `https://algo.trycloudflare.com`
-- [ ] **[TÚ]** Meta → Messenger → Configuración → Webhooks:
-      Callback URL = `<url-del-túnel>/api/webhooks/meta`,
-      Verify Token = el valor de `META_WEBHOOK_VERIFY_TOKEN` de `.env.local`,
-      suscribir el campo **`messages`**
-- [ ] **[TÚ]** Meta → Messenger → "Generar identificadores de acceso" →
-      añadir la Página → botón para suscribir la Página a los webhooks
-      *(o se hace solo al reconectar desde AVENTHRA)*
-- [ ] **[TÚ]** Escribirle a la Página «Barbería cuti» desde otra cuenta de
-      Facebook → confirmar que el agente responde
+- [x] **[CLAUDE]** Parámetro `channel` + `opts.serviceRole` en `runAgentTurn`
+      — el webhook corre sin sesión, con service role todo el turno (el
+      `db?` opcional se agregó a ~10 funciones del motor)
+- [x] **[TÚ]** Túnel `cloudflared` + webhook de Messenger configurado y
+      verificado + Página «Barbería cuti» suscrita a `messages`
+- [x] **[TÚ + CLAUDE]** Mensaje de prueba → **el agente respondió** con la
+      config real del negocio *(2026-09-02, Messenger vivo end-to-end)* 🎉
 - [ ] **[CLAUDE/JUNTOS]** Confirmar en la DB que `agent_usage_log` +
       `conversations` registran el turno del canal `messenger`
+- [ ] **[CLAUDE]** El `POST` tardó ~10 s (se espera todo el turno antes de
+      responder 200). Producción: responder 200 ya + procesar en background
+      — Fase 6.
 
 ---
 
 ## FASE 4 — Instagram
 
+> El código ya está: el webhook enruta `object: "instagram"` igual que
+> `page`, y la conexión de IG se guarda sola al conectar Messenger si la
+> Página tiene una cuenta de IG ligada. Solo falta la parte de config.
 - [ ] **[TÚ]** Cuenta de IG en modo Business/Creator, ligada a la Página
 - [ ] **[TÚ]** Meta → Instagram → Webhooks: suscribir `messages`
 - [ ] **[CLAUDE]** Confirmar enrutado `object: "instagram"` en el webhook
@@ -213,13 +213,18 @@
 
 ## Estado actual
 
-**2026-09-02** — Fase 2 **probada y funcionando**: Messenger conectado
-(«Barbería cuti») de punta a punta. Fase 3 (webhook) codeada, falta
-probarla.
+**2026-09-02** — 🎉 **Messenger VIVO de punta a punta.** Un mensaje real a
+la Página → el agente respondió con la config real del negocio (nombre,
+tono, barberos, contexto de reservas). Fases 1, 2 y 3 completas.
 
-**Siguiente paso — [TÚ]:** levantar el túnel y configurar el webhook de
-Messenger en Meta (ver checklist de Fase 3), luego escribirle a la Página
-desde otra cuenta de Facebook y confirmar que el agente responde.
+**Siguiente:**
+- Fase 4 (Instagram): el código ya está; falta ligar una cuenta de IG
+  Business a la Página y suscribir el webhook de IG.
+- Fase 6 pieza urgente para producción: el webhook responde 200 recién
+  después de ~10 s (todo el turno del agente). Hay que responder ya y
+  procesar en background.
+- WhatsApp (Fase 5) y deploy + legal (C) — para cuando AVENTHRA esté más
+  completa.
 
-**Lo lento en paralelo:** Business Verification (F). WhatsApp (Fase 5) y
-páginas legales + deploy (C) quedan para cuando AVENTHRA esté más completa.
+**Nota:** el túnel `cloudflared` da una URL nueva cada vez que se reinicia.
+Si se reinicia, hay que repegar la Callback URL en Meta.
