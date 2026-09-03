@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { MessageCircle, Camera, Phone, type LucideIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { MessageCircle, Camera, Phone, X, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { startMetaConnectAction, disconnectChannelAction } from "./actions";
 import { CHANNEL_LABELS, type Channel, type ChannelConnectionPublic } from "@/lib/types/channel";
@@ -31,29 +31,43 @@ export function ConnectNetworksSection({
   connections: ChannelConnectionPublic[];
 }) {
   const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const connected = params.get("connected");
   const pageName = params.get("page");
   const multiple = params.get("multiple");
   const errorCode = params.get("error");
 
+  // Aviso de resultado del OAuth: se muestra, se autodescarta a los 4 s, y
+  // limpia los query params para que no reaparezca en cada render.
+  const [notice, setNotice] = useState<boolean>(Boolean(connected || errorCode));
+  useEffect(() => {
+    if (!connected && !errorCode) return;
+    const t = setTimeout(() => dismissNotice(), 4000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected, errorCode]);
+
+  function dismissNotice() {
+    setNotice(false);
+    router.replace(pathname, { scroll: false });
+  }
+
   const byChannel = new Map(connections.map((c) => [c.channel, c]));
 
   return (
     <div className="mx-auto max-w-md space-y-4">
-      <p className="text-center text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
-        Conecta las redes del negocio para que el agente responda los mensajes
-        ahí. Puedes desconectar cuando quieras.
-      </p>
-
-      {connected && (
-        <Banner tone="ok">
+      {notice && connected && (
+        <Banner tone="ok" onClose={dismissNotice}>
           {CHANNEL_LABELS[connected as Channel] ?? "Canal"} conectado
           {pageName ? ` — «${pageName}»` : ""}.
           {multiple ? ` Tienes ${multiple} páginas; por ahora se conecta la primera.` : ""}
         </Banner>
       )}
-      {errorCode && (
-        <Banner tone="error">{ERROR_LABELS[errorCode] ?? "No se pudo conectar."}</Banner>
+      {notice && errorCode && (
+        <Banner tone="error" onClose={dismissNotice}>
+          {ERROR_LABELS[errorCode] ?? "No se pudo conectar."}
+        </Banner>
       )}
 
       <ChannelRow channel="messenger" connection={byChannel.get("messenger")} />
@@ -138,16 +152,32 @@ function ChannelRow({
   );
 }
 
-function Banner({ tone, children }: { tone: "ok" | "error"; children: React.ReactNode }) {
+function Banner({
+  tone,
+  children,
+  onClose,
+}: {
+  tone: "ok" | "error";
+  children: React.ReactNode;
+  onClose?: () => void;
+}) {
+  const color = tone === "ok" ? "var(--nexora-signal)" : "var(--nexora-alert)";
   return (
     <div
-      className="rounded-lg border px-3 py-2 text-center text-xs leading-relaxed"
-      style={{
-        borderColor: tone === "ok" ? "var(--nexora-signal)" : "var(--nexora-alert)",
-        color: tone === "ok" ? "var(--nexora-signal)" : "var(--nexora-alert)",
-      }}
+      className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-relaxed"
+      style={{ borderColor: color, color }}
     >
-      {children}
+      <span className="flex-1 text-center">{children}</span>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="shrink-0 rounded p-0.5 transition-opacity hover:opacity-70"
+        >
+          <X size={13} />
+        </button>
+      )}
     </div>
   );
 }

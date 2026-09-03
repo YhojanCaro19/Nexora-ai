@@ -9,7 +9,7 @@
 // Todo degrada suave: si el módulo de créditos no está aplicado en la DB,
 // las lecturas devuelven null y las escrituras lanzan (que el llamador
 // atrapa) — nunca rompen la conversación del agente.
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient, type SupabaseServerClient } from "@/lib/supabase/server";
 
 export interface CreditBalance {
   total: number;
@@ -115,8 +115,11 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
 }
 
 /** Costo en créditos de una acción. null si no está configurada o el módulo no está aplicado. */
-export async function getCreditPrice(actionKey: string): Promise<number | null> {
-  const supabase = await createClient();
+export async function getCreditPrice(
+  actionKey: string,
+  db?: SupabaseServerClient
+): Promise<number | null> {
+  const supabase = db ?? (await createClient());
   const { data, error } = await supabase
     .from("credit_prices")
     .select("credits")

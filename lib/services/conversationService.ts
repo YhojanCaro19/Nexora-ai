@@ -4,7 +4,7 @@
 // conversación (business_id + customer_id + channel), con TODOS los
 // mensajes de ese hilo guardados en la columna `messages` (jsonb) — no es
 // una fila por mensaje, es una fila por conversación completa.
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 
 export interface ConversationMessage {
   role: "user" | "assistant";
@@ -25,9 +25,10 @@ export interface Conversation {
 export async function getOrCreateConversation(
   businessId: string,
   customerId: string,
-  channel: string
+  channel: string,
+  db?: SupabaseServerClient
 ): Promise<{ error: string | null; data: Conversation | null }> {
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
 
   const { data: existing, error: findError } = await supabase
     .from("conversations")
@@ -90,9 +91,10 @@ export async function appendConversationTurn(
   conversationId: string,
   existingMessages: ConversationMessage[],
   userMessage: string,
-  assistantMessage: string
+  assistantMessage: string,
+  db?: SupabaseServerClient
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   const now = new Date().toISOString();
 
   const updatedMessages: ConversationMessage[] = [

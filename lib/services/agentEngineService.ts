@@ -13,7 +13,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { getAgentConfig, type AgentConfig, type FaqEntry } from "@/lib/services/agentConfigService";
 import { getOrCreateCustomer } from "@/lib/services/customerService";
 import { getOrCreateConversation, appendConversationTurn } from "@/lib/services/conversationService";
@@ -63,14 +63,21 @@ export async function runAgentTurn(
   // reales (messenger / instagram / whatsapp) lo pasan desde el webhook.
   // `customerPhone` es el identificador del cliente EN ese canal: PSID en
   // Messenger, IGSID en Instagram, teléfono E.164 en WhatsApp/test.
-  channel: string = TEST_CHANNEL
+  channel: string = TEST_CHANNEL,
+  // El webhook de canales corre SIN sesión de usuario (Meta → nuestro
+  // servidor), así que la RLS bloquearía crear el cliente / la conversación.
+  // Con `serviceRole: true` todo el turno usa el admin client. El businessId
+  // ya viene autorizado (firma del webhook verificada + external_id → negocio).
+  opts: { serviceRole?: boolean } = {}
 ): Promise<AgentTurnResult> {
+  const db: SupabaseServerClient | undefined = opts.serviceRole ? createAdminClient() : undefined;
+
   const [businessName, agentConfig, bookingConfig, countryIso2, customerResult] = await Promise.all([
-    getBusinessName(businessId),
-    getAgentConfig(businessId),
-    getBookingConfig(businessId),
-    getBusinessCountryIso2(businessId),
-    getOrCreateCustomer(businessId, customerPhone, channel),
+    getBusinessName(businessId, db),
+    getAgentConfig(businessId, db),
+    getBookingConfig(businessId, db),
+    getBusinessCountryIso2(businessId, db),
+    getOrCreateCustomer(businessId, customerPhone, channel, null, db),
   ]);
 
   const timezone = getTimezoneForCountry(countryIso2);
@@ -80,8 +87,8 @@ export async function runAgentTurn(
   }
 
   const [{ error: conversationError, data: conversation }, orderStats] = await Promise.all([
-    getOrCreateConversation(businessId, customerResult.data.id, channel),
-    getCustomerOrderStats(businessId, customerResult.data.id),
+    getOrCreateConversation(businessId, customerResult.data.id, channel, db),
+    getCustomerOrderStats(businessId, customerResult.data.id, db),
   ]);
   if (conversationError || !conversation) {
     return { reply: "", error: conversationError ?? "No se pudo crear la conversación" };
@@ -93,7 +100,8 @@ export async function runAgentTurn(
     customerResult.data.id,
     activeToolKeys,
     agentConfig.faqs,
-    bookingConfig
+    bookingConfig,
+    db
   );
 
   // Caché de prompt multi-turno. En cada turno se reenvía TODO el historial
@@ -154,9 +162,9 @@ export async function runAgentTurn(
     .trim();
 
   await Promise.all([
-    appendConversationTurn(conversation.id, conversation.messages, userMessage, replyText),
+    appendConversationTurn(conversation.id, conversation.messages, userMessage, replyText, db),
     logAgentUsage(businessId, usage, MODEL),
-    chargeAgentReply(businessId, conversation.id),
+    chargeAgentReply(businessId, conversation.id, db),
   ]);
 
   return { reply: replyText, error: null };
@@ -167,9 +175,13 @@ export async function runAgentTurn(
 //   - módulo de créditos no aplicado / acción sin precio → no cobra
 //   - saldo insuficiente → la respuesta ya salió, solo se loguea (el bloqueo
 //     por saldo se agrega cuando Wompi esté vivo, ver docs/pricing-model.md)
-async function chargeAgentReply(businessId: string, conversationId: string): Promise<void> {
+async function chargeAgentReply(
+  businessId: string,
+  conversationId: string,
+  db?: SupabaseServerClient
+): Promise<void> {
   try {
-    const price = await getCreditPrice("agent_reply");
+    const price = await getCreditPrice("agent_reply", db);
     if (!price) return;
     const newBalance = await deductCredits(
       businessId,
@@ -186,8 +198,8 @@ async function chargeAgentReply(businessId: string, conversationId: string): Pro
   }
 }
 
-async function getBusinessName(businessId: string): Promise<string> {
-  const supabase = await createClient();
+async function getBusinessName(businessId: string, db?: SupabaseServerClient): Promise<string> {
+  const supabase = db ?? (await createClient());
   const { data } = await supabase.from("businesses").select("name").eq("id", businessId).maybeSingle();
   return data?.name ?? "el negocio";
 }
@@ -399,7 +411,8 @@ function buildTools(
   customerId: string,
   activeToolKeys: AgentToolKey[],
   faqs: FaqEntry[],
-  booking: BookingConfig
+  booking: BookingConfig,
+  db?: SupabaseServerClient
 ) {
   const tools = [];
 
@@ -417,9 +430,9 @@ function buildTools(
         }),
         run: async ({ query }) => {
           if (query && query.trim()) {
-            return searchProductsByQuery(businessId, query.trim());
+            return searchProductsByQuery(businessId, query.trim(), db);
           }
-          return listActiveProducts(businessId);
+          return listActiveProducts(businessId, db);
         },
       })
     );
@@ -442,7 +455,7 @@ function buildTools(
             .min(1),
         }),
         run: async ({ items }) => {
-          const result = await createOrder(businessId, { items }, customerId);
+          const result = await createOrder(businessId, { items }, customerId, db);
           if (result.error) return `Error al crear el pedido: ${result.error}`;
           return `Pedido creado con éxito, total ${result.data?.total}. El negocio lo va a confirmar pronto.`;
         },
@@ -504,14 +517,18 @@ function buildTools(
           tipo: z.enum(["mesa", "cita", "turno"]).optional(),
         }),
         run: async ({ fecha, cantidad_personas, duracion_minutos, servicio, empleado, tipo }) => {
-          const { slots, error } = await computeAvailability(businessId, {
-            dateIso: fecha,
-            kind: resolveKind(tipo),
-            partySize: cantidad_personas,
-            durationMinutes: duracion_minutos,
-            serviceId: findServiceId(servicio),
-            resourceId: findStaffId(empleado),
-          });
+          const { slots, error } = await computeAvailability(
+            businessId,
+            {
+              dateIso: fecha,
+              kind: resolveKind(tipo),
+              partySize: cantidad_personas,
+              durationMinutes: duracion_minutos,
+              serviceId: findServiceId(servicio),
+              resourceId: findStaffId(empleado),
+            },
+            db
+          );
           if (error) return error;
           if (slots.length === 0) return `No hay horarios libres el ${fecha}. Ofrece otra fecha.`;
           const times = [...new Set(slots.map((s) => s.label))].join(", ");
@@ -545,7 +562,7 @@ function buildTools(
         }),
         run: async ({ fecha, hora, a_nombre_de, telefono, cantidad_personas, duracion_minutos, servicio, empleado, nota, tipo }) => {
           const kind = resolveKind(tipo);
-          const startsAt = await resolveLocalDateTime(businessId, fecha, hora);
+          const startsAt = await resolveLocalDateTime(businessId, fecha, hora, db);
           const result = await createReservation(
             businessId,
             {
@@ -559,7 +576,8 @@ function buildTools(
               customerPhone: telefono,
               notes: nota,
             },
-            { source: "agent", customerId }
+            { source: "agent", customerId },
+            db
           );
           if (result.error) return `No se pudo reservar: ${result.error}`;
           {
@@ -576,7 +594,7 @@ function buildTools(
         description: "Lista las reservas próximas de este cliente.",
         inputSchema: z.object({}),
         run: async () => {
-          const list = await getReservationsByCustomer(businessId, customerId);
+          const list = await getReservationsByCustomer(businessId, customerId, db);
           const upcoming = list.filter(
             (r) => ["pending", "confirmed", "seated"].includes(r.status) && new Date(r.startsAt).getTime() > Date.now()
           );
@@ -599,10 +617,10 @@ function buildTools(
           reserva_id: z.string().describe("id de la reserva, obtenido con consultar_mis_reservas"),
         }),
         run: async ({ reserva_id }) => {
-          const list = await getReservationsByCustomer(businessId, customerId);
+          const list = await getReservationsByCustomer(businessId, customerId, db);
           const target = list.find((r) => r.id === reserva_id);
           if (!target) return "No se encontró esa reserva para este cliente.";
-          const result = await updateReservationStatus(reserva_id, businessId, "cancelled");
+          const result = await updateReservationStatus(reserva_id, businessId, "cancelled", null, db);
           return result.error ? `No se pudo cancelar: ${result.error}` : "Reserva cancelada.";
         },
       })
@@ -635,8 +653,8 @@ function formatProductsForAgent(rows: unknown[]): string {
   return JSON.stringify(trimmed);
 }
 
-async function listActiveProducts(businessId: string): Promise<string> {
-  const supabase = await createClient();
+async function listActiveProducts(businessId: string, db?: SupabaseServerClient): Promise<string> {
+  const supabase = db ?? (await createClient());
   const { data, error } = await supabase
     .from("products")
     .select("id, name, description, price, stock")
@@ -654,13 +672,17 @@ async function listActiveProducts(businessId: string): Promise<string> {
 // RAG: convierte la pregunta del cliente en embedding y busca productos
 // semánticamente parecidos vía match_products. Si Voyage falla, cae al
 // catálogo completo en vez de dejar al agente sin nada que ofrecer.
-async function searchProductsByQuery(businessId: string, query: string): Promise<string> {
+async function searchProductsByQuery(
+  businessId: string,
+  query: string,
+  db?: SupabaseServerClient
+): Promise<string> {
   const embedding = await generateEmbedding(query);
   if (!embedding) {
-    return listActiveProducts(businessId);
+    return listActiveProducts(businessId, db);
   }
 
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   const { data, error } = await supabase.rpc("match_products", {
     query_embedding: embedding,
     filter_business_id: businessId,
@@ -670,7 +692,7 @@ async function searchProductsByQuery(businessId: string, query: string): Promise
 
   if (error) {
     console.error("[searchProductsByQuery] error:", error);
-    return listActiveProducts(businessId);
+    return listActiveProducts(businessId, db);
   }
   if (!data || data.length === 0) {
     return "No se encontraron productos parecidos a lo que preguntas.";

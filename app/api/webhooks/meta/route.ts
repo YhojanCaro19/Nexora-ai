@@ -141,7 +141,9 @@ async function handleMessengerLike(
     return;
   }
 
-  const result = await runAgentTurn(connection.businessId, senderId, text, channel);
+  const result = await runAgentTurn(connection.businessId, senderId, text, channel, {
+    serviceRole: true,
+  });
   if (result.error || !result.reply) {
     console.error(`[webhooks/meta] runAgentTurn: ${result.error ?? "sin respuesta"}`);
     return;
@@ -169,7 +171,9 @@ async function handleWhatsApp(value: WhatsAppValue | undefined): Promise<void> {
       continue;
     }
 
-    const result = await runAgentTurn(connection.businessId, from, text, "whatsapp");
+    const result = await runAgentTurn(connection.businessId, from, text, "whatsapp", {
+      serviceRole: true,
+    });
     if (result.error || !result.reply) continue;
 
     const sent = await sendChannelMessage(connection, from, result.reply);

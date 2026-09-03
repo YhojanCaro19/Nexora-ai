@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeImageUpload } from "@/lib/services/imageSecurityService";
 import { ALLOWED_STATUS_TRANSITIONS, isValidOrderStatus } from "@/lib/types/order";
@@ -91,8 +91,12 @@ export interface CustomerOrderStats {
 // agente (agentEngineService.ts) en CADA turno para saber si el cliente
 // es recurrente, así que debe ser barata — no tiene sentido traer el
 // historial completo solo para eso.
-export async function getCustomerOrderStats(businessId: string, customerId: string): Promise<CustomerOrderStats> {
-  const supabase = await createClient();
+export async function getCustomerOrderStats(
+  businessId: string,
+  customerId: string,
+  db?: SupabaseServerClient
+): Promise<CustomerOrderStats> {
+  const supabase = db ?? (await createClient());
   const { count, error: countError } = await supabase
     .from("orders")
     .select("id", { count: "exact", head: true })
@@ -143,14 +147,15 @@ export async function getCustomerOrderStats(businessId: string, customerId: stri
 export async function createOrder(
   businessId: string,
   input: CreateOrderInput,
-  customerId?: string | null
+  customerId?: string | null,
+  db?: SupabaseServerClient
 ): Promise<{ error: string | null; data: Order | null }> {
   const parsed = createOrderSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message, data: null };
   }
 
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
   const productIds = parsed.data.items.map((item) => item.productId);
 
   const { data: products, error: productsError } = await supabase

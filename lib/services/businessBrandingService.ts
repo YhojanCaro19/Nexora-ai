@@ -16,7 +16,7 @@
 // de columna. Mismo criterio ya documentado en architecture.md para
 // must_change_password: service role acotado a exactamente las columnas
 // necesarias, nunca expuesto al navegador.
-import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { sanitizeImageUpload } from "@/lib/services/imageSecurityService";
 import { translateError } from "@/lib/errors/translate";
 
@@ -35,8 +35,11 @@ export interface BusinessBranding {
 // Usado por Pedidos/Catálogo para formatear precios/totales en la moneda
 // real del negocio (ver lib/utils/currency.ts) — el mismo country_iso2
 // que ya usa Reportes para la zona horaria.
-export async function getBusinessCountryIso2(businessId: string): Promise<string | null> {
-  const supabase = await createClient();
+export async function getBusinessCountryIso2(
+  businessId: string,
+  db?: SupabaseServerClient
+): Promise<string | null> {
+  const supabase = db ?? (await createClient());
   const { data } = await supabase
     .from("businesses")
     .select("country_iso2")

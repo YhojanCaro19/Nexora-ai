@@ -9,7 +9,7 @@
 // solicitud (ver createAccountFromRequest en adminService.ts), precargado
 // con las herramientas por defecto de su industria — esta pantalla es
 // donde el admin lo ve y lo ajusta.
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { sanitizeToolKeys, type AgentToolKey } from "@/lib/config/agentTools";
 import {
@@ -103,8 +103,11 @@ export interface UpdateAgentConfigInput {
   escalationTriggers: string[];
 }
 
-export async function getAgentConfig(businessId: string): Promise<AgentConfig> {
-  const supabase = await createClient();
+export async function getAgentConfig(
+  businessId: string,
+  db?: SupabaseServerClient
+): Promise<AgentConfig> {
+  const supabase = db ?? (await createClient());
   const { data, error } = await supabase
     .from("agent_configs")
     .select(

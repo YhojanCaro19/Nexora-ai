@@ -46,3 +46,14 @@ export function createAdminClient() {
     { auth: { persistSession: false } }
   );
 }
+
+/**
+ * Cliente de Supabase server-side, sea el de sesión (RLS del usuario) o el
+ * admin (service role). Lo usan los servicios que a veces corren dentro de
+ * una request con sesión y a veces desde un route handler / cron SIN sesión
+ * (ej. el motor del agente llamado desde el webhook de canales): reciben un
+ * `db?` opcional y hacen `db ?? await createClient()`.
+ */
+export type SupabaseServerClient =
+  | Awaited<ReturnType<typeof createClient>>
+  | ReturnType<typeof createAdminClient>;

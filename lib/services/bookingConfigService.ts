@@ -6,7 +6,7 @@
 // docs/sql/reservations-module.sql) ya cubre "cualquier miembro del
 // negocio opera estas tablas". El filtro admin-only se aplica en la capa
 // de server actions, igual que en el resto de la app.
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import {
   DEFAULT_BOOKING_SETTINGS,
@@ -91,8 +91,11 @@ export function mapClosure(row: Record<string, unknown>): BusinessClosure {
 
 // Degrada suave: si el módulo no está aplicado en la DB, cada consulta
 // falla y se devuelve la config vacía por defecto (mode "off").
-export async function getBookingConfig(businessId: string): Promise<BookingConfig> {
-  const supabase = await createClient();
+export async function getBookingConfig(
+  businessId: string,
+  db?: SupabaseServerClient
+): Promise<BookingConfig> {
+  const supabase = db ?? (await createClient());
 
   const [settingsRes, hoursRes, resourcesRes, servicesRes] = await Promise.all([
     supabase.from("booking_settings").select("*").eq("business_id", businessId).maybeSingle(),

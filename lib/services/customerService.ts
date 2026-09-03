@@ -6,7 +6,7 @@
 // channel: el mismo número puede escribir por distintos canales en el
 // futuro (WhatsApp, canal de prueba interno...) y son personas/hilos
 // distintos para el agente.
-import { createClient } from "@/lib/supabase/server";
+import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { getOrdersByCustomer } from "@/lib/services/orderService";
 import { getConversationsForCustomer } from "@/lib/services/conversationService";
 import type { Order } from "@/lib/types/order";
@@ -30,9 +30,10 @@ export async function getOrCreateCustomer(
   businessId: string,
   phone: string,
   channel: string,
-  name?: string | null
+  name?: string | null,
+  db?: SupabaseServerClient
 ): Promise<{ error: string | null; data: Customer | null }> {
-  const supabase = await createClient();
+  const supabase = db ?? (await createClient());
 
   const { data: existing, error: findError } = await supabase
     .from("customers")
