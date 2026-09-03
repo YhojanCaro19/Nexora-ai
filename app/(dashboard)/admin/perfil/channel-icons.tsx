@@ -1,19 +1,30 @@
-// Íconos de los canales. Los logos de marca reales los va a pasar el
-// usuario como archivos → cuando lleguen, se ponen en `public/channels/`
-// y este componente los muestra con <img>. Por ahora, íconos neutros de
-// lucide en el color de acento del panel.
-import { MessageSquare, Camera, Phone } from "lucide-react";
+// Logos de marca de los canales. Los archivos viven en public/channels/
+// (los pasó el usuario). Se muestran tal cual, con sus colores oficiales —
+// es una pantalla de "conectar tus redes" donde la gente los reconoce de
+// un vistazo.
+import Image from "next/image";
 import type { Channel } from "@/lib/types/channel";
 
-const LUCIDE = {
-  messenger: MessageSquare,
-  instagram: Camera,
-  whatsapp: Phone,
-} as const;
+const SRC: Record<Channel, string> = {
+  messenger: "/channels/messenger.png",
+  instagram: "/channels/instagram.png",
+  whatsapp: "/channels/whatsapp.png",
+};
 
-export function ChannelIcon({ channel, size = 20 }: { channel: Channel; size?: number }) {
-  const Icon = LUCIDE[channel];
+const LABEL: Record<Channel, string> = {
+  messenger: "Facebook",
+  instagram: "Instagram",
+  whatsapp: "WhatsApp",
+};
+
+export function ChannelIcon({ channel, size = 22 }: { channel: Channel; size?: number }) {
   return (
-    <Icon size={size} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} aria-hidden />
+    <Image
+      src={SRC[channel]}
+      alt={LABEL[channel]}
+      width={size}
+      height={size}
+      className="shrink-0 object-contain"
+    />
   );
 }
