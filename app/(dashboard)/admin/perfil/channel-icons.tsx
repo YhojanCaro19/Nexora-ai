@@ -24,6 +24,9 @@ export function ChannelIcon({ channel, size = 22 }: { channel: Channel; size?: n
       alt={LABEL[channel]}
       width={size}
       height={size}
+      // Íconos chicos de 512px → optimizarlos no ahorra nada y el caché de
+      // next/image se queda con la versión vieja al reemplazar el archivo.
+      unoptimized
       className="shrink-0 object-contain"
     />
   );
