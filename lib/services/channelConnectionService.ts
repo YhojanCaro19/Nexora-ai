@@ -160,36 +160,40 @@ export interface SaveConnectionInput {
  */
 export async function saveConnection(
   input: SaveConnectionInput
-): Promise<{ error: string | null }> {
+): Promise<{ error: string | null; id: string | null }> {
   const admin = createAdminClient();
-  const { error } = await admin.from(TABLE).upsert(
-    {
-      business_id: input.businessId,
-      channel: input.channel,
-      provider: "meta",
-      external_id: input.externalId,
-      external_name: input.externalName ?? null,
-      access_token: encryptToken(input.accessToken),
-      token_expires_at: input.tokenExpiresAt ?? null,
-      extra: input.extra ?? {},
-      webhook_subscribed: input.webhookSubscribed ?? false,
-      status: "active",
-      last_error: null,
-      connected_by: input.connectedBy ?? null,
-      connected_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "channel,external_id" }
-  );
+  const { data, error } = await admin
+    .from(TABLE)
+    .upsert(
+      {
+        business_id: input.businessId,
+        channel: input.channel,
+        provider: "meta",
+        external_id: input.externalId,
+        external_name: input.externalName ?? null,
+        access_token: encryptToken(input.accessToken),
+        token_expires_at: input.tokenExpiresAt ?? null,
+        extra: input.extra ?? {},
+        webhook_subscribed: input.webhookSubscribed ?? false,
+        status: "active",
+        last_error: null,
+        connected_by: input.connectedBy ?? null,
+        connected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "channel,external_id" }
+    )
+    .select("id")
+    .single();
 
   if (error) {
     console.error("[saveConnection] error:", error);
     if (error.code === "23505") {
-      return { error: "Ese canal ya está conectado a otra cuenta de AVENTHRA." };
+      return { error: "Ese canal ya está conectado a otra cuenta de AVENTHRA.", id: null };
     }
-    return { error: "No se pudo guardar la conexión." };
+    return { error: "No se pudo guardar la conexión.", id: null };
   }
-  return { error: null };
+  return { error: null, id: (data as { id: string }).id };
 }
 
 export async function setWebhookSubscribed(id: string, value: boolean): Promise<void> {

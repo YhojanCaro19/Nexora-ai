@@ -48,24 +48,36 @@
 - [ ] **[JUNTOS]** Confirmar que las 3 URLs cargan en producción
 
 ### D. Crear la app de Meta
-- [ ] **[TÚ]** `developers.facebook.com` → My Apps → Create App → tipo
-      **Business** → nombre `AVENTHRA` → crear Business Portfolio "AVENTHRA"
-- [ ] **[TÚ]** App settings → Basic: App domains `aventhra.online`, las 3
-      URLs legales, categoría, ícono 1024×1024
-- [ ] **[TÚ]** Anotar **App ID** y **App Secret** (App ID → a Claude;
-      App Secret → directo a `.env.local`, no al chat)
-- [ ] **[TÚ]** Add Product: **Messenger**, **Instagram**, **WhatsApp**,
-      **Facebook Login for Business**
+- [x] **[TÚ]** App creada — tipo **Business**, App ID `1093170269890362`
+- [x] **[TÚ]** App ID + App Secret en `.env.local` — *2026-09-02*
+- [x] **[TÚ]** Productos agregados: **Messenger**, **Instagram** — *2026-09-02*
+- [ ] **[TÚ]** Producto **WhatsApp** — pendiente (necesita portafolio
+      empresarial completo; es Fase 5, no urge)
+- [ ] **[TÚ]** Producto **API de marketing** — para el módulo de Marketing
+      (mismo app; el código de ads es aparte)
 
-### E. Facebook Login for Business (el popup de "Conectar")
-- [ ] **[TÚ]** FL for Business → Configurations → Create configuration.
-      Permisos: `pages_show_list`, `pages_messaging`,
-      `pages_manage_metadata`, `instagram_basic`,
-      `instagram_manage_messages`, `business_management`
-- [ ] **[TÚ]** Anotar el **Configuration ID** → a Claude
-- [ ] **[TÚ]** FL for Business → Settings → Valid OAuth Redirect URIs:
-      `https://aventhra.online/api/auth/meta/callback` y
-      `http://localhost:3000/api/auth/meta/callback`
+### E. Facebook Login (el popup de "Conectar")
+> **Cambio 2026-09-02:** se usa **Facebook Login clásico**, NO "for
+> Business". Hace lo mismo para nuestro caso (un negocio conecta su Página)
+> sin Config ID ni "acceso avanzado a public_profile". Migrar a "for
+> Business" solo si hace falta el flujo multi-negocio de Tech Provider.
+- [x] **[TÚ]** "Obtener acceso avanzado" para `public_profile` — *2026-09-02*
+- [x] **[TÚ]** URI de redireccionamiento de OAuth válido:
+      `https://aventhra.online/api/auth/meta/callback`
+      (localhost se permite solo en dev, no se añade) — *2026-09-02*
+- [ ] **[TÚ]** Producto "Inicio de sesión con Facebook para empresas":
+      ya NO hace falta configurarlo (se usa el clásico)
+
+### D-bis. Si el dominio cambia (el usuario cree que lo hará)
+> Rehacer **todo** lo que dependa del dominio antes de desplegar. Lista
+> completa en `CLAUDE.md` → "Antes de desplegar". Lo de canales:
+- [ ] `NEXT_PUBLIC_APP_URL` en `.env.local` y en Vercel
+- [ ] App de Meta → App domains + URLs legales
+- [ ] App de Meta → **URI de redireccionamiento de OAuth válidos**
+      (`<dominio>/api/auth/meta/callback`)
+- [ ] App de Meta → URL del webhook (`<dominio>/api/webhooks/meta`) +
+      reverificar el handshake
+- [ ] Resend: verificar el dominio nuevo + `RESEND_FROM_EMAIL` + DNS
 
 ### F. Business Verification (lo más lento — arrancar cuanto antes)
 - [ ] **[TÚ]** Business Portfolio → Security Center → Start Verification
@@ -93,20 +105,29 @@
 - [x] **[CLAUDE]** `lib/services/metaChannelService.ts` — `sendChannelMessage()`
       con las 3 formas de body (Messenger / IG / WhatsApp)
 - [ ] **[JUNTOS]** Probar envío con `curl` + un token de prueba de la
-      cuenta propia *(requiere app de Meta creada — bloqueado por D)*
+      cuenta propia *(se hace junto con la prueba de Fase 2)*
 
 ---
 
 ## FASE 2 — Conexión + UI (empezar por Messenger)
 
-- [ ] **[CLAUDE]** Server action que arma la URL de FL for Business y hace
-      `redirect()` (con `state` firmado, CSRF)
-- [ ] **[CLAUDE]** `app/api/auth/meta/callback/route.ts` — canjea code,
-      guarda `channel_connections`, suscribe el webhook
-- [ ] **[CLAUDE]** Pantalla **Mi Agente → Canales** (estado por canal,
-      botón Conectar / Desconectar, mobile-first, títulos centrados)
-- [ ] **[TÚ]** Conectar tu propia Página de Facebook de prueba → verificar
-      que aparece "Conectado"
+- [x] **[CLAUDE]** `lib/services/metaOAuthService.ts` — `state` firmado
+      (HMAC) + arma la URL del diálogo de OAuth (Login clásico)
+- [x] **[CLAUDE]** `app/(dashboard)/admin/mi-agente/canales/actions.ts` —
+      `startMetaConnectAction` (redirect a Facebook) + `disconnectChannelAction`
+- [x] **[CLAUDE]** `app/api/auth/meta/callback/route.ts` — verifica state +
+      sesión, canjea code → token largo, lista Páginas, guarda Messenger
+      (+ Instagram si la Página tiene IG ligada), intenta suscribir webhook
+- [x] **[CLAUDE]** Pantalla **Mi Agente → Canales** + link desde Mi Agente
+      (estado por canal, Conectar / Desconectar, banners de resultado,
+      mobile-first, título centrado). tsc + eslint limpios
+- [ ] **[TÚ]** Correr `npm run dev`, entrar a Mi Agente → Canales, pulsar
+      "Conectar" en Messenger, autorizar con tu Facebook, verificar que
+      vuelve como "Conectado"
+- [ ] **[TÚ]** Necesitas una **Página de Facebook** (aunque sea de prueba)
+      para conectar. Si no tienes, crea una (2 min)
+- [ ] **[PENDIENTE]** Selector de Página cuando la cuenta tiene varias
+      (hoy conecta la primera)
 
 ---
 
@@ -188,8 +209,19 @@
 
 ## Estado actual
 
-**2026-09-02** — Fase 1 (código de fundaciones) terminada y commiteada.
-SQL corrido. Secretos propios en `.env.local`.
-**Bloqueador ahora:** crear la app de Meta (D) — sin ella no se puede
-probar nada contra Graph API ni seguir con Fase 2. Tarea del usuario.
-En paralelo, Claude puede hacer las páginas legales (C).
+**2026-09-02** — Fases 1 y 2 (código) terminadas y commiteadas. App de Meta
+creada, productos Messenger + Instagram agregados, `public_profile` en
+acceso avanzado, redirect URI de OAuth configurado, `.env.local` completo
+(menos `META_CONFIG_ID`, que ya no se usa).
+
+**Siguiente paso — [TÚ]:** probar el flujo de conexión en local:
+1. `npm run dev`
+2. Entrar como admin → Mi Agente → Canales → "Conectar" en Messenger
+3. Autorizar con tu Facebook (necesitas una Página; crea una si no tienes)
+4. Verificar que vuelve como "Conectado"
+Si algo falla, pasar el error a Claude.
+
+**Después:** Fase 3 (webhook) con un túnel `cloudflared`/`ngrok`.
+
+**Lo lento en paralelo:** Business Verification (F). WhatsApp (Fase 5) y
+páginas legales + deploy (C) quedan para cuando AVENTHRA esté más completa.
