@@ -23,6 +23,7 @@ import {
   markConnectionError,
 } from "@/lib/services/channelConnectionService";
 import { sendChannelMessage, isAuthError } from "@/lib/services/metaChannelService";
+import { getUserProfileName } from "@/lib/services/metaGraphClient";
 import { runAgentTurn } from "@/lib/services/agentEngineService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 import type { Channel } from "@/lib/types/channel";
@@ -73,6 +74,7 @@ interface MessagingEvent {
 }
 interface WhatsAppValue {
   metadata?: { phone_number_id?: string };
+  contacts?: { wa_id?: string; profile?: { name?: string } }[];
   messages?: { id?: string; from?: string; type?: string; text?: { body?: string } }[];
 }
 interface WebhookEntry {
@@ -144,7 +146,8 @@ async function replyWith(
   channel: Channel,
   externalId: string,
   senderId: string,
-  text: string
+  text: string,
+  knownName?: string | null
 ): Promise<void> {
   const connection = await getConnectionByExternalId(channel, externalId);
   if (!connection || connection.status !== "active") {
@@ -152,8 +155,15 @@ async function replyWith(
     return;
   }
 
+  // Messenger / Instagram: el nombre de la persona se pide a Graph con el
+  // token de la Página. WhatsApp ya lo trae en el payload (`knownName`).
+  const customerName =
+    knownName ??
+    (channel === "whatsapp" ? null : await getUserProfileName(senderId, connection.accessToken));
+
   const result = await runAgentTurn(connection.businessId, senderId, text, channel, {
     serviceRole: true,
+    customerName,
   });
   if (result.error || !result.reply) {
     console.error(`[webhooks/meta] runAgentTurn: ${result.error ?? "sin respuesta"}`);
@@ -185,6 +195,12 @@ async function handleWhatsApp(value: WhatsAppValue | undefined): Promise<void> {
   const phoneNumberId = value?.metadata?.phone_number_id;
   if (!phoneNumberId) return;
 
+  const nameByWaId = new Map(
+    (value?.contacts ?? [])
+      .filter((c): c is { wa_id: string; profile?: { name?: string } } => Boolean(c.wa_id))
+      .map((c) => [c.wa_id, c.profile?.name ?? null])
+  );
+
   for (const msg of value?.messages ?? []) {
     const text = msg.type === "text" ? msg.text?.body?.trim() : undefined;
     const from = msg.from;
@@ -192,6 +208,6 @@ async function handleWhatsApp(value: WhatsAppValue | undefined): Promise<void> {
     if (msg.id && alreadyHandled(msg.id)) continue;
     if (!withinRate(from)) continue;
 
-    await replyWith("whatsapp", phoneNumberId, from, text);
+    await replyWith("whatsapp", phoneNumberId, from, text, nameByWaId.get(from) ?? null);
   }
 }

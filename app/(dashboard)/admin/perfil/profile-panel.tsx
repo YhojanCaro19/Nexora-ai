@@ -517,17 +517,6 @@ function BillingSection({
                     value={formatShortDateTime(agentUsage.lastUsedAt)}
                   />
                 )}
-                <p
-                  className="pt-2 text-center text-[11px] leading-relaxed"
-                  style={{ color: "var(--nexora-ink-dim)" }}
-                >
-                  Mismo desglose que el panel de Anthropic (Usage): entrada,
-                  salida y caché de prompt. Para que las cifras cuadren, en ese
-                  panel elige el rango de los últimos {agentUsage.windowDays}{" "}
-                  días y suma las cuatro columnas. La caché de lectura se factura
-                  a una fracción del precio, pero aquí cuenta como token
-                  procesado.
-                </p>
               </>
             ) : (
               <p

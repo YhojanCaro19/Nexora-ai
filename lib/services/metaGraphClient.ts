@@ -194,3 +194,27 @@ export function expiresAtToIso(expiresAt: number | undefined): string | null {
   if (!expiresAt || expiresAt <= 0) return null;
   return new Date(expiresAt * 1000).toISOString();
 }
+
+/**
+ * Nombre del perfil de una persona que le escribió a la Página / cuenta de
+ * IG (Messenger PSID o IGSID). Requiere el token de ESA Página. Devuelve
+ * null si Meta no lo da (ventana de mensajería vencida, permisos, etc.) —
+ * el llamador simplemente deja el cliente sin nombre.
+ */
+export async function getUserProfileName(
+  userId: string,
+  pageAccessToken: string
+): Promise<string | null> {
+  try {
+    const data = await graphGet<{ name?: string; first_name?: string; last_name?: string }>(
+      userId,
+      { fields: "name,first_name,last_name", access_token: pageAccessToken }
+    );
+    const name =
+      data.name?.trim() ||
+      [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+    return name || null;
+  } catch {
+    return null;
+  }
+}

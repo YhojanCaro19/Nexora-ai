@@ -9,7 +9,9 @@
 import { createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { getOrdersByCustomer } from "@/lib/services/orderService";
 import { getConversationsForCustomer } from "@/lib/services/conversationService";
+import { getReservationsByCustomer } from "@/lib/services/reservationService";
 import type { Order } from "@/lib/types/order";
+import type { Reservation } from "@/lib/types/reservation";
 import type { Conversation } from "@/lib/services/conversationService";
 
 export interface Customer {
@@ -48,12 +50,24 @@ export async function getOrCreateCustomer(
     return { error: "No se pudo buscar el cliente", data: null };
   }
   if (existing) {
-    return { error: null, data: existing as Customer };
+    const row = existing as Customer;
+    // El cliente entró por un canal donde al principio no teníamos su
+    // nombre (ej. primer mensaje de Messenger) y ahora sí — lo completamos.
+    if (name && name.trim() && !row.name) {
+      const { data: updated } = await supabase
+        .from("customers")
+        .update({ name: name.trim() })
+        .eq("id", row.id)
+        .select()
+        .single();
+      return { error: null, data: (updated as Customer | null) ?? row };
+    }
+    return { error: null, data: row };
   }
 
   const { data: created, error: createError } = await supabase
     .from("customers")
-    .insert({ business_id: businessId, phone, channel, name: name ?? null })
+    .insert({ business_id: businessId, phone, channel, name: name?.trim() || null })
     .select()
     .single();
 
@@ -88,6 +102,7 @@ export async function getCustomersForBusiness(businessId: string): Promise<Custo
 export interface CustomerDetail {
   customer: Customer | null;
   orders: Order[];
+  reservations: Reservation[];
   conversations: Conversation[];
 }
 
@@ -99,11 +114,13 @@ export interface CustomerDetail {
 export async function getCustomerDetail(businessId: string, customerId: string): Promise<CustomerDetail> {
   const supabase = await createClient();
 
-  const [{ data: customer, error: customerError }, orders, conversations] = await Promise.all([
-    supabase.from("customers").select("*").eq("id", customerId).eq("business_id", businessId).maybeSingle(),
-    getOrdersByCustomer(businessId, customerId),
-    getConversationsForCustomer(businessId, customerId),
-  ]);
+  const [{ data: customer, error: customerError }, orders, reservations, conversations] =
+    await Promise.all([
+      supabase.from("customers").select("*").eq("id", customerId).eq("business_id", businessId).maybeSingle(),
+      getOrdersByCustomer(businessId, customerId),
+      getReservationsByCustomer(businessId, customerId),
+      getConversationsForCustomer(businessId, customerId),
+    ]);
 
   if (customerError) {
     console.error("[getCustomerDetail] error buscando cliente:", customerError);
@@ -112,6 +129,7 @@ export async function getCustomerDetail(businessId: string, customerId: string):
   return {
     customer: (customer as Customer | null) ?? null,
     orders,
+    reservations,
     conversations,
   };
 }

@@ -68,7 +68,9 @@ export async function runAgentTurn(
   // servidor), así que la RLS bloquearía crear el cliente / la conversación.
   // Con `serviceRole: true` todo el turno usa el admin client. El businessId
   // ya viene autorizado (firma del webhook verificada + external_id → negocio).
-  opts: { serviceRole?: boolean } = {}
+  // `customerName` lo pasa el webhook cuando lo conoce (perfil de Messenger,
+  // `contacts` de WhatsApp) — se usa solo para completar el cliente nuevo.
+  opts: { serviceRole?: boolean; customerName?: string | null } = {}
 ): Promise<AgentTurnResult> {
   const db: SupabaseServerClient | undefined = opts.serviceRole ? createAdminClient() : undefined;
 
@@ -77,7 +79,7 @@ export async function runAgentTurn(
     getAgentConfig(businessId, db),
     getBookingConfig(businessId, db),
     getBusinessCountryIso2(businessId, db),
-    getOrCreateCustomer(businessId, customerPhone, channel, null, db),
+    getOrCreateCustomer(businessId, customerPhone, channel, opts.customerName ?? null, db),
   ]);
 
   const timezone = getTimezoneForCountry(countryIso2);

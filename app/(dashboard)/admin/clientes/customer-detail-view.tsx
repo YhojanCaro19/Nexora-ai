@@ -9,7 +9,7 @@
 // Volver visibles a la vez, cada uno solo retrocede un nivel: chat →
 // lista de conversaciones → menú → lista de clientes.
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, MessageCircle, Package } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Package, CalendarClock } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,6 +26,8 @@ import { StatusDot } from "@/app/(dashboard)/admin/pedidos/orders-table";
 import { MacBookFrame } from "@/components/shared/MacBookFrame";
 import type { CustomerDetail } from "@/lib/services/customerService";
 import type { Order } from "@/lib/types/order";
+import type { Reservation } from "@/lib/types/reservation";
+import { RESERVATION_STATUS_LABELS } from "@/lib/types/reservation";
 import type { Conversation } from "@/lib/services/conversationService";
 import { channelLabel } from "./channel-labels";
 import { formatShortDate, formatShortDateTime, formatTimeOnly } from "@/lib/utils/date";
@@ -40,7 +42,18 @@ function itemsSummary(order: Order): string {
 // propia "puerta" en el menú — mismo patrón "tocar y entrar" que ya usa
 // clientes-panel.tsx (lista → detalle) y que ya usaba este archivo para
 // Conversaciones → ConversationChatView.
-type SectionKey = "pedidos" | "conversaciones";
+type SectionKey = "pedidos" | "reservas" | "conversaciones";
+
+// "1 cita" si todas son citas, "1 reserva" si todas son de mesa, genérico
+// si están mezcladas — para que el resumen se lea natural en cada negocio.
+function reservationsSummary(reservations: Reservation[]): string {
+  const n = reservations.length;
+  if (n === 0) return "Sin reservas";
+  const word = reservations.every((r) => r.kind === "appointment")
+    ? "cita"
+    : "reserva";
+  return `${n} ${word}${n === 1 ? "" : "s"}`;
+}
 
 export function CustomerDetailView({
   detail,
@@ -54,7 +67,7 @@ export function CustomerDetailView({
   const [activeSection, setActiveSection] = useState<SectionKey | null>(null);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
 
-  const { customer, orders, conversations } = detail;
+  const { customer, orders, reservations, conversations } = detail;
   if (!customer) return null;
 
   // Nivel más profundo: dentro de Conversaciones, tocar una en particular
@@ -86,6 +99,7 @@ export function CustomerDetailView({
         </button>
 
         {activeSection === "pedidos" && <OrdersSection orders={orders} countryIso2={countryIso2} />}
+        {activeSection === "reservas" && <ReservationsSection reservations={reservations} />}
         {activeSection === "conversaciones" && (
           <ConversationsSection conversations={conversations} onOpen={setActiveConversation} />
         )}
@@ -125,6 +139,13 @@ export function CustomerDetailView({
           description="Historial de compras de este cliente."
           summary={orders.length === 0 ? "Sin pedidos" : `${orders.length} pedido${orders.length === 1 ? "" : "s"}`}
           onClick={() => setActiveSection("pedidos")}
+        />
+        <SectionMenuItem
+          icon={CalendarClock}
+          label="Reservas y citas"
+          description="Mesas y citas que reservó, incluidas las que hizo el agente."
+          summary={reservationsSummary(reservations)}
+          onClick={() => setActiveSection("reservas")}
         />
         <SectionMenuItem
           icon={MessageCircle}
@@ -248,6 +269,63 @@ function OrdersSection({ orders, countryIso2 }: { orders: Order[]; countryIso2: 
                 </TableCell>
                 <TableCell>
                   <StatusDot status={order.status} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </section>
+  );
+}
+
+// Contenido de "Reservas y citas" — solo lectura acá (la gestión real
+// vive en el módulo de Reservas). Mismo look de tabla que Pedidos.
+function ReservationsSection({ reservations }: { reservations: Reservation[] }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <CalendarClock size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+        <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
+          Reservas y citas
+        </h3>
+      </div>
+
+      {reservations.length === 0 ? (
+        <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
+          Sin reservas todavía.
+        </p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Cuándo</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Detalle</TableHead>
+              <TableHead>Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {reservations.map((r) => (
+              <TableRow key={r.id}>
+                <TableCell className="whitespace-nowrap" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {formatShortDate(r.startsAt)} · {formatTimeOnly(r.startsAt)}
+                </TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink)' }}>
+                  {r.kind === "appointment" ? "Cita" : "Mesa"}
+                </TableCell>
+                <TableCell className="max-w-[220px] whitespace-normal" style={{ color: 'var(--nexora-ink)' }}>
+                  {[
+                    r.serviceName,
+                    r.resourceName,
+                    r.partySize ? `${r.partySize} pers.` : null,
+                    r.source === "agent" ? "· por el agente" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || "—"}
+                </TableCell>
+                <TableCell style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {RESERVATION_STATUS_LABELS[r.status] ?? r.status}
                 </TableCell>
               </TableRow>
             ))}

@@ -2,16 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { MessageCircle, Camera, Phone, X, type LucideIcon } from "lucide-react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { startMetaConnectAction, disconnectChannelAction } from "./actions";
+import { ChannelIcon } from "./channel-icons";
 import { CHANNEL_LABELS, type Channel, type ChannelConnectionPublic } from "@/lib/types/channel";
-
-const ICONS: Record<Channel, LucideIcon> = {
-  messenger: MessageCircle,
-  instagram: Camera,
-  whatsapp: Phone,
-};
 
 const ERROR_LABELS: Record<string, string> = {
   cancelado: "Cancelaste la conexión en Facebook.",
@@ -71,12 +66,13 @@ export function ConnectNetworksSection({
       )}
 
       <ChannelRow channel="messenger" connection={byChannel.get("messenger")} />
-      <ChannelRow channel="instagram" connection={byChannel.get("instagram")} igNote />
+      <ChannelRow channel="instagram" connection={byChannel.get("instagram")} />
       <ChannelRow channel="whatsapp" connection={byChannel.get("whatsapp")} comingSoon />
 
       <p className="pt-1 text-center text-[11px] leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
-        Messenger e Instagram se conectan juntos: al vincular tu página de
-        Facebook, si tiene una cuenta de Instagram ligada, también queda lista.
+        Si tu página de Facebook ya tiene una cuenta de Instagram ligada, al
+        conectar Messenger queda lista sola. Si no, usa el botón de Instagram
+        para vincularla aparte.
       </p>
     </div>
   );
@@ -86,14 +82,11 @@ function ChannelRow({
   channel,
   connection,
   comingSoon,
-  igNote,
 }: {
   channel: Channel;
   connection?: ChannelConnectionPublic;
   comingSoon?: boolean;
-  igNote?: boolean;
 }) {
-  const Icon = ICONS[channel];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,7 +103,7 @@ function ChannelRow({
 
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3" style={{ borderColor: "var(--nexora-line)" }}>
-      <Icon size={20} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
+      <ChannelIcon channel={channel} size={20} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
           {CHANNEL_LABELS[channel]}
@@ -122,9 +115,7 @@ function ChannelRow({
               ? `Conectado${connection?.externalName ? ` · ${connection.externalName}` : ""}`
               : isError
                 ? "Hay un problema — reconecta"
-                : igNote
-                  ? "Se conecta junto con Messenger"
-                  : "No conectado"}
+                : "No conectado"}
         </p>
         {error && (
           <p className="text-[11px]" style={{ color: "var(--nexora-alert)" }}>
@@ -147,7 +138,7 @@ function ChannelRow({
         <Button variant="outline" size="sm" onClick={disconnect} disabled={busy}>
           {busy ? "..." : "Desconectar"}
         </Button>
-      ) : channel === "instagram" ? null : (
+      ) : (
         <form action={startMetaConnectAction}>
           <Button type="submit" size="sm">
             Conectar
