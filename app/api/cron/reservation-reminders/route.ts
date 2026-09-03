@@ -120,9 +120,11 @@ export async function GET(request: Request) {
 
       const start = new Date(r.starts_at);
       const fecha = formatLongDateInTimezone(start, biz.tz);
+      // Hora en 12h con am/pm — la gente no lee formato militar.
       const hora = new Intl.DateTimeFormat("es-CO", {
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
+        hour12: true,
         timeZone: biz.tz,
       }).format(start);
       const label = r.kind === "table" ? "reserva" : "cita";

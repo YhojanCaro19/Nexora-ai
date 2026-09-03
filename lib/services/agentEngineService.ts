@@ -282,7 +282,7 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
 
   lines.push(
     `Para reservar SIEMPRE pregunta primero: ${askText}. Usa "consultar_disponibilidad" para ofrecer horas reales. Antes de llamar a "reservar", repite un resumen (nombre, fecha, hora, personas o servicio) y espera que el cliente confirme.`,
-    `Cuando la reserva quede hecha, dile que le va a llegar un mensaje de confirmación un día antes.`
+    `Cuando la reserva quede hecha, la herramienta te dirá qué decirle sobre el recordatorio según cuándo sea la cita (hoy, mañana, o más adelante). Sigue esa indicación — nunca prometas un recordatorio "un día antes" si la cita es para hoy.`
   );
 
   return lines.join("\n");
@@ -457,6 +457,19 @@ function buildTools(
     return `${date}, ${to12h(hhmm)}`;
   };
 
+  // Fecha local del negocio (YYYY-MM-DD), hoy y mañana — para saber si una
+  // reserva es para el mismo día y no prometer un recordatorio de "un día
+  // antes" que ya no alcanza a salir.
+  const isoInTz = (d: Date) =>
+    new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      timeZone: timezone,
+    }).format(d);
+  const todayLocalIso = isoInTz(new Date());
+  const tomorrowLocalIso = isoInTz(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
   // Herramientas de SOLO LECTURA: siempre disponibles. El agente nunca
   // debe quedarse sin poder consultar el catálogo o las FAQ solo porque un
   // toggle esté apagado — si el dato existe en el negocio, el agente lo usa.
@@ -628,7 +641,13 @@ function buildTools(
           }
           {
             const where = result.data?.resourceName ? ` en la ${result.data.resourceName}` : "";
-            return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${to12h(hora)}${where}. Le llegará un recordatorio un día antes.`;
+            const reminderNote =
+              fecha === todayLocalIso
+                ? "Es para HOY, así que NO le prometas un recordatorio de un día antes — dile que lo esperas hoy a esa hora."
+                : fecha === tomorrowLocalIso
+                  ? "Es para MAÑANA — le llegará un recordatorio más tarde hoy."
+                  : "Le llegará un recordatorio un día antes.";
+            return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${to12h(hora)}${where}. ${reminderNote}`;
           }
         },
       })
