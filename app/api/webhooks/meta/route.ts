@@ -7,22 +7,24 @@
 //   POST → mensaje entrante:
 //     1. verificar la firma X-Hub-Signature-256 (HMAC del raw body con el
 //        App Secret) — igual criterio que app/api/webhooks/wompi
-//     2. enrutar por `object`, resolver el negocio por el id que recibió
-//        el mensaje (Page ID / IG id / phone_number_id)
-//     3. runAgentTurn(...) → metaChannelService.sendChannelMessage(...)
-//     4. responder 200
+//     2. responder 200 DE INMEDIATO (Meta reintenta y penaliza si tardamos)
+//     3. procesar en segundo plano con `after()`: enrutar por `object`,
+//        resolver el negocio por el id que recibió el mensaje, runAgentTurn
+//        → sendChannelMessage
 //
-// Dedupe best-effort en memoria por id de mensaje: Meta reintenta si no
-// ve un 2xx a tiempo y no queremos responder dos veces al cliente. Para
-// producción multi-instancia esto necesita un store durable.
+// Dedupe best-effort en memoria por id de mensaje. Para producción
+// multi-instancia esto necesita un store durable (ej. una tabla o Redis).
 //
 // Ver docs/channels-module-plan.md §4.6.
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createHmac, timingSafeEqual } from "crypto";
-import { getConnectionByExternalId } from "@/lib/services/channelConnectionService";
+import {
+  getConnectionByExternalId,
+  markConnectionError,
+} from "@/lib/services/channelConnectionService";
 import { sendChannelMessage, isAuthError } from "@/lib/services/metaChannelService";
-import { markConnectionError } from "@/lib/services/channelConnectionService";
 import { runAgentTurn } from "@/lib/services/agentEngineService";
+import { checkRateLimit } from "@/lib/utils/rateLimit";
 import type { Channel } from "@/lib/types/channel";
 
 export const dynamic = "force-dynamic";
@@ -100,44 +102,53 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "payload inválido" }, { status: 400 });
   }
 
-  try {
-    if (body.object === "page" || body.object === "instagram") {
-      const channel: Channel = body.object === "page" ? "messenger" : "instagram";
-      for (const entry of body.entry ?? []) {
-        const receiverId = entry.id;
-        for (const ev of entry.messaging ?? []) {
-          await handleMessengerLike(channel, receiverId, ev);
-        }
-      }
-    } else if (body.object === "whatsapp_business_account") {
-      for (const entry of body.entry ?? []) {
-        for (const change of entry.changes ?? []) {
-          await handleWhatsApp(change.value);
-        }
-      }
+  // Meta espera un 2xx rápido (segundos). El turno del agente puede tardar
+  // más, así que se procesa DESPUÉS de responder. `after` mantiene viva la
+  // función serverless hasta que termine.
+  after(async () => {
+    try {
+      await processWebhook(body);
+    } catch (err) {
+      console.error("[webhooks/meta] error procesando:", err);
     }
-  } catch (err) {
-    // 200 igual — un reintento de Meta no arregla un bug nuestro.
-    console.error("[webhooks/meta] error procesando:", err);
-  }
+  });
 
   return NextResponse.json({ received: true });
 }
 
-async function handleMessengerLike(
-  channel: Channel,
-  receiverId: string | undefined,
-  ev: MessagingEvent
-): Promise<void> {
-  const text = ev.message?.text?.trim();
-  const senderId = ev.sender?.id;
-  const mid = ev.message?.mid;
-  if (!receiverId || !senderId || !text || ev.message?.is_echo) return;
-  if (mid && alreadyHandled(mid)) return;
+async function processWebhook(body: WebhookBody): Promise<void> {
+  if (body.object === "page" || body.object === "instagram") {
+    const channel: Channel = body.object === "page" ? "messenger" : "instagram";
+    for (const entry of body.entry ?? []) {
+      const receiverId = entry.id;
+      for (const ev of entry.messaging ?? []) {
+        await handleMessengerLike(channel, receiverId, ev);
+      }
+    }
+  } else if (body.object === "whatsapp_business_account") {
+    for (const entry of body.entry ?? []) {
+      for (const change of entry.changes ?? []) {
+        await handleWhatsApp(change.value);
+      }
+    }
+  }
+}
 
-  const connection = await getConnectionByExternalId(channel, receiverId);
+// Tope de mensajes por remitente y minuto — evita que un flood dispare
+// turnos del agente sin límite (cada turno cuesta tokens).
+function withinRate(senderId: string): boolean {
+  return checkRateLimit(`meta-msg:${senderId}`, 15, 60 * 1000).allowed;
+}
+
+async function replyWith(
+  channel: Channel,
+  externalId: string,
+  senderId: string,
+  text: string
+): Promise<void> {
+  const connection = await getConnectionByExternalId(channel, externalId);
   if (!connection || connection.status !== "active") {
-    console.warn(`[webhooks/meta] ${channel} sin conexión activa para ${receiverId}`);
+    console.warn(`[webhooks/meta] ${channel} sin conexión activa para ${externalId}`);
     return;
   }
 
@@ -155,6 +166,21 @@ async function handleMessengerLike(
   }
 }
 
+async function handleMessengerLike(
+  channel: Channel,
+  receiverId: string | undefined,
+  ev: MessagingEvent
+): Promise<void> {
+  const text = ev.message?.text?.trim();
+  const senderId = ev.sender?.id;
+  const mid = ev.message?.mid;
+  if (!receiverId || !senderId || !text || ev.message?.is_echo) return;
+  if (mid && alreadyHandled(mid)) return;
+  if (!withinRate(senderId)) return;
+
+  await replyWith(channel, receiverId, senderId, text);
+}
+
 async function handleWhatsApp(value: WhatsAppValue | undefined): Promise<void> {
   const phoneNumberId = value?.metadata?.phone_number_id;
   if (!phoneNumberId) return;
@@ -164,21 +190,8 @@ async function handleWhatsApp(value: WhatsAppValue | undefined): Promise<void> {
     const from = msg.from;
     if (!from || !text) continue;
     if (msg.id && alreadyHandled(msg.id)) continue;
+    if (!withinRate(from)) continue;
 
-    const connection = await getConnectionByExternalId("whatsapp", phoneNumberId);
-    if (!connection || connection.status !== "active") {
-      console.warn(`[webhooks/meta] whatsapp sin conexión activa para ${phoneNumberId}`);
-      continue;
-    }
-
-    const result = await runAgentTurn(connection.businessId, from, text, "whatsapp", {
-      serviceRole: true,
-    });
-    if (result.error || !result.reply) continue;
-
-    const sent = await sendChannelMessage(connection, from, result.reply);
-    if (sent.error && isAuthError(sent.graphCode)) {
-      await markConnectionError(connection.id, sent.error);
-    }
+    await replyWith("whatsapp", phoneNumberId, from, text);
   }
 }

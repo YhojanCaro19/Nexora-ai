@@ -137,7 +137,13 @@ function ChannelRow({
         <Button variant="outline" size="sm" disabled>
           Pronto
         </Button>
-      ) : isActive || isError ? (
+      ) : isError ? (
+        <form action={startMetaConnectAction}>
+          <Button type="submit" size="sm">
+            Reconectar
+          </Button>
+        </form>
+      ) : isActive ? (
         <Button variant="outline" size="sm" onClick={disconnect} disabled={busy}>
           {busy ? "..." : "Desconectar"}
         </Button>
