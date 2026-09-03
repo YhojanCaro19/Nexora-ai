@@ -113,17 +113,18 @@
 
 - [x] **[CLAUDE]** `lib/services/metaOAuthService.ts` — `state` firmado
       (HMAC) + arma la URL del diálogo de OAuth (Login clásico)
-- [x] **[CLAUDE]** `app/(dashboard)/admin/mi-agente/canales/actions.ts` —
-      `startMetaConnectAction` (redirect a Facebook) + `disconnectChannelAction`
+- [x] **[CLAUDE]** `startMetaConnectAction` + `disconnectChannelAction` en
+      `app/(dashboard)/admin/perfil/actions.ts`
 - [x] **[CLAUDE]** `app/api/auth/meta/callback/route.ts` — verifica state +
       sesión, canjea code → token largo, lista Páginas, guarda Messenger
       (+ Instagram si la Página tiene IG ligada), intenta suscribir webhook
-- [x] **[CLAUDE]** Pantalla **Mi Agente → Canales** + link desde Mi Agente
-      (estado por canal, Conectar / Desconectar, banners de resultado,
-      mobile-first, título centrado). tsc + eslint limpios
-- [ ] **[TÚ]** Correr `npm run dev`, entrar a Mi Agente → Canales, pulsar
-      "Conectar" en Messenger, autorizar con tu Facebook, verificar que
-      vuelve como "Conectado"
+- [x] **[CLAUDE]** Sección **Perfil → "Conectar redes"** (admin-only;
+      estado por canal, Conectar / Desconectar, banners de resultado,
+      mobile-first). *Se movió de Mi Agente a Perfil a pedido del usuario
+      (2026-09-02).* tsc + eslint limpios
+- [ ] **[TÚ]** Correr `npm run dev`, entrar a **Perfil → Conectar redes**,
+      pulsar "Conectar" en Messenger, autorizar con tu Facebook, verificar
+      que vuelve como "Conectado"
 - [ ] **[TÚ]** Necesitas una **Página de Facebook** (aunque sea de prueba)
       para conectar. Si no tienes, crea una (2 min)
 - [ ] **[PENDIENTE]** Selector de Página cuando la cuenta tiene varias

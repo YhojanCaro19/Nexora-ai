@@ -13,6 +13,9 @@ import {
 } from "@/lib/services/accountChangeService";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
+import { signState, buildAuthorizeUrl } from "@/lib/services/metaOAuthService";
+import { revokeConnection } from "@/lib/services/channelConnectionService";
+import { isChannel, type Channel } from "@/lib/types/channel";
 
 // AVENTHRA solo autentica con Google — no hay contraseña que cambiar. El
 // flujo de OTP para cambio de contraseña que vivía acá se eliminó junto
@@ -139,6 +142,49 @@ export async function cancelAccountChangeAction(requestId: string) {
 // revoca todos los refresh tokens de esta cuenta Y limpia la cookie local
 // de inmediato en un solo llamado (ver el comentario en profileService.ts
 // sobre por qué NO se puede hacer esto por user_id vía la Admin API).
+// ── Conectar redes (Perfil → Conectar redes) ────────────────────────────
+// El agente responde en las redes del negocio. Es config del negocio, no
+// dato personal, así que es admin-exclusivo. Ver docs/channels-module-plan.md.
+
+const CHANNELS_RETURN_PATH = "/admin/perfil";
+
+/** Arranca el OAuth con Meta: firma el `state` y manda el navegador al
+ *  diálogo de Facebook. Al volver, /api/auth/meta/callback guarda todo. */
+export async function startMetaConnectAction(): Promise<void> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    redirect("/login");
+  }
+
+  const limit = checkRateLimit(`meta-connect:${profile.userId}`, 8, 60 * 1000);
+  if (!limit.allowed) {
+    redirect(`${CHANNELS_RETURN_PATH}?error=rate`);
+  }
+
+  const state = signState({
+    businessId: profile.businessId,
+    userId: profile.userId,
+    kind: "channels",
+    returnPath: CHANNELS_RETURN_PATH,
+  });
+  redirect(buildAuthorizeUrl(state, "channels"));
+}
+
+/** Desconecta un canal (marca la conexión como revocada). */
+export async function disconnectChannelAction(
+  channel: string
+): Promise<{ error: string | null }> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+  if (!isChannel(channel)) return { error: "Canal inválido" };
+
+  await revokeConnection(profile.businessId, channel as Channel);
+  revalidatePath(CHANNELS_RETURN_PATH);
+  return { error: null };
+}
+
 export async function signOutAllDevicesAction() {
   const profile = await getSessionProfile();
   if (!profile) return { error: "No autorizado" };

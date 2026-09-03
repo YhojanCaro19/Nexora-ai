@@ -12,6 +12,7 @@ import { getProfileSecurityEvents } from "@/lib/services/profileSecurityLogServi
 import { getBillingSummary } from "@/lib/services/creditService";
 import { getAccessChangeEligibility } from "@/lib/services/accountChangeService";
 import type { Locale } from "@/i18n/locales";
+import { Suspense } from "react";
 import { ProfilePanel } from "@/app/(dashboard)/admin/perfil/profile-panel";
 
 export default async function ColaboradorPerfilPage() {
@@ -38,16 +39,20 @@ export default async function ColaboradorPerfilPage() {
         Perfil
       </h1>
 
-      <ProfilePanel
-        details={details}
-        loginEvents={loginEvents}
-        securityEvents={securityEvents}
-        billing={billing}
-        agentUsage={null}
-        accessChange={accessChange}
-        currentLocale={locale}
-        canManageBilling={false}
-      />
+      <Suspense fallback={null}>
+        <ProfilePanel
+          details={details}
+          loginEvents={loginEvents}
+          securityEvents={securityEvents}
+          billing={billing}
+          agentUsage={null}
+          accessChange={accessChange}
+          currentLocale={locale}
+          canManageBilling={false}
+          channelConnections={[]}
+          canManageChannels={false}
+        />
+      </Suspense>
     </div>
   );
 }

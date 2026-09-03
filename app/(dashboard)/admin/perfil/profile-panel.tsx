@@ -5,7 +5,7 @@
 // que ya usa el resto del panel (catalogo-panel, mi-agente-panel): tocar
 // una fila la reemplaza por su vista con un botón Volver, nunca acordeón.
 import { useState, useTransition, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -18,6 +18,7 @@ import {
   MonitorSmartphone,
   ShieldCheck,
   Languages,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -41,6 +42,8 @@ import type { ProfileSecurityEvent } from "@/lib/services/profileSecurityLogServ
 import type { AccessChangeEligibility } from "@/lib/services/accountChangeService";
 import type { BillingSummary } from "@/lib/services/creditService";
 import type { OwnAgentUsage } from "@/lib/services/agentUsageService";
+import type { ChannelConnectionPublic } from "@/lib/types/channel";
+import { ConnectNetworksSection } from "./connect-networks-section";
 import { industryTypes } from "@/lib/validators/businessSchema";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -71,6 +74,7 @@ type SectionKey =
   | "personal"
   | "account"
   | "access-change"
+  | "connect-networks"
   | "billing"
   | "sign-out-all"
   | "login-history"
@@ -86,6 +90,8 @@ interface ProfilePanelProps {
   accessChange: AccessChangeEligibility;
   currentLocale: Locale;
   canManageBilling: boolean;
+  channelConnections: ChannelConnectionPublic[];
+  canManageChannels: boolean;
 }
 
 // ---------- helpers de layout ----------
@@ -673,8 +679,23 @@ export function ProfilePanel({
   accessChange,
   currentLocale,
   canManageBilling,
+  channelConnections,
+  canManageChannels,
 }: ProfilePanelProps) {
-  const [view, setView] = useState<SectionKey | "list">("list");
+  const searchParams = useSearchParams();
+  // El callback de OAuth vuelve a /admin/perfil?connected=… o ?error=… —
+  // en ese caso se abre directo la sección de redes, no la lista.
+  const cameBackFromOAuth =
+    canManageChannels &&
+    (searchParams.has("connected") || searchParams.has("error"));
+  const [view, setView] = useState<SectionKey | "list">(
+    cameBackFromOAuth ? "connect-networks" : "list"
+  );
+
+  const activeChannels = channelConnections.filter((c) => c.status === "active").length;
+  const channelsNeedAttention = channelConnections.some(
+    (c) => c.status === "error" || c.status === "expired"
+  );
 
   const rows: { key: SectionKey; label: string; icon: LucideIcon; hint?: string }[] = [
     { key: "personal", label: "Datos personales", icon: User },
@@ -685,6 +706,20 @@ export function ProfilePanel({
       icon: KeyRound,
       hint: accessChange.pendingRequest ? "En revisión" : undefined,
     },
+    ...(canManageChannels
+      ? [
+          {
+            key: "connect-networks" as const,
+            label: "Conectar redes",
+            icon: Share2,
+            hint: channelsNeedAttention
+              ? "Reconectar"
+              : activeChannels > 0
+                ? `${activeChannels} conectada${activeChannels > 1 ? "s" : ""}`
+                : undefined,
+          },
+        ]
+      : []),
     ...(billing ? [{ key: "billing" as const, label: "Plan y facturación", icon: CreditCard }] : []),
     { key: "sign-out-all", label: "Cerrar sesión en todos los dispositivos", icon: LogOut },
     { key: "login-history", label: "Inicios de sesión", icon: MonitorSmartphone },
@@ -741,6 +776,9 @@ export function ProfilePanel({
           {view === "account" && <AccountInfoSection details={details} />}
           {view === "access-change" && (
             <AccessChangeSection details={details} accessChange={accessChange} />
+          )}
+          {view === "connect-networks" && (
+            <ConnectNetworksSection connections={channelConnections} />
           )}
           {view === "billing" && (
             <BillingSection

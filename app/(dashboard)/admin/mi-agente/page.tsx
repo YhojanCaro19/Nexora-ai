@@ -1,6 +1,4 @@
 // app/(dashboard)/admin/mi-agente/page.tsx
-import Link from "next/link";
-import { Radio, ChevronRight } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
 import { getProducts } from "@/lib/services/productService";
@@ -48,23 +46,6 @@ export default async function MiAgentePage() {
         Mi Agente
       </h1>
       <MiAgentePanel agentConfig={agentConfig} catalog={AGENT_TOOLS} products={products} />
-
-      <Link
-        href="/admin/mi-agente/canales"
-        className="mx-auto flex max-w-md items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-white/[0.03]"
-        style={{ borderColor: 'var(--nexora-line)' }}
-      >
-        <Radio size={18} strokeWidth={1.75} style={{ color: 'var(--nexora-nova)' }} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
-            Canales
-          </span>
-          <span className="block text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Conecta WhatsApp, Messenger e Instagram para que el agente responda ahí
-          </span>
-        </span>
-        <ChevronRight size={16} style={{ color: 'var(--nexora-ink-dim)' }} />
-      </Link>
 
       <div className="border-t pt-10" style={{ borderColor: 'var(--nexora-line)' }}>
         <TestAgentChat />

@@ -25,7 +25,11 @@ const ERROR_LABELS: Record<string, string> = {
   kind_no_soportado: "Ese tipo de conexión aún no está disponible.",
 };
 
-export function CanalesPanel({ connections }: { connections: ChannelConnectionPublic[] }) {
+export function ConnectNetworksSection({
+  connections,
+}: {
+  connections: ChannelConnectionPublic[];
+}) {
   const params = useSearchParams();
   const connected = params.get("connected");
   const pageName = params.get("page");
@@ -36,13 +40,16 @@ export function CanalesPanel({ connections }: { connections: ChannelConnectionPu
 
   return (
     <div className="mx-auto max-w-md space-y-4">
+      <p className="text-center text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
+        Conecta las redes del negocio para que el agente responda los mensajes
+        ahí. Puedes desconectar cuando quieras.
+      </p>
+
       {connected && (
         <Banner tone="ok">
           {CHANNEL_LABELS[connected as Channel] ?? "Canal"} conectado
           {pageName ? ` — «${pageName}»` : ""}.
-          {multiple
-            ? ` Tienes ${multiple} páginas; por ahora se conecta la primera.`
-            : ""}
+          {multiple ? ` Tienes ${multiple} páginas; por ahora se conecta la primera.` : ""}
         </Banner>
       )}
       {errorCode && (
@@ -53,10 +60,7 @@ export function CanalesPanel({ connections }: { connections: ChannelConnectionPu
       <ChannelRow channel="instagram" connection={byChannel.get("instagram")} igNote />
       <ChannelRow channel="whatsapp" connection={byChannel.get("whatsapp")} comingSoon />
 
-      <p
-        className="pt-2 text-center text-[11px] leading-relaxed"
-        style={{ color: "var(--nexora-ink-dim)" }}
-      >
+      <p className="pt-1 text-center text-[11px] leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
         Messenger e Instagram se conectan juntos: al vincular tu página de
         Facebook, si tiene una cuenta de Instagram ligada, también queda lista.
       </p>
@@ -91,10 +95,7 @@ function ChannelRow({
   }
 
   return (
-    <div
-      className="flex items-center gap-3 rounded-lg border p-3"
-      style={{ borderColor: "var(--nexora-line)" }}
-    >
+    <div className="flex items-center gap-3 rounded-lg border p-3" style={{ borderColor: "var(--nexora-line)" }}>
       <Icon size={20} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>

@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   const state = searchParams.get("state");
   const oauthError = searchParams.get("error");
 
-  const fallback = "/admin/mi-agente/canales";
+  const fallback = "/admin/perfil";
 
   const parsed = state ? verifyState(state) : null;
   if (!parsed) {

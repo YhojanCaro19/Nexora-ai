@@ -7,7 +7,9 @@ import { getProfileSecurityEvents } from "@/lib/services/profileSecurityLogServi
 import { getBillingSummary } from "@/lib/services/creditService";
 import { getAgentUsageForBusiness } from "@/lib/services/agentUsageService";
 import { getAccessChangeEligibility } from "@/lib/services/accountChangeService";
+import { listConnectionsForBusiness } from "@/lib/services/channelConnectionService";
 import type { Locale } from "@/i18n/locales";
+import { Suspense } from "react";
 import { ProfilePanel } from "./profile-panel";
 
 export default async function PerfilPage() {
@@ -16,21 +18,29 @@ export default async function PerfilPage() {
 
   const locale = (await getLocale()) as Locale;
 
-  const [details, loginEvents, securityEvents, billing, agentUsage, accessChange] =
-    await Promise.all([
-      getProfileDetails(profile.userId, profile.businessId, profile.role, profile.fullName),
-      getRecentLoginEvents(profile.userId),
-      profile.businessId
-        ? getProfileSecurityEvents(profile.userId, profile.businessId)
-        : Promise.resolve([]),
-      profile.businessId ? getBillingSummary(profile.businessId) : Promise.resolve(null),
-      profile.businessId
-        ? getAgentUsageForBusiness(profile.businessId)
-        : Promise.resolve(null),
-      profile.businessId
-        ? getAccessChangeEligibility(profile.userId, profile.businessId)
-        : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null }),
-    ]);
+  const [
+    details,
+    loginEvents,
+    securityEvents,
+    billing,
+    agentUsage,
+    accessChange,
+    channelConnections,
+  ] = await Promise.all([
+    getProfileDetails(profile.userId, profile.businessId, profile.role, profile.fullName),
+    getRecentLoginEvents(profile.userId),
+    profile.businessId
+      ? getProfileSecurityEvents(profile.userId, profile.businessId)
+      : Promise.resolve([]),
+    profile.businessId ? getBillingSummary(profile.businessId) : Promise.resolve(null),
+    profile.businessId ? getAgentUsageForBusiness(profile.businessId) : Promise.resolve(null),
+    profile.businessId
+      ? getAccessChangeEligibility(profile.userId, profile.businessId)
+      : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null }),
+    profile.businessId
+      ? listConnectionsForBusiness(profile.businessId)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -38,16 +48,20 @@ export default async function PerfilPage() {
         Perfil
       </h1>
 
-      <ProfilePanel
-        details={details}
-        loginEvents={loginEvents}
-        securityEvents={securityEvents}
-        billing={billing}
-        agentUsage={agentUsage}
-        accessChange={accessChange}
-        currentLocale={locale}
-        canManageBilling={profile.role === "admin"}
-      />
+      <Suspense fallback={null}>
+        <ProfilePanel
+          details={details}
+          loginEvents={loginEvents}
+          securityEvents={securityEvents}
+          billing={billing}
+          agentUsage={agentUsage}
+          accessChange={accessChange}
+          currentLocale={locale}
+          canManageBilling={profile.role === "admin"}
+          channelConnections={channelConnections}
+          canManageChannels={profile.role === "admin"}
+        />
+      </Suspense>
     </div>
   );
 }
