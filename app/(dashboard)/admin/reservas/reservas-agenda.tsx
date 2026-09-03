@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatTimeOnly, formatShortDate } from "@/lib/utils/date";
+import { formatTimeOnly, formatShortDate, hhmmTo12h } from "@/lib/utils/date";
 import {
   ALLOWED_RESERVATION_TRANSITIONS,
   RESERVATION_STATUS_LABELS,
@@ -308,7 +308,7 @@ export function ReservasAgenda({
                           style={{ borderColor: "var(--nexora-line)", opacity: 0.55 }}
                         >
                           <span className="tabular-nums font-medium" style={{ color: "var(--nexora-ink)" }}>
-                            {slot}
+                            {hhmmTo12h(slot)}
                           </span>
                           <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
                             Libre
@@ -365,7 +365,7 @@ function ReservationCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className="text-sm font-semibold tabular-nums" style={{ color: "var(--nexora-ink)" }}>
-          {slot ?? formatTimeOnly(r.startsAt)}–{formatTimeOnly(r.endsAt)}
+          {slot ? hhmmTo12h(slot) : formatTimeOnly(r.startsAt)}–{formatTimeOnly(r.endsAt)}
         </p>
         <span
           className="shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"

@@ -22,14 +22,28 @@ export function formatShortDateTime(iso: string): string {
   return `${d.getDate()} ${MONTHS_ES[d.getMonth()]}. ${d.getFullYear()}, ${hours}:${minutes}`;
 }
 
-// Solo la hora, sin fecha — usado en burbujas de chat (Clientes >
-// conversaciones) donde la fecha ya se muestra una vez arriba del hilo,
-// no en cada mensaje.
+// Solo la hora, sin fecha, en formato de 12 h con am/pm — la gente en
+// Colombia no lee formato de 24 h. Usado en burbujas de chat (Clientes >
+// conversaciones), la agenda de Reservas y las citas del cliente.
+// am/pm calculado a mano (sin Intl) por lo mismo que el resto del archivo:
+// resultado idéntico en servidor y navegador.
 export function formatTimeOnly(iso: string): string {
-  const d = new Date(iso);
-  const hours = d.getHours().toString().padStart(2, "0");
-  const minutes = d.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
+  return toTwelveHour(new Date(iso).getHours(), new Date(iso).getMinutes());
+}
+
+// "14:30" (24 h) → "2:30 pm". Para strings de hora ya calculados (ej. las
+// franjas de la agenda: "09:00", "09:30"…).
+export function hhmmTo12h(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  return toTwelveHour(h, m);
+}
+
+function toTwelveHour(hours24: number, minutes: number): string {
+  const period = hours24 < 12 ? "am" : "pm";
+  const h12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  const mm = minutes.toString().padStart(2, "0");
+  return `${h12}:${mm} ${period}`;
 }
 
 // Para columnas `date` sin hora (ej. "2026-08-16", como report_date). A
