@@ -579,7 +579,12 @@ function buildTools(
             { source: "agent", customerId },
             db
           );
-          if (result.error) return `No se pudo reservar: ${result.error}`;
+          if (result.error) {
+            console.error(
+              `[reservar] falló: "${result.error}" — servicio="${servicio}" → ${findServiceId(servicio)}, empleado="${empleado}" → ${findStaffId(empleado)}, fecha=${fecha} ${hora}`
+            );
+            return `No se pudo reservar: ${result.error}`;
+          }
           {
             const where = result.data?.resourceName ? ` en la ${result.data.resourceName}` : "";
             return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${hora}${where}. Le llegará un recordatorio un día antes.`;

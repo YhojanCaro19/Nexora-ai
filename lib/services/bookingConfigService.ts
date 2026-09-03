@@ -123,8 +123,11 @@ export async function getBookingConfig(
   };
 }
 
-export async function getBookingSettings(businessId: string): Promise<BookingSettings> {
-  const supabase = await createClient();
+export async function getBookingSettings(
+  businessId: string,
+  db?: SupabaseServerClient
+): Promise<BookingSettings> {
+  const supabase = db ?? (await createClient());
   const { data } = await supabase
     .from("booking_settings")
     .select("*")

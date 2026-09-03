@@ -221,8 +221,8 @@ export async function computeAvailability(
 ): Promise<{ slots: AvailabilitySlot[]; error: string | null }> {
   const supabase = await client(passed);
   const [settings, config, timezone] = await Promise.all([
-    getBookingSettings(businessId),
-    getBookingConfig(businessId),
+    getBookingSettings(businessId, supabase),
+    getBookingConfig(businessId, supabase),
     getBusinessTimezone(supabase, businessId),
   ]);
 
@@ -329,7 +329,7 @@ export async function createReservation(
   const input = parsed.data;
   const supabase = await client(passed);
 
-  const config = await getBookingConfig(businessId);
+  const config = await getBookingConfig(businessId, supabase);
   if (config.settings.mode === "off") {
     return { error: "El negocio no tiene reservas activas.", data: null };
   }
