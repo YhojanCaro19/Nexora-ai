@@ -103,6 +103,7 @@ export async function runAgentTurn(
     activeToolKeys,
     agentConfig.faqs,
     bookingConfig,
+    timezone,
     db
   );
 
@@ -222,14 +223,14 @@ async function getBusinessName(businessId: string, db?: SupabaseServerClient): P
 //      turnos.
 //   2. volátil (dato del cliente puntual: orderStats) → SIN cache, va
 //      después del breakpoint para no invalidarlo.
-// Resumen del horario semanal para el prompt: "Lun 09:00-18:00 · Mar ...".
+// Resumen del horario semanal para el prompt: "Lun 9:00 am-6:00 pm · Mar ...".
 function formatWeeklyHours(booking: BookingConfig): string {
   const order = [1, 2, 3, 4, 5, 6, 0];
   const parts: string[] = [];
   for (const wd of order) {
     const blocks = booking.hours.filter((h) => h.weekday === wd);
     if (blocks.length === 0) continue;
-    const ranges = blocks.map((b) => `${b.opensAt}-${b.closesAt}`).join(" y ");
+    const ranges = blocks.map((b) => `${to12h(b.opensAt)}-${to12h(b.closesAt)}`).join(" y ");
     parts.push(`${weekdayLabel(wd).slice(0, 3)} ${ranges}`);
   }
   return parts.length > 0 ? parts.join(" · ") : "sin horario configurado";
@@ -285,6 +286,18 @@ function bookingPromptBlock(booking: BookingConfig): string | null {
   );
 
   return lines.join("\n");
+}
+
+// "14:30" (24h) → "2:30 pm". El cliente colombiano no lee formato militar.
+// Las herramientas siguen usando 24h internamente; esto es solo para hablar.
+function to12h(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const period = h < 12 ? "am" : "pm";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${h12}:00 ${period}` : `${h12}:${String(m).padStart(2, "0")} ${period}`;
 }
 
 // "martes 2 de septiembre de 2026" + "14:37" en la zona horaria del negocio.
@@ -404,7 +417,7 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
   }
 
   const { label: todayLabel, iso: todayIso, time: nowTime } = todayInTimezone(timezone);
-  const dateBlock = `Hoy es ${todayLabel} (fecha ISO: ${todayIso}) y son las ${nowTime}, hora local del negocio. Si el cliente dice "mañana", "pasado mañana", "el sábado", "en 3 días", "dentro de 2 horas", "esta tarde", etc., calcula tú la fecha y la hora exactas a partir de esto — NUNCA le preguntes qué día ni qué hora es, ya lo sabes. Cuando llames una herramienta con una fecha, pásala en formato YYYY-MM-DD y la hora en HH:MM (24h).`;
+  const dateBlock = `Hoy es ${todayLabel} (fecha ISO: ${todayIso}) y son las ${to12h(nowTime)}, hora local del negocio. Si el cliente dice "mañana", "pasado mañana", "el sábado", "en 3 días", "dentro de 2 horas", "esta tarde", etc., calcula tú la fecha y la hora exactas a partir de esto — NUNCA le preguntes qué día ni qué hora es, ya lo sabes. Cuando llames una herramienta pasa la fecha en YYYY-MM-DD y la hora en HH:MM de 24h (formato interno). Pero cuando le hables al CLIENTE, dile SIEMPRE las horas en formato de 12 horas con am/pm (ej. "2:00 pm", "10:30 am") — nunca "14:00" ni "20:30", la gente no lee formato militar.`;
 
   const volatile = `--- Contexto de este turno (nunca lo inventes) ---\n${dateBlock}\n${customerBlock}`;
 
@@ -420,9 +433,29 @@ function buildTools(
   activeToolKeys: AgentToolKey[],
   faqs: FaqEntry[],
   booking: BookingConfig,
+  timezone: string,
   db?: SupabaseServerClient
 ) {
   const tools = [];
+
+  // ISO UTC → "vie 5 sep, 7:30 pm" en hora local del negocio, para que el
+  // agente no muestre horas UTC ni formato militar al cliente.
+  const fmtLocal = (iso: string): string => {
+    const d = new Date(iso);
+    const date = new Intl.DateTimeFormat("es-CO", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: timezone,
+    }).format(d);
+    const hhmm = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    }).format(d);
+    return `${date}, ${to12h(hhmm)}`;
+  };
 
   // Herramientas de SOLO LECTURA: siempre disponibles. El agente nunca
   // debe quedarse sin poder consultar el catálogo o las FAQ solo porque un
@@ -539,8 +572,8 @@ function buildTools(
           );
           if (error) return error;
           if (slots.length === 0) return `No hay horarios libres el ${fecha}. Ofrece otra fecha.`;
-          const times = [...new Set(slots.map((s) => s.label))].join(", ");
-          return `Horas libres el ${fecha}: ${times}.`;
+          const times = [...new Set(slots.map((s) => to12h(s.label)))].join(", ");
+          return `Horas libres el ${fecha}: ${times}. (Díselas al cliente así, en 12h con am/pm.)`;
         },
       })
     );
@@ -595,7 +628,7 @@ function buildTools(
           }
           {
             const where = result.data?.resourceName ? ` en la ${result.data.resourceName}` : "";
-            return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${hora}${where}. Le llegará un recordatorio un día antes.`;
+            return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${to12h(hora)}${where}. Le llegará un recordatorio un día antes.`;
           }
         },
       })
@@ -615,7 +648,7 @@ function buildTools(
           return upcoming
             .map(
               (r) =>
-                `${r.startsAt} · ${r.customerName ?? ""} · ${r.serviceName ?? (r.partySize ? `${r.partySize} personas` : "")} · ${RESERVATION_STATUS_LABELS[r.status]} (id ${r.id})`
+                `${fmtLocal(r.startsAt)} · ${r.customerName ?? ""} · ${r.serviceName ?? (r.partySize ? `${r.partySize} personas` : "")} · ${RESERVATION_STATUS_LABELS[r.status]} (id ${r.id})`
             )
             .join("\n");
         },
