@@ -7,9 +7,14 @@
 // Solo texto en v1 (el motor devuelve un string por turno). Adjuntos,
 // botones y plantillas se agregan cuando haga falta.
 //
-// La "ventana de 24 h" (fuera de ella WhatsApp exige plantilla y
-// Messenger/IG message tags) todavía NO se maneja acá — se agrega en la
-// Fase 6. Ver docs/channels-module-plan.md §4.9.
+// Ventana de 24 h: dentro de ella se responde libre (`RESPONSE`). Fuera de
+// ella, Messenger permite ciertos "message tags" (ej.
+// `CONFIRMED_EVENT_UPDATE` para recordatorios de una cita ya confirmada);
+// Instagram no soporta ese tag y WhatsApp exige una plantilla aprobada
+// (todavía no tenemos). El llamador pasa `opts.tag` cuando sabe que puede
+// estar fuera de la ventana; si el envío falla, es cosa del llamador caer
+// a otro medio (ej. dejar el mensaje en el hilo del CRM).
+// Ver docs/channels-module-plan.md §4.9.
 import { graphPost, GraphApiError } from "@/lib/services/metaGraphClient";
 import type { ChannelConnectionWithToken } from "@/lib/services/channelConnectionService";
 
@@ -17,6 +22,15 @@ interface SendResult {
   error: string | null;
   /** Código de error de Graph (190 = token inválido, 10/200 = permisos, 613 = rate limit). */
   graphCode?: number | null;
+}
+
+export interface SendChannelMessageOptions {
+  /**
+   * Messenger: message tag para enviar FUERA de la ventana de 24 h.
+   * Para recordatorios de citas confirmadas usa `CONFIRMED_EVENT_UPDATE`.
+   * Ignorado en Instagram y WhatsApp (ver comentario del archivo).
+   */
+  tag?: string;
 }
 
 /**
@@ -27,24 +41,21 @@ interface SendResult {
 export async function sendChannelMessage(
   connection: ChannelConnectionWithToken,
   recipientId: string,
-  text: string
+  text: string,
+  opts: SendChannelMessageOptions = {}
 ): Promise<SendResult> {
   const body = text.trim();
   if (!body) return { error: "Mensaje vacío, no se envía." };
 
   try {
     switch (connection.channel) {
-      case "messenger":
-        await graphPost(
-          `${connection.externalId}/messages`,
-          {
-            recipient: { id: recipientId },
-            messaging_type: "RESPONSE",
-            message: { text: body },
-          },
-          connection.accessToken
-        );
+      case "messenger": {
+        const payload: Record<string, unknown> = opts.tag
+          ? { recipient: { id: recipientId }, messaging_type: "MESSAGE_TAG", tag: opts.tag, message: { text: body } }
+          : { recipient: { id: recipientId }, messaging_type: "RESPONSE", message: { text: body } };
+        await graphPost(`${connection.externalId}/messages`, payload, connection.accessToken);
         return { error: null };
+      }
 
       case "instagram":
         await graphPost(

@@ -192,13 +192,23 @@ Nunca intentar responder con un token muerto.
 ### 4.9 Regla de las 24 horas
 En los tres canales el agente responde libre **dentro de 24 h** del último
 mensaje del cliente. Fuera de esa ventana:
-- WhatsApp → hace falta una **plantilla pre-aprobada**.
-- Messenger/IG → **message tags** específicos (p. ej.
-  `HUMAN_AGENT`, `POST_PURCHASE_UPDATE`) o queda bloqueado.
+- WhatsApp → hace falta una **plantilla pre-aprobada** (todavía no tenemos).
+- Messenger → **message tag** (`CONFIRMED_EVENT_UPDATE` para recordatorios
+  de citas confirmadas — ya implementado en `sendChannelMessage(opts.tag)`).
+- Instagram → sin tag equivalente para este caso; fuera de ventana no se
+  puede.
 
-Esto afecta al **recordatorio de reserva** del cron: debe salir como
-plantilla WhatsApp aprobada, no como mensaje normal. Se diseña con
-plantillas desde el principio (ver §7-B).
+**Recordatorio de reserva (implementado, `/api/cron/reservation-reminders`,
+2026-09-03):** escalonado y con envío real por el canal.
+- Mismo día → ~1 h antes (tick :00 anterior, ventana 0–105 min).
+- Mañana o más → la tarde anterior (hora local del negocio ≥ 18:00), o sea
+  el día antes.
+- 1 recordatorio por reserva (`reservations.reminder_sent_at`).
+- Envía vía `sendChannelMessage`; Messenger fuera de ventana usa el tag.
+- Si el envío falla igual (IG, WhatsApp sin plantilla, token muerto,
+  cliente sin conversación) → el mensaje queda en el hilo de
+  `conversations` (visible en el CRM) y se marca `reminder_sent_at`
+  igual — no se reintenta.
 
 ## 5. Variables de entorno nuevas
 

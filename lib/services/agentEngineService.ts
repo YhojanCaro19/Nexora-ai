@@ -643,10 +643,10 @@ function buildTools(
             const where = result.data?.resourceName ? ` en la ${result.data.resourceName}` : "";
             const reminderNote =
               fecha === todayLocalIso
-                ? "Es para HOY, así que NO le prometas un recordatorio de un día antes — dile que lo esperas hoy a esa hora."
+                ? "Es para HOY — dile que le llegará un recordatorio como una hora antes de la cita (NUNCA le digas que le llega un día antes)."
                 : fecha === tomorrowLocalIso
-                  ? "Es para MAÑANA — le llegará un recordatorio más tarde hoy."
-                  : "Le llegará un recordatorio un día antes.";
+                  ? "Es para MAÑANA — dile que le llegará un recordatorio hoy en la tarde o noche."
+                  : "Es para más adelante — dile que le llegará un recordatorio el día antes.";
             return `Reserva confirmada para ${a_nombre_de} el ${fecha} a las ${to12h(hora)}${where}. ${reminderNote}`;
           }
         },

@@ -182,8 +182,8 @@
 - [ ] **[CLAUDE]** Enrutado `object: "whatsapp_business_account"` +
       `phone_number_id → negocio`
 - [ ] **[TÚ]** Crear y aprobar plantilla del **recordatorio de reserva**
-- [ ] **[CLAUDE]** Cron de recordatorio: enviar como plantilla aprobada
-      (no como mensaje libre — regla de las 24 h)
+      (WhatsApp fuera de la ventana de 24 h necesita plantilla — hoy el
+      cron cae al hilo del CRM en ese caso, ver Fase 6)
 - [ ] **[TÚ]** Mensaje de prueba al número → el agente responde
 
 ---
@@ -197,8 +197,21 @@
       `status = 'error'`. En vercel.json (necesita Vercel Pro)
 - [x] **[CLAUDE]** UI: conexión en `error`/`expired` muestra botón
       **"Reconectar"** en Perfil → Conectar redes
-- [ ] **[CLAUDE]** Manejo de la ventana de 24 h en Messenger/IG
-      (message tags) — pendiente, más relevante con WhatsApp/recordatorios
+- [x] **[CLAUDE]** Recordatorios de reserva ESCALONADOS y con envío real
+      por el canal (`/api/cron/reservation-reminders`, *2026-09-03*):
+        · mismo día → ~1 h antes (tick :00 anterior)
+        · mañana o más → la tarde anterior (desde las 6 pm local), o sea
+          el día antes
+        · 1 recordatorio por reserva (`reminder_sent_at`)
+      Envía por Messenger/IG/WhatsApp vía `sendChannelMessage`. Fuera de la
+      ventana de 24 h de Messenger usa el tag `CONFIRMED_EVENT_UPDATE`. Si
+      el envío falla igual (IG sin tag, WhatsApp sin plantilla, token
+      muerto, cliente sin conversación) → cae al hilo del CRM y marca
+      `reminder_sent_at` de todos modos.
+- [x] **[CLAUDE]** Ventana de 24 h en Messenger: `sendChannelMessage`
+      acepta `opts.tag` (message tag) — retrocompatible, default `RESPONSE`.
+      IG y WhatsApp fuera de ventana → todavía sin solución propia (IG no
+      tiene tag equivalente; WhatsApp necesita plantilla — Fase 5).
 - [ ] **[CLAUDE/FUTURO]** Dedupe de mensajes en un store durable (hoy es
       en memoria, best-effort) — para cuando corra en varias instancias
 
