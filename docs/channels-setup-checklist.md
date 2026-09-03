@@ -151,6 +151,10 @@
       verificado + Página «Barbería cuti» suscrita a `messages`
 - [x] **[TÚ + CLAUDE]** Mensaje de prueba → **el agente respondió** con la
       config real del negocio *(2026-09-02, Messenger vivo end-to-end)* 🎉
+- [x] **[TÚ + CLAUDE]** El agente **creó una reserva real** desde Messenger
+      («Corte con barba» con Andres, jueves 3 sep 09:30) → visible en el
+      módulo de Reservas con `source: agent`, y confirmó en el chat.
+      *(2026-09-02 — loop completo: red social → IA → acción → panel → cliente)*
 - [ ] **[CLAUDE/JUNTOS]** Confirmar en la DB que `agent_usage_log` +
       `conversations` registran el turno del canal `messenger`
 - [ ] **[CLAUDE]** El `POST` tardó ~10 s (se espera todo el turno antes de
