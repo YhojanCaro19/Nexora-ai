@@ -58,14 +58,19 @@ export interface AgentTurnResult {
 export async function runAgentTurn(
   businessId: string,
   customerPhone: string,
-  userMessage: string
+  userMessage: string,
+  // Canal del hilo. Default `test` para "Probar tu agente"; los canales
+  // reales (messenger / instagram / whatsapp) lo pasan desde el webhook.
+  // `customerPhone` es el identificador del cliente EN ese canal: PSID en
+  // Messenger, IGSID en Instagram, teléfono E.164 en WhatsApp/test.
+  channel: string = TEST_CHANNEL
 ): Promise<AgentTurnResult> {
   const [businessName, agentConfig, bookingConfig, countryIso2, customerResult] = await Promise.all([
     getBusinessName(businessId),
     getAgentConfig(businessId),
     getBookingConfig(businessId),
     getBusinessCountryIso2(businessId),
-    getOrCreateCustomer(businessId, customerPhone, TEST_CHANNEL),
+    getOrCreateCustomer(businessId, customerPhone, channel),
   ]);
 
   const timezone = getTimezoneForCountry(countryIso2);
@@ -75,7 +80,7 @@ export async function runAgentTurn(
   }
 
   const [{ error: conversationError, data: conversation }, orderStats] = await Promise.all([
-    getOrCreateConversation(businessId, customerResult.data.id, TEST_CHANNEL),
+    getOrCreateConversation(businessId, customerResult.data.id, channel),
     getCustomerOrderStats(businessId, customerResult.data.id),
   ]);
   if (conversationError || !conversation) {

@@ -122,11 +122,9 @@
       estado por canal, Conectar / Desconectar, banners de resultado,
       mobile-first). *Se movió de Mi Agente a Perfil a pedido del usuario
       (2026-09-02).* tsc + eslint limpios
-- [ ] **[TÚ]** Correr `npm run dev`, entrar a **Perfil → Conectar redes**,
-      pulsar "Conectar" en Messenger, autorizar con tu Facebook, verificar
-      que vuelve como "Conectado"
-- [ ] **[TÚ]** Necesitas una **Página de Facebook** (aunque sea de prueba)
-      para conectar. Si no tienes, crea una (2 min)
+- [x] **[TÚ]** Página de Facebook de prueba creada («Barbería cuti»)
+- [x] **[TÚ]** Conectado desde Perfil → Conectar redes → **funcionó**
+      *(2026-09-02: OAuth + token largo + cifrado + guardado + RLS, todo OK)*
 - [ ] **[PENDIENTE]** Selector de Página cuando la cuenta tiene varias
       (hoy conecta la primera)
 
@@ -142,20 +140,25 @@
 > (Fase 2) SÍ funciona en localhost.
 
 
-- [ ] **[CLAUDE]** `app/api/webhooks/meta/route.ts` — GET handshake +
-      POST con verificación de firma `X-Hub-Signature-256`
-- [ ] **[CLAUDE]** Enrutado por `body.object` (page / instagram /
-      whatsapp_business_account) + resolución `external_id → negocio`
-- [ ] **[CLAUDE]** Agregar parámetro `channel` a `runAgentTurn`
-      (default `"test"`, no rompe "Probar tu agente")
-- [ ] **[CLAUDE]** Ignorar echos / delivery / read / no-texto
-- [ ] **[TÚ]** Meta → Messenger → Webhooks: Callback URL
-      `https://aventhra.online/api/webhooks/meta`, Verify Token =
-      `META_WEBHOOK_VERIFY_TOKEN`, suscribir campo `messages`
-- [ ] **[TÚ]** Escribirle a tu Página de prueba desde otra cuenta →
-      confirmar que el agente responde
-- [ ] **[CLAUDE]** Confirmar que `logAgentUsage` + `chargeAgentReply`
-      registran el turno
+- [x] **[CLAUDE]** `app/api/webhooks/meta/route.ts` — GET handshake +
+      POST con verificación de firma `X-Hub-Signature-256`, enrutado por
+      `body.object`, resolución `external_id → negocio`, ignora echos /
+      no-texto, dedupe en memoria por id de mensaje
+- [x] **[CLAUDE]** Parámetro `channel` en `runAgentTurn` (default `test`)
+- [ ] **[TÚ]** Instalar y levantar un túnel:
+      `brew install cloudflared` → `cloudflared tunnel --url http://localhost:3000`
+      → copiar la URL `https://algo.trycloudflare.com`
+- [ ] **[TÚ]** Meta → Messenger → Configuración → Webhooks:
+      Callback URL = `<url-del-túnel>/api/webhooks/meta`,
+      Verify Token = el valor de `META_WEBHOOK_VERIFY_TOKEN` de `.env.local`,
+      suscribir el campo **`messages`**
+- [ ] **[TÚ]** Meta → Messenger → "Generar identificadores de acceso" →
+      añadir la Página → botón para suscribir la Página a los webhooks
+      *(o se hace solo al reconectar desde AVENTHRA)*
+- [ ] **[TÚ]** Escribirle a la Página «Barbería cuti» desde otra cuenta de
+      Facebook → confirmar que el agente responde
+- [ ] **[CLAUDE/JUNTOS]** Confirmar en la DB que `agent_usage_log` +
+      `conversations` registran el turno del canal `messenger`
 
 ---
 
@@ -210,19 +213,13 @@
 
 ## Estado actual
 
-**2026-09-02** — Fases 1 y 2 (código) terminadas y commiteadas. App de Meta
-creada, productos Messenger + Instagram agregados, `public_profile` en
-acceso avanzado, redirect URI de OAuth configurado, `.env.local` completo
-(menos `META_CONFIG_ID`, que ya no se usa).
+**2026-09-02** — Fase 2 **probada y funcionando**: Messenger conectado
+(«Barbería cuti») de punta a punta. Fase 3 (webhook) codeada, falta
+probarla.
 
-**Siguiente paso — [TÚ]:** probar el flujo de conexión en local:
-1. `npm run dev`
-2. Entrar como admin → Mi Agente → Canales → "Conectar" en Messenger
-3. Autorizar con tu Facebook (necesitas una Página; crea una si no tienes)
-4. Verificar que vuelve como "Conectado"
-Si algo falla, pasar el error a Claude.
-
-**Después:** Fase 3 (webhook) con un túnel `cloudflared`/`ngrok`.
+**Siguiente paso — [TÚ]:** levantar el túnel y configurar el webhook de
+Messenger en Meta (ver checklist de Fase 3), luego escribirle a la Página
+desde otra cuenta de Facebook y confirmar que el agente responde.
 
 **Lo lento en paralelo:** Business Verification (F). WhatsApp (Fase 5) y
 páginas legales + deploy (C) quedan para cuando AVENTHRA esté más completa.
