@@ -157,9 +157,8 @@
       *(2026-09-02 — loop completo: red social → IA → acción → panel → cliente)*
 - [ ] **[CLAUDE/JUNTOS]** Confirmar en la DB que `agent_usage_log` +
       `conversations` registran el turno del canal `messenger`
-- [ ] **[CLAUDE]** El `POST` tardó ~10 s (se espera todo el turno antes de
-      responder 200). Producción: responder 200 ya + procesar en background
-      — Fase 6.
+- [x] **[CLAUDE]** El `POST` tardaba ~10 s → **resuelto en Fase 6**:
+      responde 200 al instante y procesa con `after()`.
 
 ---
 
@@ -191,14 +190,17 @@
 
 ## FASE 6 — Robustez
 
-- [ ] **[CLAUDE]** Cron de salud de tokens: refrescar antes de vencer;
-      si un envío da 401/190 → `status = 'error'`
-- [ ] **[CLAUDE]** UI: banner "reconecta tu canal de X" cuando
-      `status = 'error' | 'expired'`
-- [ ] **[CLAUDE]** Rate limiting del webhook + respuesta 200 inmediata
-      (procesar en segundo plano)
+- [x] **[CLAUDE]** Respuesta 200 inmediata + procesado con `after()` +
+      rate limit por remitente (15/min) — *2026-09-02*
+- [x] **[CLAUDE]** Cron `/api/cron/channel-token-health` (cada hora,
+      trabajo real cada ~24h): `debug_token` → si el token murió,
+      `status = 'error'`. En vercel.json (necesita Vercel Pro)
+- [x] **[CLAUDE]** UI: conexión en `error`/`expired` muestra botón
+      **"Reconectar"** en Perfil → Conectar redes
 - [ ] **[CLAUDE]** Manejo de la ventana de 24 h en Messenger/IG
-      (message tags)
+      (message tags) — pendiente, más relevante con WhatsApp/recordatorios
+- [ ] **[CLAUDE/FUTURO]** Dedupe de mensajes en un store durable (hoy es
+      en memoria, best-effort) — para cuando corra en varias instancias
 
 ---
 
@@ -217,18 +219,28 @@
 
 ## Estado actual
 
-**2026-09-02** — 🎉 **Messenger VIVO de punta a punta.** Un mensaje real a
-la Página → el agente respondió con la config real del negocio (nombre,
-tono, barberos, contexto de reservas). Fases 1, 2 y 3 completas.
+**2026-09-02 (cierre de sesión)** — Fases 1, 2, 3 y **6 completas**.
+Messenger vivo de punta a punta: mensaje real → agente responde con la
+config del negocio → **crea reservas reales** visibles en el panel.
 
-**Siguiente:**
-- Fase 4 (Instagram): el código ya está; falta ligar una cuenta de IG
-  Business a la Página y suscribir el webhook de IG.
-- Fase 6 pieza urgente para producción: el webhook responde 200 recién
-  después de ~10 s (todo el turno del agente). Hay que responder ya y
-  procesar en background.
-- WhatsApp (Fase 5) y deploy + legal (C) — para cuando AVENTHRA esté más
-  completa.
+Además esta sesión:
+- El cliente guarda su **nombre** (perfil de Messenger/IG vía Graph,
+  `contacts` en WhatsApp).
+- **Clientes → detalle** muestra sección "Reservas y citas" ("1 cita" /
+  "1 reserva" según el tipo).
+- Instagram tiene su propio botón "Conectar".
+- Logos de marca reales en Perfil → Conectar redes.
+- Se quitó la nota de "desglose como Anthropic" del consumo del agente.
 
-**Nota:** el túnel `cloudflared` da una URL nueva cada vez que se reinicia.
-Si se reinicia, hay que repegar la Callback URL en Meta.
+**Mañana / siguiente:**
+1. **Fase 4 (Instagram)** — el código ya está; falta [TÚ]: cuenta IG
+   Business ligada a la Página + suscribir el webhook de IG + DM de prueba.
+2. **Probar reservas end-to-end otra vez** (con el fix de client anidado)
+   y verificar nombre + cita en Clientes.
+3. **Fase 5 (WhatsApp)** — decidir BSP vs directo (§7-A).
+4. Ventana de 24 h (message tags) antes de recordatorios salientes.
+5. Business Verification de Meta (empezar ya, semanas de espera).
+6. Deploy + páginas legales (C) — cuando el resto esté maduro.
+
+**Recordar:** el túnel `cloudflared` da URL nueva al reiniciar → repegar
+la Callback URL en Meta (Messenger → webhooks) cada vez.
