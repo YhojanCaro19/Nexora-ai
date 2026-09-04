@@ -15,15 +15,25 @@
 
 ## A. Portafolio comercial de Meta (Business Manager)
 
-- [ ] **[TÚ]** Entrar a **https://business.facebook.com/** → confirmar que
+- [x] **[TÚ]** Entrar a **https://business.facebook.com/** → confirmar que
       existe el portafolio **"AVENTHRA"** (no un portafolio "personal").
+      ✅ 2026-09-04: existe, separado del portafolio personal "Yhojan Andres".
 - [ ] **[TÚ]** Portafolio → **Configuración del negocio → Información del
       negocio**: nombre legal, dirección, correo corporativo, sitio web.
 - [ ] **[TÚ]** Portafolio → **Configuración → Dominios** → agregar y
       verificar el dominio de AVENTHRA (cuando esté el definitivo).
-- [ ] **[TÚ]** Confirmar que **la app de Meta pertenece a este portafolio**
+- [x] **[TÚ]** Confirmar que **la app de Meta pertenece a este portafolio**
       (App Dashboard → Configuración → Básico → "Portafolio comercial").
       Si dice "ninguno" o uno personal → transferirla al portafolio AVENTHRA.
+      ✅ 2026-09-04: la app estaba SIN portafolio ("ninguno") → se conectó a
+      "Aventhra" (ID `937577598786270`).
+- [x] **(hallazgo extra, no estaba en la lista original)** La Página
+      "Barbería cuti" y la cuenta de Instagram @barberiacuti vivían dentro
+      del portafolio personal "Yhojan Andres" (2 páginas, 0 en Aventhra) →
+      se movieron a "Aventhra" vía Cuentas → Páginas → Añadir → Solicitar
+      acceso a una página existente (ID `1376816085505530`), aceptando la
+      transferencia de propiedad principal desde el portafolio de origen.
+      Verificado: ambas ahora muestran "Propiedad de: Aventhra".
 
 ## B. Segundo responsable (que no sea una sola persona)
 
@@ -41,12 +51,24 @@
 
 ## C. Seguridad de las cuentas
 
-- [ ] **[TÚ]** Activar **2FA** en TODAS las cuentas de Facebook que
+- [x] **[TÚ]** Activar **2FA** en TODAS las cuentas de Facebook que
       administran la app o el portafolio.
-- [ ] **[TÚ]** Portafolio → Configuración → **Centro de seguridad** →
+      ✅ 2026-09-04: activada con Google Authenticator (app) + SMS como
+      respaldo, en la cuenta que administra "Aventhra".
+- [x] **[TÚ]** Portafolio → Configuración → **Centro de seguridad** →
       revisar "Requerir autenticación en dos pasos" para todos.
-- [ ] **[TÚ]** Guardar los códigos de recuperación en un gestor de
+      ✅ 2026-09-04: cambiado de "Nadie" a "Todos" en el portafolio Aventhra.
+- [x] **[TÚ]** Guardar los códigos de recuperación en un gestor de
       contraseñas del equipo, no en un chat ni en un archivo suelto.
+      ✅ 2026-09-04: guardados por el usuario en su gestor de contraseñas.
+- [x] **(verificado)** La tarjeta "Se ha añadido un administrador
+      alternativo" del Centro de seguridad se investigó: en Personas solo
+      aparecen 2 entradas, ambas del mismo dueño — "Yhojan Caro (tú)"
+      (activo, tu perfil real) y "Yhojan Andres @barberiacuti" (inactivo,
+      residuo automático de conectar Instagram, no una persona distinta).
+      No hay acceso ajeno. Sigue sin existir un segundo admin humano de
+      respaldo real — eso es justamente la Sección B, que decidiste
+      posponer.
 
 ## D. Token de servidor a servidor (System User)
 
