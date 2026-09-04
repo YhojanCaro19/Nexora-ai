@@ -232,28 +232,29 @@
 
 ## Estado actual
 
-**2026-09-02 (cierre de sesión)** — Fases 1, 2, 3 y **6 completas**.
-Messenger vivo de punta a punta: mensaje real → agente responde con la
-config del negocio → **crea reservas reales** visibles en el panel.
+**2026-09-03** — Fases 1, 2, 3 y **6 completas**. Messenger vivo de punta
+a punta (mensaje real → agente → crea reservas reales). Código de Fase 4
+(Instagram) y del recordatorio también listo.
 
-Además esta sesión:
-- El cliente guarda su **nombre** (perfil de Messenger/IG vía Graph,
+Hecho estos dos días:
+- Cliente guarda su **nombre** (perfil de Messenger/IG vía Graph,
   `contacts` en WhatsApp).
-- **Clientes → detalle** muestra sección "Reservas y citas" ("1 cita" /
-  "1 reserva" según el tipo).
-- Instagram tiene su propio botón "Conectar".
-- Logos de marca reales en Perfil → Conectar redes.
-- Se quitó la nota de "desglose como Anthropic" del consumo del agente.
+- **Clientes → detalle** muestra "Reservas y citas".
+- **Recordatorios escalonados y con envío real** (hoy → 1 h antes; mañana+
+  → tarde anterior) por el canal, con fallback al hilo del CRM.
+- Agente y todo el panel de Reservas hablan en **12 h (am/pm)**, no militar.
+- El agente sabe la **hora actual** y calcula "dentro de 3 horas", etc.
+- Instagram tiene su propio botón "Conectar" + logos de marca en Perfil.
 
-**Mañana / siguiente:**
-1. **Fase 4 (Instagram)** — el código ya está; falta [TÚ]: cuenta IG
-   Business ligada a la Página + suscribir el webhook de IG + DM de prueba.
-2. **Probar reservas end-to-end otra vez** (con el fix de client anidado)
-   y verificar nombre + cita en Clientes.
-3. **Fase 5 (WhatsApp)** — decidir BSP vs directo (§7-A).
-4. Ventana de 24 h (message tags) antes de recordatorios salientes.
-5. Business Verification de Meta (empezar ya, semanas de espera).
-6. Deploy + páginas legales (C) — cuando el resto esté maduro.
+**Siguiente (en orden):**
+1. **Fase 4 — Instagram** ← EN CURSO. Falta [TÚ]: cuenta IG Business
+   ligada a la Página «Barberia cuti» + suscribir el webhook de IG en
+   Meta + DM de prueba. (El túnel y `npm run dev` deben estar corriendo.)
+2. **Fase 5 — WhatsApp**: decidir BSP vs directo (§G).
+3. **Business Verification** de Meta (arrancar ya — semanas de espera).
+4. Deploy + páginas legales (C) — cuando el resto esté maduro.
+5. Dedupe de webhook en store durable (Fase 6, futuro).
 
 **Recordar:** el túnel `cloudflared` da URL nueva al reiniciar → repegar
-la Callback URL en Meta (Messenger → webhooks) cada vez.
+la Callback URL en Meta cada vez (Messenger **y** Instagram usan el mismo
+endpoint `/api/webhooks/meta`).
