@@ -186,6 +186,10 @@ export async function startInstagramConnectAction(): Promise<void> {
     redirect("/login");
   }
 
+  if (!process.env.INSTAGRAM_APP_ID || !process.env.INSTAGRAM_APP_SECRET) {
+    redirect(`${CHANNELS_RETURN_PATH}?error=ig_sin_config`);
+  }
+
   const limit = checkRateLimit(`meta-connect:${profile.userId}`, 8, 60 * 1000);
   if (!limit.allowed) {
     redirect(`${CHANNELS_RETURN_PATH}?error=rate`);

@@ -22,6 +22,7 @@ const ERROR_LABELS: Record<string, string> = {
   rate: "Demasiados intentos seguidos. Espera un momento.",
   inesperado: "Ocurrió un error inesperado.",
   kind_no_soportado: "Ese tipo de conexión aún no está disponible.",
+  ig_sin_config: "Instagram directo todavía no está configurado (faltan las credenciales de Instagram). Por ahora conéctalo vía Messenger si tu página de Facebook ya tiene Instagram ligado.",
 };
 
 export function ConnectNetworksSection({
