@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startMetaConnectAction, disconnectChannelAction } from "./actions";
+import {
+  startMetaConnectAction,
+  startInstagramConnectAction,
+  disconnectChannelAction,
+} from "./actions";
 import { ChannelIcon } from "./channel-icons";
 import { CHANNEL_LABELS, type Channel, type ChannelConnectionPublic } from "@/lib/types/channel";
 
@@ -70,9 +74,9 @@ export function ConnectNetworksSection({
       <ChannelRow channel="whatsapp" connection={byChannel.get("whatsapp")} comingSoon />
 
       <p className="pt-1 text-center text-[11px] leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
-        Si tu página de Facebook ya tiene una cuenta de Instagram ligada, al
-        conectar Messenger queda lista sola. Si no, usa el botón de Instagram
-        para vincularla aparte.
+        Instagram se conecta directo con tu cuenta de Instagram profesional —
+        no necesitas una página de Facebook. Si ya tienes una página ligada a
+        Instagram, al conectar Messenger también queda lista.
       </p>
     </div>
   );
@@ -92,6 +96,10 @@ function ChannelRow({
 
   const isActive = connection?.status === "active";
   const isError = connection?.status === "error" || connection?.status === "expired";
+
+  // Instagram usa su propio flujo (Instagram Login directo, sin Página de FB).
+  const connectAction =
+    channel === "instagram" ? startInstagramConnectAction : startMetaConnectAction;
 
   async function disconnect() {
     setBusy(true);
@@ -129,7 +137,7 @@ function ChannelRow({
           Pronto
         </Button>
       ) : isError ? (
-        <form action={startMetaConnectAction}>
+        <form action={connectAction}>
           <Button type="submit" size="sm">
             Reconectar
           </Button>
@@ -139,7 +147,7 @@ function ChannelRow({
           {busy ? "..." : "Desconectar"}
         </Button>
       ) : (
-        <form action={startMetaConnectAction}>
+        <form action={connectAction}>
           <Button type="submit" size="sm">
             Conectar
           </Button>

@@ -13,7 +13,13 @@ import {
 } from "@/lib/services/accountChangeService";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
-import { signState, buildAuthorizeUrl } from "@/lib/services/metaOAuthService";
+import { headers } from "next/headers";
+import {
+  signState,
+  buildAuthorizeUrl,
+  buildInstagramAuthorizeUrl,
+  callbackUrlFromHeaders,
+} from "@/lib/services/metaOAuthService";
 import { revokeConnection } from "@/lib/services/channelConnectionService";
 import { isChannel, type Channel } from "@/lib/types/channel";
 
@@ -168,6 +174,31 @@ export async function startMetaConnectAction(): Promise<void> {
     returnPath: CHANNELS_RETURN_PATH,
   });
   redirect(buildAuthorizeUrl(state, "channels"));
+}
+
+/** Arranca el flujo de Instagram Business Login DIRECTO (sin Página de
+ *  Facebook). Otro host, otras credenciales — ver instagramLoginService.
+ *  El `redirect_uri` se deriva del host real (túnel en local, dominio en
+ *  prod) y debe estar registrado en Meta → Instagram → login empresarial. */
+export async function startInstagramConnectAction(): Promise<void> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    redirect("/login");
+  }
+
+  const limit = checkRateLimit(`meta-connect:${profile.userId}`, 8, 60 * 1000);
+  if (!limit.allowed) {
+    redirect(`${CHANNELS_RETURN_PATH}?error=rate`);
+  }
+
+  const state = signState({
+    businessId: profile.businessId,
+    userId: profile.userId,
+    kind: "instagram",
+    returnPath: CHANNELS_RETURN_PATH,
+  });
+  const redirectUri = callbackUrlFromHeaders(await headers());
+  redirect(buildInstagramAuthorizeUrl(state, redirectUri));
 }
 
 /** Desconecta un canal (marca la conexión como revocada). */

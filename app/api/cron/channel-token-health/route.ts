@@ -14,8 +14,9 @@
 // Protegida igual que los otros crons: `Authorization: Bearer $CRON_SECRET`.
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { decryptToken } from "@/lib/utils/tokenCrypto";
+import { decryptToken, encryptToken } from "@/lib/utils/tokenCrypto";
 import { debugToken, GraphApiError } from "@/lib/services/metaGraphClient";
+import { refreshInstagramToken, InstagramApiError } from "@/lib/services/instagramLoginService";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -32,6 +33,7 @@ function isAuthorized(request: Request): boolean {
 interface Row {
   id: string;
   channel: string;
+  provider: string;
   external_name: string | null;
   access_token: string;
   token_expires_at: string | null;
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("channel_connections")
-    .select("id, channel, external_name, access_token, token_expires_at, extra")
+    .select("id, channel, provider, external_name, access_token, token_expires_at, extra")
     .eq("status", "active")
     .or(`extra->>tokenCheckedAt.is.null,extra->>tokenCheckedAt.lt.${cutoff}`);
 
@@ -69,6 +71,31 @@ export async function GET(request: Request) {
     } catch {
       await mark(admin, row.id, "No se pudo descifrar el token guardado.");
       marked += 1;
+      continue;
+    }
+
+    // Instagram Login directo: el token largo (~60 d) se refresca solo
+    // (debe tener ≥ 24 h de vida). `debug_token` de Facebook no aplica acá.
+    if (row.provider === "instagram_login") {
+      try {
+        const r = await refreshInstagramToken(token);
+        await admin
+          .from("channel_connections")
+          .update({
+            access_token: encryptToken(r.accessToken),
+            token_expires_at: new Date(Date.now() + r.expiresInSeconds * 1000).toISOString(),
+            extra: { ...(row.extra ?? {}), tokenCheckedAt: new Date().toISOString() },
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+      } catch (err) {
+        if (err instanceof InstagramApiError && (err.status === 400 || err.code === 190)) {
+          await mark(admin, row.id, "El acceso a esta cuenta de Instagram ya no es válido.");
+          marked += 1;
+        } else {
+          console.error(`[channel-token-health] IG refresh ${row.id}:`, err);
+        }
+      }
       continue;
     }
 

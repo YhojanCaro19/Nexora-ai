@@ -12,8 +12,16 @@
 // Solo código server. Ver docs/channels-module-plan.md §4.5.
 import { createHmac, timingSafeEqual } from "crypto";
 
-/** Qué está conectando el negocio: canales del agente o su cuenta de ads. */
-export type MetaConnectionKind = "channels" | "marketing";
+/**
+ * Qué está conectando el negocio:
+ *  - `channels`   → Facebook Login: Página de FB (Messenger) + IG ligada a ella.
+ *  - `instagram`  → Instagram Business Login DIRECTO: el negocio conecta su
+ *    cuenta de IG con un botón, SIN necesidad de Página de Facebook. Otro
+ *    host (instagram.com / graph.instagram.com), otras credenciales
+ *    (`INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET`). Ver instagramLoginService.
+ *  - `marketing`  → Facebook Login: ads (módulo de Marketing).
+ */
+export type MetaConnectionKind = "channels" | "instagram" | "marketing";
 
 const SCOPES: Record<MetaConnectionKind, string[]> = {
   channels: [
@@ -24,6 +32,8 @@ const SCOPES: Record<MetaConnectionKind, string[]> = {
     "instagram_manage_messages",
     "business_management",
   ],
+  // Instagram Business Login usa sus propios scopes (host instagram.com).
+  instagram: ["instagram_business_basic", "instagram_business_manage_messages"],
   marketing: ["ads_management", "business_management", "pages_show_list"],
 };
 
@@ -50,6 +60,19 @@ function stateSecret(): string {
 export function callbackUrl(): string {
   const base = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   return `${base.replace(/\/$/, "")}/api/auth/meta/callback`;
+}
+
+/**
+ * Callback URL derivada del host REAL de la request (útil cuando se corre
+ * detrás de un túnel: `x-forwarded-host` trae el host de trycloudflare).
+ * Instagram Business Login exige que el redirect_uri coincida EXACTO entre
+ * la URL de autorización y el canje del token, y no acepta `localhost` —
+ * por eso se deriva del host en vez de una env fija.
+ */
+export function callbackUrlFromHeaders(h: Headers): string {
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}/api/auth/meta/callback`;
 }
 
 // ── state firmado ────────────────────────────────────────────────────────
@@ -98,15 +121,31 @@ export function verifyState(state: string): OAuthStatePayload | null {
 // ── URL de autorización ──────────────────────────────────────────────────
 
 /**
- * URL del diálogo de OAuth de Facebook. El navegador del admin se manda
- * acá al pulsar "Conectar".
+ * URL del diálogo de OAuth de Facebook (kinds `channels` / `marketing`).
+ * El navegador del admin se manda acá al pulsar "Conectar".
  */
-export function buildAuthorizeUrl(state: string, kind: MetaConnectionKind): string {
+export function buildAuthorizeUrl(state: string, kind: "channels" | "marketing"): string {
   const url = new URL(`https://www.facebook.com/${graphVersion()}/dialog/oauth`);
   url.searchParams.set("client_id", appId());
   url.searchParams.set("redirect_uri", callbackUrl());
   url.searchParams.set("state", state);
   url.searchParams.set("scope", SCOPES[kind].join(","));
   url.searchParams.set("response_type", "code");
+  return url.toString();
+}
+
+/**
+ * URL del diálogo de Instagram Business Login (kind `instagram`). Otro
+ * host, otras credenciales, `redirect_uri` derivada del host real.
+ */
+export function buildInstagramAuthorizeUrl(state: string, redirectUri: string): string {
+  const clientId = process.env.INSTAGRAM_APP_ID;
+  if (!clientId) throw new Error("INSTAGRAM_APP_ID no está definida.");
+  const url = new URL("https://www.instagram.com/oauth/authorize");
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", SCOPES.instagram.join(","));
+  url.searchParams.set("state", state);
   return url.toString();
 }

@@ -150,6 +150,8 @@ export interface SaveConnectionInput {
   extra?: Record<string, unknown>;
   webhookSubscribed?: boolean;
   connectedBy?: string | null;
+  /** `"meta"` (Facebook Login, default) o `"instagram_login"` (IG directo). */
+  provider?: string;
 }
 
 /**
@@ -168,7 +170,7 @@ export async function saveConnection(
       {
         business_id: input.businessId,
         channel: input.channel,
-        provider: "meta",
+        provider: input.provider ?? "meta",
         external_id: input.externalId,
         external_name: input.externalName ?? null,
         access_token: encryptToken(input.accessToken),

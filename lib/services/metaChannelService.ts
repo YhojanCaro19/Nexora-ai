@@ -16,6 +16,7 @@
 // a otro medio (ej. dejar el mensaje en el hilo del CRM).
 // Ver docs/channels-module-plan.md §4.9.
 import { graphPost, GraphApiError } from "@/lib/services/metaGraphClient";
+import { sendInstagramMessage } from "@/lib/services/instagramLoginService";
 import type { ChannelConnectionWithToken } from "@/lib/services/channelConnectionService";
 
 interface SendResult {
@@ -57,7 +58,18 @@ export async function sendChannelMessage(
         return { error: null };
       }
 
-      case "instagram":
+      case "instagram": {
+        // Instagram Login directo → host graph.instagram.com.
+        if (connection.provider === "instagram_login") {
+          const r = await sendInstagramMessage(
+            connection.externalId,
+            connection.accessToken,
+            recipientId,
+            body
+          );
+          return { error: r.error, graphCode: r.code ?? null };
+        }
+        // IG ligada a una Página de FB → Messenger Platform (graph.facebook.com).
         await graphPost(
           `${connection.externalId}/messages`,
           {
@@ -67,6 +79,7 @@ export async function sendChannelMessage(
           connection.accessToken
         );
         return { error: null };
+      }
 
       case "whatsapp":
         await graphPost(

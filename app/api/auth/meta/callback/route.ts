@@ -15,11 +15,7 @@
 // con el módulo de Marketing.
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import {
-  verifyState,
-  callbackUrl,
-  type MetaConnectionKind,
-} from "@/lib/services/metaOAuthService";
+import { verifyState, callbackUrl, callbackUrlFromHeaders } from "@/lib/services/metaOAuthService";
 import {
   exchangeCodeForToken,
   exchangeForLongLivedToken,
@@ -29,6 +25,13 @@ import {
   expiresAtToIso,
   GraphApiError,
 } from "@/lib/services/metaGraphClient";
+import {
+  exchangeInstagramCode,
+  exchangeInstagramLongLived,
+  getInstagramSelf,
+  subscribeInstagramWebhooks,
+  InstagramApiError,
+} from "@/lib/services/instagramLoginService";
 import { saveConnection, setWebhookSubscribed } from "@/lib/services/channelConnectionService";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +74,51 @@ export async function GET(request: Request) {
     return back(returnPath, { error: "sesion" });
   }
 
-  if ((parsed.kind as MetaConnectionKind) !== "channels") {
+  // ── Instagram Business Login directo ───────────────────────────────────
+  if (parsed.kind === "instagram") {
+    const redirectUri = callbackUrlFromHeaders(request.headers);
+    try {
+      const short = await exchangeInstagramCode(code, redirectUri);
+      const long = await exchangeInstagramLongLived(short.accessToken);
+      const self = await getInstagramSelf(long.accessToken);
+      const igId = self.id || short.userId;
+
+      const saved = await saveConnection({
+        businessId: profile.businessId,
+        channel: "instagram",
+        provider: "instagram_login",
+        externalId: igId,
+        externalName: self.username ? `@${self.username}` : "Instagram",
+        accessToken: long.accessToken,
+        tokenExpiresAt: new Date(Date.now() + long.expiresInSeconds * 1000).toISOString(),
+        connectedBy: profile.userId,
+      });
+      if (saved.error || !saved.id) {
+        return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
+      }
+
+      try {
+        await subscribeInstagramWebhooks(igId, long.accessToken);
+        await setWebhookSubscribed(saved.id, true);
+      } catch (err) {
+        console.warn("[meta/callback] IG: no se pudo suscribir el webhook todavía:", err);
+      }
+
+      return back(returnPath, {
+        connected: "instagram",
+        page: self.username ? `@${self.username}` : "Instagram",
+      });
+    } catch (err) {
+      if (err instanceof InstagramApiError) {
+        console.error(`[meta/callback] Instagram error code=${err.code}: ${err.message}`);
+        return back(returnPath, { error: "graph", detail: err.message.slice(0, 120) });
+      }
+      console.error("[meta/callback] IG error inesperado:", err);
+      return back(returnPath, { error: "inesperado" });
+    }
+  }
+
+  if (parsed.kind !== "channels") {
     return back(returnPath, { error: "kind_no_soportado" });
   }
 

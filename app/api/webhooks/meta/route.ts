@@ -24,6 +24,7 @@ import {
 } from "@/lib/services/channelConnectionService";
 import { sendChannelMessage, isAuthError } from "@/lib/services/metaChannelService";
 import { getUserProfileName } from "@/lib/services/metaGraphClient";
+import { getInstagramUserName } from "@/lib/services/instagramLoginService";
 import { runAgentTurn } from "@/lib/services/agentEngineService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 import type { Channel } from "@/lib/types/channel";
@@ -45,14 +46,19 @@ export async function GET(request: Request) {
   return new NextResponse("forbidden", { status: 403 });
 }
 
+// Messenger/WhatsApp firman con el App Secret de Facebook; Instagram Login
+// directo firma con el de Instagram. Como la firma se verifica ANTES de
+// parsear el body (no sabemos aún qué canal es), se prueba contra ambos.
 function verifySignature(rawBody: string, header: string | null): boolean {
-  const secret = process.env.META_APP_SECRET;
-  if (!secret || !header || !header.startsWith("sha256=")) return false;
-  const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
-  const got = header.slice("sha256=".length);
-  const a = Buffer.from(got, "hex");
-  const b = Buffer.from(expected, "hex");
-  return a.length === b.length && timingSafeEqual(a, b);
+  if (!header || !header.startsWith("sha256=")) return false;
+  const got = Buffer.from(header.slice("sha256=".length), "hex");
+  const secrets = [process.env.META_APP_SECRET, process.env.INSTAGRAM_APP_SECRET].filter(
+    (s): s is string => Boolean(s)
+  );
+  return secrets.some((secret) => {
+    const expected = Buffer.from(createHmac("sha256", secret).update(rawBody, "utf8").digest("hex"), "hex");
+    return got.length === expected.length && timingSafeEqual(got, expected);
+  });
 }
 
 // ── dedupe best-effort ───────────────────────────────────────────────────
@@ -155,11 +161,17 @@ async function replyWith(
     return;
   }
 
-  // Messenger / Instagram: el nombre de la persona se pide a Graph con el
-  // token de la Página. WhatsApp ya lo trae en el payload (`knownName`).
-  const customerName =
-    knownName ??
-    (channel === "whatsapp" ? null : await getUserProfileName(senderId, connection.accessToken));
+  // Nombre de la persona:
+  //  - WhatsApp → ya viene en el payload (`knownName`).
+  //  - Instagram Login directo → graph.instagram.com.
+  //  - Messenger / IG-por-Página → graph.facebook.com.
+  let customerName = knownName ?? null;
+  if (!customerName && channel !== "whatsapp") {
+    customerName =
+      connection.provider === "instagram_login"
+        ? await getInstagramUserName(senderId, connection.accessToken)
+        : await getUserProfileName(senderId, connection.accessToken);
+  }
 
   const result = await runAgentTurn(connection.businessId, senderId, text, channel, {
     serviceRole: true,
