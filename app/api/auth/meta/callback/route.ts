@@ -15,7 +15,7 @@
 // con el módulo de Marketing.
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { verifyState, callbackUrl, callbackUrlFromHeaders } from "@/lib/services/metaOAuthService";
+import { verifyState, callbackUrl, instagramRedirectUri } from "@/lib/services/metaOAuthService";
 import {
   exchangeCodeForToken,
   exchangeForLongLivedToken,
@@ -76,9 +76,8 @@ export async function GET(request: Request) {
 
   // ── Instagram Business Login directo ───────────────────────────────────
   if (parsed.kind === "instagram") {
-    const redirectUri = callbackUrlFromHeaders(request.headers);
     try {
-      const short = await exchangeInstagramCode(code, redirectUri);
+      const short = await exchangeInstagramCode(code, instagramRedirectUri());
       const long = await exchangeInstagramLongLived(short.accessToken);
       const self = await getInstagramSelf(long.accessToken);
       const igId = self.id || short.userId;

@@ -63,16 +63,15 @@ export function callbackUrl(): string {
 }
 
 /**
- * Callback URL derivada del host REAL de la request (útil cuando se corre
- * detrás de un túnel: `x-forwarded-host` trae el host de trycloudflare).
- * Instagram Business Login exige que el redirect_uri coincida EXACTO entre
- * la URL de autorización y el canje del token, y no acepta `localhost` —
- * por eso se deriva del host en vez de una env fija.
+ * redirect_uri para Instagram Business Login. Debe coincidir EXACTO entre
+ * la URL de autorización y el canje del token, y estar registrado en
+ * Meta → Instagram → login empresarial. Instagram NO acepta `http://localhost`,
+ * así que en local hay que apuntarlo a la URL del túnel:
+ *   INSTAGRAM_REDIRECT_URI=https://xxx.trycloudflare.com/api/auth/meta/callback
+ * En prod, si no se define, usa `callbackUrl()` (el dominio real).
  */
-export function callbackUrlFromHeaders(h: Headers): string {
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}/api/auth/meta/callback`;
+export function instagramRedirectUri(): string {
+  return process.env.INSTAGRAM_REDIRECT_URI || callbackUrl();
 }
 
 // ── state firmado ────────────────────────────────────────────────────────
@@ -136,14 +135,14 @@ export function buildAuthorizeUrl(state: string, kind: "channels" | "marketing")
 
 /**
  * URL del diálogo de Instagram Business Login (kind `instagram`). Otro
- * host, otras credenciales, `redirect_uri` derivada del host real.
+ * host, otras credenciales, `redirect_uri` = `instagramRedirectUri()`.
  */
-export function buildInstagramAuthorizeUrl(state: string, redirectUri: string): string {
+export function buildInstagramAuthorizeUrl(state: string): string {
   const clientId = process.env.INSTAGRAM_APP_ID;
   if (!clientId) throw new Error("INSTAGRAM_APP_ID no está definida.");
   const url = new URL("https://www.instagram.com/oauth/authorize");
   url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("redirect_uri", instagramRedirectUri());
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", SCOPES.instagram.join(","));
   url.searchParams.set("state", state);
