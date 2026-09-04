@@ -20,7 +20,17 @@ import {
   buildInstagramAuthorizeUrl,
   callbackUrlFromHeaders,
 } from "@/lib/services/metaOAuthService";
-import { revokeConnection } from "@/lib/services/channelConnectionService";
+import {
+  revokeConnection,
+  saveConnection,
+  setWebhookSubscribed,
+} from "@/lib/services/channelConnectionService";
+import {
+  exchangeInstagramLongLived,
+  getInstagramSelf,
+  subscribeInstagramWebhooks,
+  InstagramApiError,
+} from "@/lib/services/instagramLoginService";
 import { isChannel, type Channel } from "@/lib/types/channel";
 
 // AVENTHRA solo autentica con Google — no hay contraseña que cambiar. El
@@ -203,6 +213,70 @@ export async function startInstagramConnectAction(): Promise<void> {
   });
   const redirectUri = callbackUrlFromHeaders(await headers());
   redirect(buildInstagramAuthorizeUrl(state, redirectUri));
+}
+
+/**
+ * Conecta Instagram pegando un token de acceso (el que da el dashboard de
+ * Meta en "Generar identificador"). Vía alterna al OAuth cuando el
+ * redirect_uri no calza (túnel local, etc.) o para tokens de un BSP.
+ */
+export async function connectInstagramWithTokenAction(
+  rawToken: string
+): Promise<{ error: string | null }> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+  const token = rawToken.trim();
+  if (token.length < 20) return { error: "Pega el token completo." };
+
+  const limit = checkRateLimit(`ig-token-connect:${profile.userId}`, 5, 60 * 1000);
+  if (!limit.allowed) return { error: "Demasiados intentos. Espera un momento." };
+
+  try {
+    // Si el token es de corta duración, se cambia a largo; si ya es largo,
+    // el intercambio falla y se usa tal cual.
+    let accessToken = token;
+    let expiresInSeconds = 60 * 24 * 60 * 60;
+    try {
+      const long = await exchangeInstagramLongLived(token);
+      accessToken = long.accessToken;
+      expiresInSeconds = long.expiresInSeconds;
+    } catch {
+      /* ya era largo (o no se pudo) — se usa el pegado */
+    }
+
+    const self = await getInstagramSelf(accessToken);
+    if (!self.id) return { error: "El token no parece válido para una cuenta de Instagram." };
+
+    const saved = await saveConnection({
+      businessId: profile.businessId,
+      channel: "instagram",
+      provider: "instagram_login",
+      externalId: self.id,
+      externalName: self.username ? `@${self.username}` : "Instagram",
+      accessToken,
+      tokenExpiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+      connectedBy: profile.userId,
+    });
+    if (saved.error || !saved.id) return { error: saved.error ?? "No se pudo guardar." };
+
+    try {
+      await subscribeInstagramWebhooks(self.id, accessToken);
+      await setWebhookSubscribed(saved.id, true);
+    } catch {
+      /* best-effort */
+    }
+
+    revalidatePath(CHANNELS_RETURN_PATH);
+    return { error: null };
+  } catch (err) {
+    if (err instanceof InstagramApiError) {
+      return { error: `Instagram: ${err.message}` };
+    }
+    console.error("[connectInstagramWithToken] error:", err);
+    return { error: "No se pudo conectar Instagram con ese token." };
+  }
 }
 
 /** Desconecta un canal (marca la conexión como revocada). */

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   startMetaConnectAction,
   startInstagramConnectAction,
+  connectInstagramWithTokenAction,
   disconnectChannelAction,
 } from "./actions";
 import { ChannelIcon } from "./channel-icons";
@@ -94,6 +95,8 @@ function ChannelRow({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showToken, setShowToken] = useState(false);
+  const [token, setToken] = useState("");
 
   const isActive = connection?.status === "active";
   const isError = connection?.status === "error" || connection?.status === "expired";
@@ -110,49 +113,98 @@ function ChannelRow({
     if (res.error) setError(res.error);
   }
 
+  async function connectWithToken() {
+    setBusy(true);
+    setError(null);
+    const res = await connectInstagramWithTokenAction(token);
+    setBusy(false);
+    if (res.error) setError(res.error);
+    else {
+      setToken("");
+      setShowToken(false);
+    }
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-lg border p-3" style={{ borderColor: "var(--nexora-line)" }}>
-      <ChannelIcon channel={channel} size={20} />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
-          {CHANNEL_LABELS[channel]}
-        </p>
-        <p className="truncate text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-          {comingSoon
-            ? "Próximamente"
-            : isActive
-              ? `Conectado${connection?.externalName ? ` · ${connection.externalName}` : ""}`
-              : isError
-                ? "Hay un problema — reconecta"
-                : "No conectado"}
-        </p>
-        {error && (
-          <p className="text-[11px]" style={{ color: "var(--nexora-alert)" }}>
-            {error}
+    <div className="rounded-lg border p-3" style={{ borderColor: "var(--nexora-line)" }}>
+      <div className="flex items-center gap-3">
+        <ChannelIcon channel={channel} size={20} />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium" style={{ color: "var(--nexora-ink)" }}>
+            {CHANNEL_LABELS[channel]}
           </p>
+          <p className="truncate text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+            {comingSoon
+              ? "Próximamente"
+              : isActive
+                ? `Conectado${connection?.externalName ? ` · ${connection.externalName}` : ""}`
+                : isError
+                  ? "Hay un problema — reconecta"
+                  : "No conectado"}
+          </p>
+          {error && (
+            <p className="text-[11px]" style={{ color: "var(--nexora-alert)" }}>
+              {error}
+            </p>
+          )}
+        </div>
+
+        {comingSoon ? (
+          <Button variant="outline" size="sm" disabled>
+            Pronto
+          </Button>
+        ) : isError ? (
+          <form action={connectAction}>
+            <Button type="submit" size="sm">
+              Reconectar
+            </Button>
+          </form>
+        ) : isActive ? (
+          <Button variant="outline" size="sm" onClick={disconnect} disabled={busy}>
+            {busy ? "..." : "Desconectar"}
+          </Button>
+        ) : (
+          <form action={connectAction}>
+            <Button type="submit" size="sm">
+              Conectar
+            </Button>
+          </form>
         )}
       </div>
 
-      {comingSoon ? (
-        <Button variant="outline" size="sm" disabled>
-          Pronto
-        </Button>
-      ) : isError ? (
-        <form action={connectAction}>
-          <Button type="submit" size="sm">
-            Reconectar
-          </Button>
-        </form>
-      ) : isActive ? (
-        <Button variant="outline" size="sm" onClick={disconnect} disabled={busy}>
-          {busy ? "..." : "Desconectar"}
-        </Button>
-      ) : (
-        <form action={connectAction}>
-          <Button type="submit" size="sm">
-            Conectar
-          </Button>
-        </form>
+      {/* Instagram: alternativa a pegar un token de acceso (dashboard de Meta o BSP). */}
+      {channel === "instagram" && !isActive && !comingSoon && (
+        <div className="mt-2 border-t pt-2" style={{ borderColor: "var(--nexora-line)" }}>
+          {showToken ? (
+            <div className="space-y-2">
+              <input
+                type="text"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="Pega el token de acceso de Instagram"
+                className="w-full rounded-md border bg-transparent px-2 py-1.5 text-[11px] font-mono-data"
+                style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
+              />
+              <div className="flex justify-center gap-2">
+                <Button size="sm" onClick={connectWithToken} disabled={busy || token.trim().length < 20}>
+                  {busy ? "..." : "Guardar"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowToken(false)} disabled={busy}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowToken(true)}
+              className="mx-auto block text-[11px] underline"
+              style={{ color: "var(--nexora-ink-dim)" }}
+            >
+              o pegar un token de acceso
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
