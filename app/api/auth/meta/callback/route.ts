@@ -62,19 +62,11 @@ export async function GET(request: Request) {
     return back(returnPath, { error: "cancelado" });
   }
 
-  // La sesión del navegador que llega en el redirect debe ser el mismo
-  // admin que inició el flujo (defensa extra sobre la firma del state).
-  const profile = await getSessionProfile();
-  if (
-    !profile ||
-    profile.role !== "admin" ||
-    profile.userId !== parsed.userId ||
-    profile.businessId !== parsed.businessId
-  ) {
-    return back(returnPath, { error: "sesion" });
-  }
-
   // ── Instagram Business Login directo ───────────────────────────────────
+  // No se valida la sesión del navegador acá: Instagram redirige al host
+  // del túnel (redirect_uri fijo), que NO comparte la cookie de sesión de
+  // `localhost` / del dominio real. Se confía en el `state` firmado (HMAC +
+  // TTL de 10 min) — trae businessId/userId y no se puede forjar.
   if (parsed.kind === "instagram") {
     try {
       const short = await exchangeInstagramCode(code, instagramRedirectUri());
@@ -83,14 +75,14 @@ export async function GET(request: Request) {
       const igId = self.id || short.userId;
 
       const saved = await saveConnection({
-        businessId: profile.businessId,
+        businessId: parsed.businessId,
         channel: "instagram",
         provider: "instagram_login",
         externalId: igId,
         externalName: self.username ? `@${self.username}` : "Instagram",
         accessToken: long.accessToken,
         tokenExpiresAt: new Date(Date.now() + long.expiresInSeconds * 1000).toISOString(),
-        connectedBy: profile.userId,
+        connectedBy: parsed.userId,
       });
       if (saved.error || !saved.id) {
         return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
@@ -119,6 +111,19 @@ export async function GET(request: Request) {
 
   if (parsed.kind !== "channels") {
     return back(returnPath, { error: "kind_no_soportado" });
+  }
+
+  // Facebook Login (channels/marketing) SÍ vuelve al mismo host (redirect_uri
+  // registrado = dominio propio, y `localhost` va aparte en dev), así que la
+  // cookie de sesión llega — se valida como defensa extra sobre el `state`.
+  const profile = await getSessionProfile();
+  if (
+    !profile ||
+    profile.role !== "admin" ||
+    profile.userId !== parsed.userId ||
+    profile.businessId !== parsed.businessId
+  ) {
+    return back(returnPath, { error: "sesion" });
   }
 
   try {
