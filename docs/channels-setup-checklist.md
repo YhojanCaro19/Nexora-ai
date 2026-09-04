@@ -164,13 +164,38 @@
 
 ## FASE 4 — Instagram
 
-> El código ya está: el webhook enruta `object: "instagram"` igual que
-> `page`, y la conexión de IG se guarda sola al conectar Messenger si la
-> Página tiene una cuenta de IG ligada. Solo falta la parte de config.
-- [ ] **[TÚ]** Cuenta de IG en modo Business/Creator, ligada a la Página
-- [ ] **[TÚ]** Meta → Instagram → Webhooks: suscribir `messages`
-- [ ] **[CLAUDE]** Confirmar enrutado `object: "instagram"` en el webhook
-- [ ] **[TÚ]** DM de prueba a la cuenta de IG → el agente responde
+> **2026-09-03: CÓDIGO COMPLETO.** Dos caminos:
+> 1. **IG ligada a una Página de FB** → al conectar Messenger la recoge sola
+>    (kind `channels`, provider `meta`, envía por graph.facebook.com).
+> 2. **Instagram Business Login DIRECTO** (kind `instagram`, provider
+>    `instagram_login`, envía por graph.instagram.com) — el negocio conecta
+>    su cuenta de IG profesional con un botón, SIN Página de Facebook.
+>    Necesita `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` / `INSTAGRAM_REDIRECT_URI`.
+>    `lib/services/instagramLoginService.ts`.
+- [x] **[CLAUDE]** Webhook enruta `object: "instagram"`; firma verificada
+      contra META_APP_SECRET **o** INSTAGRAM_APP_SECRET
+- [x] **[CLAUDE]** Instagram Login directo: OAuth + envío + refresh de token
+      + botón "Conectar" en Perfil → Conectar redes
+- [x] **[TÚ]** Cuenta @barberiacuti pro + conectada en AVENTHRA
+      ("Conectado · @barberiacuti") — *2026-09-03*
+- [x] **[TÚ]** Webhook de IG en Meta configurado + `messages` suscrito +
+      cuenta suscrita ("Sí") + "Test" de `messages` llega al webhook
+- [ ] **[BLOQUEO DE META, NO DE CÓDIGO]** En modo desarrollo, Meta NO
+      entrega el webhook de DMs reales que caen en "Solicitudes" ni de
+      cuentas sin rol de tester. En **producción (post App Review + Live)**
+      esto funciona: el agente responde a cualquier DM. Para probar en dev:
+      seguir a @barberiacuti o aceptar la solicitud una vez.
+- [ ] **[TÚ]** Confirmar en IG (@barberiacuti) → Configuración → Mensajes →
+      "Herramientas conectadas" → "Permitir acceso a los mensajes" activado
+
+### 4-bis. Qué hace un CLIENTE (negocio) para conectar — en producción
+> Nada de lo que sufrimos en dev. Una vez la app está en Live:
+> - **Messenger:** Perfil → Conectar redes → "Conectar" → login con su
+>   Facebook → elige su Página → "Permitir". ~30 s.
+> - **Instagram:** su cuenta de IG debe ser profesional (1 toggle en la app,
+>   ~1 min) → "Conectar" → login con su Instagram → "Permitir".
+> El cliente NO crea apps de Meta, NO configura webhooks, NO es tester, NO
+> toca redirect URIs. Todo eso es setup de AVENTHRA, una sola vez.
 
 ---
 
@@ -232,11 +257,12 @@
 
 ## Estado actual
 
-**2026-09-03** — Fases 1, 2, 3 y **6 completas**. Messenger vivo de punta
-a punta (mensaje real → agente → crea reservas reales). Código de Fase 4
-(Instagram) y del recordatorio también listo.
+**2026-09-03** — Fases 1, 2, 3, **4 y 6 completas en CÓDIGO**. Messenger
+vivo de punta a punta (mensaje real → agente → crea reservas reales).
+Instagram conectado (@barberiacuti); el webhook de DMs reales lo bloquea
+el modo desarrollo de Meta, no el código — funcionará en producción.
 
-Hecho estos dos días:
+Hecho estos días:
 - Cliente guarda su **nombre** (perfil de Messenger/IG vía Graph,
   `contacts` en WhatsApp).
 - **Clientes → detalle** muestra "Reservas y citas".
@@ -244,17 +270,22 @@ Hecho estos dos días:
   → tarde anterior) por el canal, con fallback al hilo del CRM.
 - Agente y todo el panel de Reservas hablan en **12 h (am/pm)**, no militar.
 - El agente sabe la **hora actual** y calcula "dentro de 3 horas", etc.
-- Instagram tiene su propio botón "Conectar" + logos de marca en Perfil.
+- **Instagram Business Login directo** — conectar IG sin Página de FB.
 
 **Siguiente (en orden):**
-1. **Fase 4 — Instagram** ← EN CURSO. Falta [TÚ]: cuenta IG Business
-   ligada a la Página «Barberia cuti» + suscribir el webhook de IG en
-   Meta + DM de prueba. (El túnel y `npm run dev` deben estar corriendo.)
-2. **Fase 5 — WhatsApp**: decidir BSP vs directo (§G).
-3. **Business Verification** de Meta (arrancar ya — semanas de espera).
+1. **Fase 5 — WhatsApp**: decidir BSP vs directo (§G).
+2. **Business Verification** de Meta (arrancar ya — semanas de espera).
+3. **App Review** (Fase 7) — es lo que destraba Messenger E IG para
+   negocios reales (modo Live). Sin esto, todo funciona solo con testers.
 4. Deploy + páginas legales (C) — cuando el resto esté maduro.
 5. Dedupe de webhook en store durable (Fase 6, futuro).
 
 **Recordar:** el túnel `cloudflared` da URL nueva al reiniciar → repegar
 la Callback URL en Meta cada vez (Messenger **y** Instagram usan el mismo
-endpoint `/api/webhooks/meta`).
+endpoint `/api/webhooks/meta`); y actualizar `INSTAGRAM_REDIRECT_URI` en
+`.env.local` + en Meta (Instagram → login empresarial).
+
+⚠️ **2026-09-03: secretos expuestos en una captura** (`.env.local` abierto
+en el editor): `OPENAI_API_KEY`, `GOOGLE_GENAI_API_KEY`, `META_APP_SECRET`,
+`META_OAUTH_STATE_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `CHANNELS_TOKEN_KEY`.
+Rotar las 3 primeras (prioridad alta) antes de producción.
