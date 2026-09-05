@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, Plus, Megaphone } from "lucide-react";
+import { Search, Plus, Megaphone, Plug } from "lucide-react";
 import type { MarketingStrategy, StrategyStatus, MarketingKpis } from "@/lib/services/marketingService";
 import { formatShortDate } from "@/lib/utils/date";
 
@@ -74,7 +74,7 @@ export function EstrategiasView({ strategies, kpis }: { strategies: MarketingStr
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-col items-center gap-4 text-center">
         <div>
           <h1 className="font-nexora text-2xl" style={{ color: "var(--nexora-ink)" }}>
             Mis estrategias
@@ -83,18 +83,26 @@ export function EstrategiasView({ strategies, kpis }: { strategies: MarketingStr
             {counts.active} activa{counts.active === 1 ? "" : "s"}, {counts.paused} en pausa.
           </p>
         </div>
-        <Link
-          href="/admin/marketing/nueva"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-black"
-          style={{ background: "linear-gradient(120deg,#4CC2E8,#A78BFA)" }}
-        >
-          <Plus size={16} />
-          Nueva estrategia
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/marketing/conexiones"
+            className="aventhra-iridescent-bg inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-black"
+          >
+            <Plug size={16} />
+            Conexiones
+          </Link>
+          <Link
+            href="/admin/marketing/nueva"
+            className="aventhra-iridescent-bg inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-black"
+          >
+            <Plus size={16} />
+            Nueva estrategia
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b" style={{ borderColor: "var(--nexora-line)" }}>
+      <div className="flex justify-center gap-4 border-b" style={{ borderColor: "var(--nexora-line)" }}>
         {TABS.map((t) => (
           <button
             key={t.key}

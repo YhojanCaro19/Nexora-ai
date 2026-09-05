@@ -189,6 +189,27 @@ export async function subscribePageToWebhooks(
   );
 }
 
+export interface FacebookAdAccount {
+  id: string; // viene como "act_1234567890"
+  account_id: string; // el número solo, sin "act_"
+  name: string;
+  currency: string;
+  account_status: number; // 1 = ACTIVE
+}
+
+/**
+ * Lista las cuentas publicitarias que el usuario administra y autorizó
+ * (scope `ads_management`). Se usa al conectar Meta Ads — ver
+ * app/api/auth/meta/callback/route.ts (kind = "marketing").
+ */
+export async function getUserAdAccounts(userAccessToken: string): Promise<FacebookAdAccount[]> {
+  const data = await graphGet<{ data?: FacebookAdAccount[] }>("me/adaccounts", {
+    fields: "id,account_id,name,currency,account_status",
+    access_token: userAccessToken,
+  });
+  return data.data ?? [];
+}
+
 /** epoch-segundos de expiración → ISO string, o null si no expira. */
 export function expiresAtToIso(expiresAt: number | undefined): string | null {
   if (!expiresAt || expiresAt <= 0) return null;

@@ -29,10 +29,17 @@ export type GenerateImageResult =
   | { ok: false; reason: "insufficient_credits"; needed: number; have: number }
   | { ok: false; reason: "provider_error" | "not_configured"; message: string };
 
+export interface ReferenceImage {
+  /** base64 sin el prefijo `data:`. */
+  base64: string;
+  mimeType: string;
+}
+
 export async function generateImage(
   businessId: string,
   prompt: string,
-  quality: ImageQuality = "standard"
+  quality: ImageQuality = "standard",
+  reference?: ReferenceImage | null
 ): Promise<GenerateImageResult> {
   const trimmed = prompt.trim();
   if (!trimmed) {
@@ -60,8 +67,8 @@ export async function generateImage(
   try {
     image =
       provider === "openai"
-        ? await generateWithOpenAI(trimmed, quality)
-        : await generateWithGemini(trimmed);
+        ? await generateWithOpenAI(trimmed, quality) // la foto de referencia no aplica acá — ver comentario en generateWithGemini
+        : await generateWithGemini(trimmed, reference ?? undefined);
   } catch (err) {
     console.error("[generateImage] error del proveedor:", err);
     const message = err instanceof Error ? err.message : "No se pudo generar la imagen.";
@@ -89,18 +96,33 @@ export async function generateImage(
 // ── Gemini 2.5 Flash Image ("Nano Banana") ───────────────────────────────
 // Un solo nivel (~1024px). 'hd' hoy usa el mismo modelo — cuando haya un
 // proveedor HD real (Imagen 4 Ultra) se ramifica acá.
-async function generateWithGemini(prompt: string): Promise<GeneratedImage> {
+//
+// `reference`: foto real del producto que subió el dueño. Nano Banana
+// soporta "edición"/composición a partir de una imagen de entrada — se la
+// mandamos como primera parte junto con el texto, pidiéndole que respete
+// la apariencia real del producto en vez de inventarla. Solo Gemini: la
+// API de OpenAI para esto (`/v1/images/edits`) es un endpoint distinto
+// (multipart, no JSON) que no se integró todavía — si el proveedor activo
+// es OpenAI, la referencia simplemente se ignora (fallback a texto solo).
+async function generateWithGemini(prompt: string, reference?: ReferenceImage): Promise<GeneratedImage> {
   const key = process.env.GOOGLE_GENAI_API_KEY;
   if (!key) throw new Error("GOOGLE_GENAI_API_KEY no configurada");
 
   const model = "gemini-2.5-flash-image";
+  const fullPrompt = reference
+    ? `${prompt} Usa el producto de la imagen adjunta tal cual se ve —su forma, color y empaque reales—, no inventes uno distinto; solo cambia el entorno/composición según la descripción.`
+    : prompt;
+  const requestParts: Record<string, unknown>[] = reference
+    ? [{ inlineData: { mimeType: reference.mimeType, data: reference.base64 } }, { text: fullPrompt }]
+    : [{ text: fullPrompt }];
+
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
       headers: { "x-goog-api-key": key, "content-type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts: requestParts }],
         generationConfig: { responseModalities: ["IMAGE"] },
       }),
     }

@@ -1,7 +1,9 @@
 // app/api/auth/meta/callback/route.ts
 //
 // Meta devuelve acá el `code` después de que el admin autoriza en el
-// diálogo de Facebook. Flujo:
+// diálogo de Facebook. Tres flujos, según `state.kind`:
+//
+// `channels` — conectar Messenger/Instagram (Perfil → Conectar redes):
 //   1. verificar `state` (firmado, ver metaOAuthService)
 //   2. confirmar que la sesión actual es el mismo admin que inició
 //   3. canjear code → token largo
@@ -11,8 +13,11 @@
 //   6. intentar suscribir el webhook (no fatal si aún no está configurado)
 //   7. redirigir al panel con ?connected= o ?error=
 //
-// Solo cubre `kind = "channels"` por ahora. `marketing` (ads) se agrega
-// con el módulo de Marketing.
+// `marketing` — conectar Meta Ads (Marketing → Conexiones): mismo canje de
+// token, pero lista cuentas publicitarias (`ads_management`) en vez de
+// Páginas, y guarda en `ad_accounts` (ver adAccountService). Sin webhook.
+//
+// `instagram` — Instagram Business Login directo, ver más abajo.
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { verifyState, callbackUrl, instagramRedirectUri } from "@/lib/services/metaOAuthService";
@@ -20,6 +25,7 @@ import {
   exchangeCodeForToken,
   exchangeForLongLivedToken,
   getUserPages,
+  getUserAdAccounts,
   subscribePageToWebhooks,
   debugToken,
   expiresAtToIso,
@@ -33,6 +39,7 @@ import {
   InstagramApiError,
 } from "@/lib/services/instagramLoginService";
 import { saveConnection, setWebhookSubscribed } from "@/lib/services/channelConnectionService";
+import { saveAdAccount } from "@/lib/services/adAccountService";
 
 export const dynamic = "force-dynamic";
 
@@ -109,7 +116,7 @@ export async function GET(request: Request) {
     }
   }
 
-  if (parsed.kind !== "channels") {
+  if (parsed.kind !== "channels" && parsed.kind !== "marketing") {
     return back(returnPath, { error: "kind_no_soportado" });
   }
 
@@ -124,6 +131,51 @@ export async function GET(request: Request) {
     profile.businessId !== parsed.businessId
   ) {
     return back(returnPath, { error: "sesion" });
+  }
+
+  // ── Meta Ads (módulo de Marketing) ──────────────────────────────────────
+  // No hay Página involucrada: se conecta directamente la cuenta
+  // publicitaria (scope `ads_management`, ver metaOAuthService).
+  if (parsed.kind === "marketing") {
+    try {
+      const short = await exchangeCodeForToken(code, callbackUrl());
+      const long = await exchangeForLongLivedToken(short.access_token);
+      const adAccounts = await getUserAdAccounts(long.access_token);
+
+      if (adAccounts.length === 0) {
+        return back(returnPath, { error: "sin_cuentas_publicitarias" });
+      }
+
+      // v1: se conecta la primera cuenta publicitaria activa (o la primera
+      // de la lista si ninguna está ACTIVE). El selector cuando hay varias
+      // llega en una fase siguiente, igual que con las Páginas de Messenger.
+      const account = adAccounts.find((a) => a.account_status === 1) ?? adAccounts[0];
+      const meta = await debugToken(long.access_token);
+      const tokenExpiresAt = expiresAtToIso(meta?.expires_at);
+
+      const saved = await saveAdAccount({
+        businessId: profile.businessId,
+        provider: "meta",
+        externalAccountId: account.id,
+        externalName: account.name,
+        currency: account.currency,
+        accessToken: long.access_token,
+        tokenExpiresAt,
+        connectedBy: profile.userId,
+      });
+      if (saved.error || !saved.id) {
+        return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
+      }
+
+      return back(returnPath, { connected: "meta_ads", account: account.name });
+    } catch (err) {
+      if (err instanceof GraphApiError) {
+        console.error(`[meta/callback] Ads Graph error code=${err.code}: ${err.message}`);
+        return back(returnPath, { error: "graph", detail: err.message.slice(0, 120) });
+      }
+      console.error("[meta/callback] Ads error inesperado:", err);
+      return back(returnPath, { error: "inesperado" });
+    }
   }
 
   try {

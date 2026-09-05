@@ -26,6 +26,11 @@ export interface SanitizeImageOptions {
   maxBytes?: number;
   maxDimension?: number;
   quality?: number;
+  /** 'jpeg' (default, comportamiento histórico) o 'png' — usar 'png' cuando
+   *  hace falta conservar transparencia (ej. logo para componer sobre otra
+   *  imagen). El chequeo de firma real sigue aceptando JPG o PNG de entrada
+   *  sin importar el formato de salida elegido. */
+  outputFormat?: "jpeg" | "png";
 }
 
 const DEFAULT_MAX_BYTES = 5 * 1024 * 1024; // 5MB
@@ -72,11 +77,11 @@ export async function sanitizeImageUpload(
   }
 
   try {
-    const buffer = await sharp(Buffer.from(arrayBuffer))
+    const pipeline = sharp(Buffer.from(arrayBuffer))
       .rotate() // respeta la orientación EXIF antes de descartar los metadatos
-      .resize({ width: maxDimension, height: maxDimension, fit: "inside", withoutEnlargement: true })
-      .jpeg({ quality })
-      .toBuffer();
+      .resize({ width: maxDimension, height: maxDimension, fit: "inside", withoutEnlargement: true });
+    const buffer =
+      options.outputFormat === "png" ? await pipeline.png().toBuffer() : await pipeline.jpeg({ quality }).toBuffer();
     return { error: null, buffer };
   } catch {
     // sharp no pudo decodificarlo como imagen real, aunque la firma haya

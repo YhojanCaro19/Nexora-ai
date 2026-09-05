@@ -275,26 +275,32 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .aventhra-iridescent { animation: none; }
 }
-
-/* Igual que .aventhra-iridescent pero como fondo real (no clip a texto) —
-   para barras/pills que deben ir cambiando de color de marca. Gradiente
-   vertical que fluye a lo largo del elemento. */
-@keyframes aventhra-iridescent-bg {
-  to { background-position: center 200%; }
-}
+/* Misma animación de .aventhra-iridescent pero pintando el FONDO del
+   elemento (ej. un botón sólido) en vez de recortar el degradado al texto.
+   Reusa el mismo @keyframes de arriba — no lo duplica.
+   background-size DEBE ser 200% (igual que .aventhra-iridescent): la
+   animación compartida va de 0% a 200%, y ese "200" solo cierra el ciclo
+   sin salto cuando el tamaño también es 200% (es la relación matemática
+   que hace que el final del ciclo empalme pixel a pixel con el inicio).
+   Si se achica el tamaño para "ver más color a la vez", se rompe ese
+   empalme y aparece un salto/corte cada vuelta — eso pasó en un intento
+   anterior. La solución real al "se ve de un solo color un momento" no es
+   tocar el tamaño: es repartir los mismos 4 colores en partes IGUALES
+   (25% cada uno) en vez del patrón espejo de arriba (que repite el cian y
+   el índigo, dejando 50 puntos seguidos de tonos casi iguales). Mismos 4
+   colores, sin ninguno nuevo — solo mejor repartidos. */
 .aventhra-iridescent-bg {
   background-image: linear-gradient(
-    180deg,
+    to right,
     #4CC2E8 0%,
-    #818CF8 22%,
-    #A78BFA 40%,
-    #E879C7 55%,
-    #818CF8 72%,
+    #818CF8 25%,
+    #A78BFA 50%,
+    #E879C7 75%,
     #4CC2E8 100%
   );
-  background-size: auto 200%;
-  background-position: center 0%;
-  animation: aventhra-iridescent-bg 6s linear infinite;
+  background-size: 200% 100%;
+  background-position: 0% center;
+  animation: aventhra-iridescent 6s linear infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .aventhra-iridescent-bg { animation: none; }

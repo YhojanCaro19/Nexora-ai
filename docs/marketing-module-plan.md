@@ -1,6 +1,8 @@
 # Módulo Marketing IA — plan de arquitectura
 
-> **Estado: PLAN (2026-08-28).** Nada de esto está construido todavía.
+> **Estado (2026-09-04):** Fase 1 (generación) y Fase 2a (conexión OAuth a
+> Meta Ads) construidas y probadas. Fase 2b (publicar pauta real vía
+> Marketing API) y Fase 3 (Google/TikTok Ads) siguen sin construir.
 > Es la pieza más grande del producto — se hace por fases, no de una.
 > Ver [[aventhra-agent-architecture-plan]] y [[aventhra-actor-logic-rule]].
 
