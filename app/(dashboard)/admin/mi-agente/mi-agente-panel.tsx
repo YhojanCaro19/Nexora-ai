@@ -68,7 +68,7 @@ function ConfigSection({
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={htmlFor} className="block">
+      <Label htmlFor={htmlFor} className="block text-center">
         {label}
       </Label>
       {children}
@@ -418,7 +418,7 @@ export function MiAgentePanel({
             </Field>
 
             <div className="space-y-3">
-              <Label className="block">Preguntas frecuentes (opcional)</Label>
+              <Label className="block text-center">Preguntas frecuentes (opcional)</Label>
               {faqs.length > 0 && (
                 <div className="space-y-3">
                   {faqs.map((faq, index) => (
