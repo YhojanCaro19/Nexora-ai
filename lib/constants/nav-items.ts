@@ -50,33 +50,41 @@ export const SUPERADMIN_NAV: NavGroup[] = [
   },
 ];
 
-export const ADMIN_NAV: NavGroup[] = [
-  {
-    label: 'Principal',
-    items: [{ label: 'Inicio', href: '/admin', icon: LayoutDashboard }],
-  },
-  {
-    label: 'Operación',
-    items: [
-      { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
-      { label: 'Reservas', href: '/admin/reservas', icon: CalendarDays },
-      { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
-      { label: 'Clientes', href: '/admin/clientes', icon: Contact },
-      { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },
-      { label: 'Marketing IA', href: '/admin/marketing', icon: Sparkles },
-    ],
-  },
-  {
-    label: 'Negocio',
-    items: [
-      { label: 'Créditos', href: '/admin/creditos', icon: CreditCoinIcon },
-      { label: 'Colaboradores', href: '/admin/colaboradores', icon: Users },
-      { label: 'Reportes', href: '/admin/reportes', icon: FileBarChart },
-      { label: 'Comparativa', href: '/admin/comparativa', icon: TrendingUp },
-      { label: 'Perfil', href: '/admin/perfil', icon: UserCircle },
-    ],
-  },
-];
+/**
+ * El menú del admin es fijo salvo por "Marketing IA" — ese módulo lo
+ * desbloquean los planes "Crecimiento" y "Escala" (feature `marketing` en
+ * `plans.features`, ver docs/pricing-model.md §6); el plan "Atención" no lo
+ * incluye. `hasMarketing` lo calcula el layout con `hasPlanFeature`.
+ */
+export function getAdminNav(hasMarketing: boolean): NavGroup[] {
+  return [
+    {
+      label: 'Principal',
+      items: [{ label: 'Inicio', href: '/admin', icon: LayoutDashboard }],
+    },
+    {
+      label: 'Operación',
+      items: [
+        { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
+        { label: 'Reservas', href: '/admin/reservas', icon: CalendarDays },
+        { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
+        { label: 'Clientes', href: '/admin/clientes', icon: Contact },
+        { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },
+        ...(hasMarketing ? [{ label: 'Marketing IA', href: '/admin/marketing', icon: Sparkles }] : []),
+      ],
+    },
+    {
+      label: 'Negocio',
+      items: [
+        { label: 'Créditos', href: '/admin/creditos', icon: CreditCoinIcon },
+        { label: 'Colaboradores', href: '/admin/colaboradores', icon: Users },
+        { label: 'Reportes', href: '/admin/reportes', icon: FileBarChart },
+        { label: 'Comparativa', href: '/admin/comparativa', icon: TrendingUp },
+        { label: 'Perfil', href: '/admin/perfil', icon: UserCircle },
+      ],
+    },
+  ];
+}
 
 /**
  * El menú del colaborador NO es una lista fija — antes lo era y mostraba
@@ -107,7 +115,7 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
 /**
  * Módulos que un admin puede asignar a un colaborador vía `business_members.permissions`
  * (ver docs/database.md y docs/architecture.md — "Regla de oro sobre permisos de colaborador").
- * `key` coincide con el segmento final del href del módulo en ADMIN_NAV, por la regla de
+ * `key` coincide con el segmento final del href del módulo en getAdminNav, por la regla de
  * coding-standards.md de que las rutas coincidan con nav-items.ts.
  *
  * Se excluyen a propósito "Inicio" (siempre visible), "Mi Agente" (configura el agente de

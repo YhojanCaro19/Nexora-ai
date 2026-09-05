@@ -5,7 +5,7 @@ import { Sidebar } from './Sidebar';
 import { CreditsBadge } from './CreditsBadge';
 import { TabSessionGuard } from './TabSessionGuard';
 import { logout } from '@/app/(experience)/(auth)/actions';
-import { ADMIN_NAV, SUPERADMIN_NAV, getColaboradorNav } from '@/lib/constants/nav-items';
+import { getAdminNav, SUPERADMIN_NAV, getColaboradorNav } from '@/lib/constants/nav-items';
 
 type Role = 'admin' | 'colaborador' | 'superadmin';
 
@@ -29,12 +29,23 @@ interface DashboardShellProps {
   // Saldo de créditos del negocio. `undefined` = no aplica (superadmin);
   // `null` = el módulo de créditos aún no está en la DB; número = saldo.
   credits?: number | null;
+  // Solo aplica a admin — si el plan del negocio no incluye Marketing IA
+  // (plan "Atención"), ese ítem del menú se oculta. Ver getAdminNav.
+  hasMarketing?: boolean;
   children: React.ReactNode;
 }
 
-export const DashboardShell = ({ role, userName, permissions = [], avatarUrl = null, credits, children }: DashboardShellProps) => {
+export const DashboardShell = ({
+  role,
+  userName,
+  permissions = [],
+  avatarUrl = null,
+  credits,
+  hasMarketing = true,
+  children,
+}: DashboardShellProps) => {
   const groups =
-    role === 'admin' ? ADMIN_NAV : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
+    role === 'admin' ? getAdminNav(hasMarketing) : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
 
   return (
     // TabSessionGuard: "login por pestaña" — no renderiza nada del panel

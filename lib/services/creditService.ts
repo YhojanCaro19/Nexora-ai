@@ -45,6 +45,10 @@ export interface PlanEntitlements {
   images: number;
   maxBusinesses: number;
   maxCollaborators: number | null;
+  /** Módulos que este plan desbloquea además del agente (hoy solo
+   *  'marketing' — ver docs/pricing-model.md §6). El agente conversacional
+   *  siempre está incluido en todos los planes, no es un feature gateable. */
+  features: string[];
 }
 
 export interface BillingSummary {
@@ -73,7 +77,7 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
     const { data: plan } = await supabase
       .from("plans")
       .select(
-        "name, monthly_credits, included_agent_conversations, included_campaigns, included_images, max_businesses, max_collaborators"
+        "name, monthly_credits, included_agent_conversations, included_campaigns, included_images, max_businesses, max_collaborators, features"
       )
       .eq("key", data.plan_key)
       .maybeSingle();
@@ -86,6 +90,7 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
           included_images: number | null;
           max_businesses: number | null;
           max_collaborators: number | null;
+          features: string[] | null;
         }
       | null;
     planName = p?.name ?? data.plan_key;
@@ -97,6 +102,7 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
         images: p.included_images ?? 0,
         maxBusinesses: p.max_businesses ?? 1,
         maxCollaborators: p.max_collaborators ?? null,
+        features: p.features ?? [],
       };
     }
   }
@@ -112,6 +118,20 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
     },
     entitlements,
   };
+}
+
+/**
+ * ¿El plan del negocio incluye este módulo? (hoy solo se usa para
+ * `marketing` — ver docs/pricing-model.md §6, planes "Crecimiento"/"Escala").
+ * Sin plan asignado (`plan_key` null — cuentas de prueba o creadas a mano
+ * por el superadmin; un cliente real SIEMPRE tiene plan_key desde el pago
+ * por Wompi) se decide dar acceso completo, no bloquear: es la decisión
+ * explícita del dueño para no trabarse en cuentas internas/de prueba.
+ */
+export async function hasPlanFeature(businessId: string, feature: string): Promise<boolean> {
+  const summary = await getBillingSummary(businessId);
+  if (!summary || !summary.planKey) return true;
+  return summary.entitlements?.features.includes(feature) ?? false;
 }
 
 /** Costo en créditos de una acción. null si no está configurada o el módulo no está aplicado. */
