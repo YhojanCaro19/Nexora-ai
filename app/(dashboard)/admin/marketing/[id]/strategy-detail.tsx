@@ -13,8 +13,12 @@ import {
   Rocket,
   RefreshCcw,
   CheckCircle2,
+  ShieldCheck,
+  AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
 import type { MarketingStrategy, MarketingPiece, StrategyMetricsSummary } from "@/lib/services/marketingService";
+import type { CampaignReviewResult } from "@/lib/services/campaignReviewService";
 import {
   setStrategyStatusAction,
   generatePieceAction,
@@ -489,6 +493,7 @@ function PublishSection({
           <p className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
             Publicada en Meta, en pausa. Antes de activar, confirma el gasto: <b>{budgetText}</b>, desde tu propia cuenta de Meta Ads.
           </p>
+          <CampaignReviewCard review={strategy.reviewResult} />
           {!confirming ? (
             <button
               type="button"
@@ -527,6 +532,40 @@ function PublishSection({
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── Opinión del media buyer IA — segunda opinión antes de activar, nunca
+// bloquea (ver campaignReviewService.ts). null cuando la campaña se publicó
+// antes de que existiera este análisis, o si la revisión falló/no había
+// créditos — en ese caso no se muestra nada, no se inventa una opinión. ──
+const RISK_STYLE: Record<CampaignReviewResult["riskLevel"], { icon: typeof ShieldCheck; color: string; label: string }> = {
+  ok: { icon: ShieldCheck, color: "var(--nexora-signal)", label: "Sin objeciones" },
+  atencion: { icon: AlertTriangle, color: "#F5A524", label: "Para tener en cuenta" },
+  alto: { icon: ShieldAlert, color: "var(--nexora-alert)", label: "Riesgo alto" },
+};
+
+function CampaignReviewCard({ review }: { review: CampaignReviewResult | null }) {
+  if (!review) return null;
+  const { icon: Icon, color, label } = RISK_STYLE[review.riskLevel];
+
+  return (
+    <div className="space-y-3 rounded-xl border p-4" style={{ borderColor: color + "55", background: color + "0d" }}>
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide" style={{ color }}>
+        <Icon size={14} />
+        Opinión del subagente especializado en Meta Ads — {label}
+      </div>
+      <p className="text-sm" style={{ color: "var(--nexora-ink)" }}>{review.opinion}</p>
+      {review.findings.length > 0 && (
+        <ul className="space-y-1.5">
+          {review.findings.map((f, i) => (
+            <li key={i} className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+              <span className="font-medium" style={{ color: "var(--nexora-ink)" }}>{f.title}:</span> {f.detail}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

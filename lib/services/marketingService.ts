@@ -9,6 +9,7 @@
 // que llama acá ya validó rol + businessId de la sesión.
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { StrategyOutput } from "@/lib/services/strategyService";
+import type { CampaignReviewResult } from "@/lib/services/campaignReviewService";
 
 export type StrategyStatus =
   | "draft"
@@ -43,6 +44,13 @@ export interface MarketingStrategy {
   externalCreativeId: string | null;
   publishedAt: string | null;
   activatedAt: string | null;
+  /** Opinión del media buyer IA sobre esta campaña, generada una sola vez al
+   *  publicar (ver campaignReviewService.ts) — nunca bloquea, solo informa
+   *  la pantalla de "Confirmar y activar". null si aún no se publicó, o si
+   *  la revisión falló/no había créditos (el publish nunca se bloquea por
+   *  esto). */
+  reviewResult: CampaignReviewResult | null;
+  reviewedAt: string | null;
   createdAt: string;
 }
 
@@ -71,6 +79,8 @@ function mapStrategy(row: Record<string, unknown>): MarketingStrategy {
     externalCreativeId: (row.external_creative_id as string) ?? null,
     publishedAt: (row.published_at as string) ?? null,
     activatedAt: (row.activated_at as string) ?? null,
+    reviewResult: (row.review_result as CampaignReviewResult) ?? null,
+    reviewedAt: (row.reviewed_at as string) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -288,6 +298,22 @@ export async function markStrategyActivated(
     })
     .eq("id", strategyId);
   return { error: error?.message ?? null };
+}
+
+/** Guarda la opinión del media buyer IA (ver campaignReviewService.ts).
+ *  Se llama una sola vez, justo al publicar — nunca se regenera solo por
+ *  volver a abrir la pantalla de "Confirmar y activar". */
+export async function markStrategyReviewed(strategyId: string, review: CampaignReviewResult): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("marketing_strategies")
+    .update({
+      review_result: review,
+      reviewed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", strategyId);
+  if (error) console.error("[markStrategyReviewed] error:", error);
 }
 
 export async function markPieceExternalAd(pieceId: string, externalAdId: string): Promise<void> {

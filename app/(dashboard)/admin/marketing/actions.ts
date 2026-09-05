@@ -16,6 +16,7 @@ import {
   updatePieceStatus,
   markStrategyPublished,
   markStrategyActivated,
+  markStrategyReviewed,
   markPieceExternalAd,
   upsertStrategyMetric,
   type StrategyStatus,
@@ -25,6 +26,7 @@ import { signState, buildAuthorizeUrl } from "@/lib/services/metaOAuthService";
 import { revokeAdAccount, getActiveAdAccount } from "@/lib/services/adAccountService";
 import { getActiveConnection } from "@/lib/services/channelConnectionService";
 import { generatePieceVariants, piecePublicUrl, type GeneratePiecesResult } from "@/lib/services/creativeService";
+import { reviewCampaign } from "@/lib/services/campaignReviewService";
 import {
   createCampaign,
   createAdSet,
@@ -352,6 +354,22 @@ export async function publishStrategyAction(strategyId: string): Promise<Publish
       publishedBy: profile.userId,
     });
     await markPieceExternalAd(piece.id, ad.id);
+
+    // Segunda opinión del media buyer IA — se genera una sola vez acá, no en
+    // cada visita a "Confirmar y activar". Nunca bloquea el publish: si
+    // falla o no hay créditos, la campaña queda igual publicada en pausa,
+    // simplemente sin opinión que mostrar.
+    try {
+      const context = await buildBusinessContext(profile.businessId);
+      const reviewResult = await reviewCampaign(profile.businessId, strategy, piece, context);
+      if (reviewResult.ok) {
+        await markStrategyReviewed(strategyId, reviewResult.review);
+      } else {
+        console.warn("[publishStrategyAction] revisión de campaña omitida:", reviewResult.reason);
+      }
+    } catch (err) {
+      console.error("[publishStrategyAction] error generando la revisión de campaña:", err);
+    }
 
     revalidatePath(`/admin/marketing/${strategyId}`);
     return { ok: true, campaignId: campaign.id };
