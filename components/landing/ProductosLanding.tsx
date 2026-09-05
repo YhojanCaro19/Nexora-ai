@@ -22,20 +22,13 @@
 'use client';
 
 import { Fragment } from 'react';
+import Image from 'next/image';
 import { ChevronDown, ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ProductosHero } from '@/components/landing/ProductosHero';
 import { OrbitButton } from '@/components/landing/OrbitButton';
 import { Counter } from '@/components/landing/Counter';
 import { Plans } from '@/components/landing/Plans';
-import {
-  WhatsAppGlyph,
-  InstagramGlyph,
-  FacebookGlyph,
-  TikTokGlyph,
-  MetaGlyph,
-  GoogleGlyph,
-} from '@/components/landing/BrandGlyphs';
 
 // ── helpers de estilo ────────────────────────────────────────────────────
 const SECTION = 'relative w-full px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36';
@@ -168,13 +161,19 @@ function DondeVender() {
   const t = useTranslations('landing.dondeVender');
   const adsCopy = t.raw('ads') as { name: string; body: string }[];
 
+  // Logos reales de marca — mismos archivos que usa el panel para "Conectar
+  // redes" (public/channels/, ver channel-icons.tsx), no los glyphs SVG.
   const redes = [
-    { name: 'WhatsApp', Glyph: WhatsAppGlyph },
-    { name: 'Instagram', Glyph: InstagramGlyph },
-    { name: 'Facebook', Glyph: FacebookGlyph },
-    { name: 'TikTok', Glyph: TikTokGlyph },
+    { name: 'WhatsApp', src: '/channels/whatsapp.png' },
+    { name: 'Instagram', src: '/channels/instagram.png' },
+    { name: 'Facebook', src: '/channels/messenger.png' },
+    { name: 'TikTok', src: '/channels/tiktok.png' },
   ];
-  const adGlyphs = [MetaGlyph, GoogleGlyph, TikTokGlyph];
+  // Logos reales de marca (mismos archivos que Marketing → Conexiones en el
+  // panel, public/marketing/), no los glyphs monocromo de arriba — estas
+  // tarjetas venden la plataforma de pauta específica, conviene que se
+  // reconozcan de un vistazo.
+  const adLogos = ['/marketing/meta.png', '/marketing/google.png', '/marketing/tiktok.png'];
 
   return (
     <section className={SECTION}>
@@ -182,9 +181,9 @@ function DondeVender() {
       <p className={LEAD}>{t('lead')}</p>
 
       <div className="mx-auto mt-14 flex max-w-2xl flex-wrap items-start justify-center gap-x-12 gap-y-8">
-        {redes.map(({ name, Glyph }) => (
+        {redes.map(({ name, src }) => (
           <div key={name} className="flex w-20 flex-col items-center gap-3">
-            <Glyph className="h-9 w-9" />
+            <Image src={src} alt={name} width={36} height={36} unoptimized className="object-contain" />
             <span className="text-xs text-white/60">{name}</span>
           </div>
         ))}
@@ -192,15 +191,12 @@ function DondeVender() {
 
       <div className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3">
         {adsCopy.map(({ name, body }, i) => {
-          const Glyph = adGlyphs[i];
           return (
             <div
               key={name}
               className={`${CARD} flex flex-col items-center text-center`}
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.05]">
-                <Glyph className="h-7 w-7" />
-              </span>
+              <Image src={adLogos[i]} alt={name} width={40} height={40} unoptimized className="object-contain" />
               <h3 className="mt-5 text-lg font-medium text-white">{name}</h3>
               <p className="aventhra-copy mt-3 max-w-xs text-sm leading-relaxed text-white/45">
                 {body}
