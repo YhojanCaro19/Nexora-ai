@@ -50,7 +50,7 @@ export function ProductosHero() {
           pantalla. En móvil el texto va ARRIBA y el robot DEBAJO, apilados
           (no caben lado a lado); en desktop el robot es el div absoluto de
           arriba (lg:block) y acá dentro solo va el título, en fila. */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-8 lg:min-h-[calc(100vh-6rem)] lg:flex-row lg:justify-start lg:gap-0">
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-start gap-6 pt-20 sm:pt-24 lg:min-h-[calc(100vh-6rem)] lg:flex-row lg:justify-start lg:gap-0 lg:pt-0">
         <h1 className={`nexora-headline w-full max-w-3xl font-normal leading-[1.15] tracking-tight text-white text-center lg:text-left ${titleSize}`}>
           <span className="[word-spacing:0.22em]">{t('clickPrefix')}</span>
           <span className="mt-2 block md:ml-6 lg:ml-6">

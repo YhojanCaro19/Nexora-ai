@@ -44,9 +44,15 @@ const NAV_SECTIONS = [
 
 interface ScreenTwoNavbarProps {
   className?: string;
+  // Solo el Home lo usa: en móvil el contenedor pasa de `fixed` a `sticky`
+  // para que suba EN FLUJO junto con la Pantalla 2 (la "cortina") desde el
+  // primer scroll, igual que en desktop, en vez de aparecer de golpe recién
+  // cuando la Pantalla 2 cubre del todo. En el resto de rutas (login,
+  // contacto…) sigue `fixed` (no empuja el layout del formulario centrado).
+  mobileSticky?: boolean;
 }
 
-export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
+export function ScreenTwoNavbar({ className = '', mobileSticky = false }: ScreenTwoNavbarProps) {
   const pathname = usePathname();
   const { actions } = useExperience();
   const t = useTranslations('nav');
@@ -124,8 +130,13 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
         </nav>
       </div>
 
-      {/* ══════ MOBILE / TABLET ══════ contenedor `fixed` (no empuja layout). */}
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:hidden">
+      {/* ══════ MOBILE / TABLET ══════ `fixed` normalmente; `sticky` en el
+          Home (mobileSticky) para subir en flujo con la cortina. */}
+      <div
+        className={`pointer-events-none top-0 z-40 flex justify-center px-4 pt-4 lg:hidden ${
+          mobileSticky ? 'sticky' : 'fixed inset-x-0'
+        }`}
+      >
         <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl">
           {/* Grid 1fr/auto/1fr: el wordmark queda centrado en la columna del
               medio; el clúster de la derecha (menú + login) cae en la

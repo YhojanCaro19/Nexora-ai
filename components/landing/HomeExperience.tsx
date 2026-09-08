@@ -68,16 +68,10 @@ import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
 import { AuthStarfield } from '@/components/landing/AuthStarfield';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
-import { useViewportTier } from '@/core/hooks/useQuality';
 
 export function HomeExperience() {
   const { state, actions } = useExperience();
   const prefersReducedMotion = useReducedMotion();
-  // El navbar de móvil (ScreenTwoNavbar) es `position: fixed`, así que se
-  // vería sobre la Pantalla 1 aunque viva dentro de la Pantalla 2. En
-  // desktop es `sticky` (queda en flujo, abajo del fold) y no molesta. Así
-  // que en móvil solo se monta cuando la Pantalla 2 ya cubre.
-  const isDesktopTier = useViewportTier() === 'desktop';
 
   // 🐛→✅ Antes esto usaba `useInView(sentinelRef, { margin: '0px 0px -100%
   // 0px' })` sobre un sentinel de 1px: la idea era que ese margin negativo
@@ -100,6 +94,12 @@ export function HomeExperience() {
   // Soluciones/Precios/Clientes — así que no hay ningún caso de "aterrizar
   // directo en los módulos" que haya que resolver con query params.
   const [screenTwoCovers, setScreenTwoCovers] = useState(false);
+  // `true` en cuanto la Pantalla 2 EMPIEZA a subir (su borde superior entró
+  // al viewport), no solo cuando ya cubre. Se usa para montar el fondo de
+  // estrellas de la Pantalla 2 desde el primer scroll (pedido del usuario:
+  // "que se viera el fondo desde que comience a subir"), no de golpe al
+  // final.
+  const [screenTwoRising, setScreenTwoRising] = useState(false);
   // Pedido explícito: una vez que el scroll entra de verdad a la Pantalla
   // 2, volver a scrollear hacia arriba NO debe sacar la Pantalla 1 otra
   // vez — la Pantalla 1 es un intro de una sola vez. `ref` (no state):
@@ -144,7 +144,10 @@ export function HomeExperience() {
       if (hasEnteredScreenTwoRef.current) return;
       const el = screenTwoRef.current;
       if (!el) return;
-      const covers = el.getBoundingClientRect().top <= 0;
+      const top = el.getBoundingClientRect().top;
+      const covers = top <= 0;
+      // Empezó a subir: su borde superior ya asomó por abajo del viewport.
+      setScreenTwoRising(top < window.innerHeight - 2);
       if (covers) {
         collapsedSpacerHeightRef.current = el.offsetTop;
         scrollYBeforeCollapseRef.current = window.scrollY;
@@ -334,29 +337,18 @@ export function HomeExperience() {
       >
         {/* Fondo estrellado de la Pantalla 2 en móvil (el mismo campo de
             estrellas de la Pantalla 1): sin esto, al scrollear la landing
-            quedaba sobre negro plano. En desktop (lg+) el fondo es el
-            trazo de puntos de ScreenTwoBackground, así que AuthStarfield
-            es `lg:hidden`. Igual que ScreenTwoBackground, solo se monta
-            cuando la Pantalla 2 ya cubre — mientras el `fixed` no debe
-            pintarse sobre la Pantalla 1. */}
-        {screenTwoCovers && <AuthStarfield />}
-        {/* Fondo de puntos compartido — solo cuando la Pantalla 2 ya
-            cubre (si no, el `fixed` se pintaría sobre la Pantalla 1). */}
+            quedaba sobre negro plano. En desktop (lg+) el fondo es el trazo
+            de puntos de ScreenTwoBackground, así que AuthStarfield es
+            `lg:hidden`. Se monta en cuanto la Pantalla 2 EMPIEZA a subir
+            (`screenTwoRising`), no recién al cubrir — así el fondo sube
+            junto con la cortina. */}
+        {(screenTwoRising || screenTwoCovers) && <AuthStarfield />}
+        {/* Fondo de puntos (desktop) — solo cuando la Pantalla 2 ya cubre. */}
         {screenTwoCovers && <ScreenTwoBackground />}
-        {/* 🐛→✅ Antes ScreenTwoNavbar vivía FUERA de este bloque, `fixed`
-            + gateado por opacidad (aparecía recién cuando `screenTwoCovers`
-            era true, es decir cuando la Pantalla 2 ya cubría el 100% del
-            viewport) — pedido explícito del usuario: el navbar debe subir
-            PEGADO al borde de la Pantalla 2 desde el instante en que
-            empieza a asomar, no esperar a que termine de subir. Como
-            PRIMER hijo acá adentro (`sticky top-0` en ScreenTwoNavbar.tsx),
-            sube en flujo normal junto con el resto del contenido y se
-            queda pegado arriba en cuanto llega al borde superior real —
-            sin ningún gate de opacidad, siempre visible como parte normal
-            de la Pantalla 2. En móvil el navbar es `fixed`, así que solo se
-            monta cuando la Pantalla 2 ya cubre (si no, tapa la Pantalla 1
-            limpia). */}
-        {(isDesktopTier || screenTwoCovers) && <ScreenTwoNavbar />}
+        {/* Navbar como PRIMER hijo, `sticky top-0` (mobileSticky lo hace
+            sticky también en móvil): sube en flujo junto con la cortina
+            desde el primer scroll y se queda pegado arriba al llegar. */}
+        <ScreenTwoNavbar mobileSticky />
         <ProductosLanding />
       </div>
     </>
