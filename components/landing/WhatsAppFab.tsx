@@ -1,10 +1,8 @@
 // components/landing/WhatsAppFab.tsx
 //
-// Botón flotante de WhatsApp para dudas — fijo, sobre toda la experiencia
-// (landing + auth). Se monta en app/(experience)/layout.tsx. En móvil vive
-// abajo a la IZQUIERDA (pedido del usuario; en la esquina derecha se
-// encimaba con la isla del navbar en pantallas cortas); en desktop (lg+)
-// vuelve a la esquina inferior derecha de siempre.
+// Botón flotante de WhatsApp para dudas — abajo a la derecha, fijo, sobre
+// toda la experiencia (landing + auth). Se monta en
+// app/(experience)/layout.tsx.
 //
 // Estado normal: solo el ícono (círculo). Al pasar el mouse / enfocar por
 // teclado, se despliega hacia la izquierda y muestra "¿Tienes dudas?
@@ -72,7 +70,7 @@ export function WhatsAppFab() {
           ? 'Número placeholder — configura NEXT_PUBLIC_WHATSAPP_NUMBER'
           : undefined
       }
-      className="group fixed bottom-5 left-5 z-50 flex items-center rounded-full border border-white/15 bg-black/60 p-3 text-sm text-white/90 shadow-2xl outline-none backdrop-blur-xl transition-colors duration-200 hover:border-white/25 hover:bg-black/80 hover:text-white focus-visible:border-white/25 lg:left-auto lg:right-5"
+      className="group fixed bottom-5 right-5 z-50 flex items-center rounded-full border border-white/15 bg-black/60 p-3 text-sm text-white/90 shadow-2xl outline-none backdrop-blur-xl transition-colors duration-200 hover:border-white/25 hover:bg-black/80 hover:text-white focus-visible:border-white/25"
     >
       {/* Texto a la IZQUIERDA, ícono a la derecha: el ícono queda anclado
           en la esquina (el <a> se posiciona por `right-5`) y el texto se
