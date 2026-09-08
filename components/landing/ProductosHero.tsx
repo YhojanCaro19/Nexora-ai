@@ -44,7 +44,7 @@ export function ProductosHero() {
       <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
         <RobotHead />
       </div>
-      <div className="pointer-events-none absolute right-[2%] top-[40vh] h-[24vh] w-[38vw] max-w-[120px] -translate-y-1/2 lg:hidden">
+      <div className="pointer-events-none absolute right-[1%] top-[37vh] h-[22vh] w-[40vw] max-w-[108px] -translate-y-1/2 sm:right-[4%] sm:max-w-[200px] lg:hidden">
         <RobotHead />
       </div>
 
