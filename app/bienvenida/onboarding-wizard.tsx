@@ -377,22 +377,10 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </p>
 
             <div className="mt-10">
-              <button
-                type="button"
-                onClick={() => setStarted(true)}
-                className="group inline-flex items-center gap-2.5 rounded-full px-9 py-3.5 text-sm font-semibold transition-transform duration-200 hover:-translate-y-0.5"
-                style={{
-                  backgroundColor: "var(--nexora-ink)",
-                  color: "var(--nexora-void)",
-                  boxShadow: "0 0 44px -6px rgba(129,140,248,0.55)",
-                }}
-              >
+              <GradientPill as="button" onClick={() => setStarted(true)}>
                 Comenzar
-                <ArrowRight
-                  size={16}
-                  className="transition-transform duration-200 group-hover:translate-x-0.5"
-                />
-              </button>
+                <ArrowRight size={15} />
+              </GradientPill>
             </div>
           </motion.div>
         )}
