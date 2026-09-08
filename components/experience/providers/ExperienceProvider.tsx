@@ -2,7 +2,6 @@
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { useReducedMotion } from 'framer-motion';
 import { useExperienceDirector } from '@/core/director/ExperienceDirector';
 import { ExperiencePhase, ExperienceState, MobileIntroPhase } from '@/types/experience.type';
 
@@ -82,19 +81,13 @@ interface ExperienceProviderProps {
 export const ExperienceProvider = ({ children }: ExperienceProviderProps) => {
   const { state, actions } = useExperienceDirector();
 
-  // Bajo reduced motion arranca directo en 'settled' — mismo criterio que
-  // ya usaba el useState local que reemplaza esto (y que MobileIntro.tsx,
-  // ya descartado, hacía del lado CSS): nunca se monta el pop de aparición
-  // ni la subida del wordmark, ni tampoco la intro 2D previa (MobileText-
-  // Intro en Experience.tsx) — bajo reduced motion no hay intro de ningún
-  // tipo, aparece asentado de una. Sin reduced motion arranca en 'pending'
-  // (no 'appear' directo): MobileTextIntro corre su propia secuencia 2D
-  // primero y recién al terminar llama a setMobileIntroPhase('appear') —
-  // ver el comentario en MobileIntroPhase (types/experience.type.ts).
-  const prefersReducedMotion = useReducedMotion();
-  const [mobileIntroPhase, setMobileIntroPhase] = useState<MobileIntroPhase>(() =>
-    prefersReducedMotion ? 'settled' : 'pending'
-  );
+  // Móvil/tablet YA NO tiene intro: se quitó la intro 2D de texto y el
+  // wordmark 3D que subía y se asentaba sobre el navbar (pedido del
+  // usuario: "no quiero que se vea nada de lo viejo"). La fase arranca
+  // SIEMPRE en 'settled' — RevealedContent revela el contenido de una,
+  // sin esperar ninguna secuencia. `setMobileIntroPhase` se mantiene por
+  // compatibilidad de tipos aunque ya nadie lo llame.
+  const [mobileIntroPhase, setMobileIntroPhase] = useState<MobileIntroPhase>('settled');
 
   // Default `false` — ver el comentario de `homeMomentTwoVisible` en el
   // tipo de arriba. Solo el Home (desktop) lo prende al hacer scroll hasta
