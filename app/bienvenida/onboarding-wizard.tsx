@@ -456,8 +456,9 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 /* --- piezas internas --- */
 
 // Píldora oscura con el anillo de degradado girando (OrbitFrame /
-// .nexora-navlogin-orbit) — el mismo botón del welcome ("Comenzar"). Al
-// estar deshabilitado no gira: cae a un borde estático tenue.
+// .nexora-navlogin-orbit) — el mismo botón del welcome ("Comenzar"). El
+// anillo gira SIEMPRE, también deshabilitado (pedido del usuario); el
+// estado deshabilitado se nota por el texto tenue y `cursor-not-allowed`.
 function OrbitPillButton({
   children,
   type = "button",
@@ -469,39 +470,24 @@ function OrbitPillButton({
   disabled?: boolean;
   onClick?: () => void;
 }) {
-  const btn = (
-    <button
-      type={type}
-      disabled={disabled}
-      onClick={onClick}
-      className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
-      style={{
-        backgroundColor: "#0b0b0f",
-        color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
-      }}
-    >
-      {children}
-    </button>
-  );
-  if (disabled) {
-    // Mismo interior oscuro que habilitado; sin el anillo girando, con un
-    // borde estático tenue.
-    return (
-      <span
-        className="inline-block rounded-full border p-px"
-        style={{ borderColor: "var(--nexora-line)" }}
-      >
-        {btn}
-      </span>
-    );
-  }
   return (
     <OrbitFrame
       className="inline-block rounded-full"
       innerClassName="rounded-full"
       ringSize="h-[240px] w-[240px]"
     >
-      {btn}
+      <button
+        type={type}
+        disabled={disabled}
+        onClick={onClick}
+        className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
+        style={{
+          backgroundColor: "#0b0b0f",
+          color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
+        }}
+      >
+        {children}
+      </button>
     </OrbitFrame>
   );
 }
