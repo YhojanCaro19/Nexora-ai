@@ -32,13 +32,13 @@ export default async function BienvenidaLayout({ children }: { children: React.R
         aria-hidden
         className="pointer-events-none fixed z-0"
         style={{
-          top: "-22%",
-          left: "-22%",
-          width: "144%",
-          height: "144%",
+          top: "-30%",
+          left: "-30%",
+          width: "160%",
+          height: "160%",
           background:
-            "radial-gradient(40% 36% at 50% 44%, rgba(129,140,248,0.55), rgba(129,140,248,0.13) 54%, transparent 82%)",
-          filter: "blur(72px)",
+            "radial-gradient(circle 62vw at 50% 50%, rgba(129,140,248,0.52), rgba(129,140,248,0.13) 44%, transparent 78%)",
+          filter: "blur(80px)",
         }}
       />
 
