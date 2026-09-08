@@ -3,8 +3,7 @@
 // Navbar DEDICADO de la "Pantalla 2" — la landing real que ve el usuario.
 // Lo montan HomeExperience.tsx (desktop, dentro del bloque de la Pantalla
 // 2), y las páginas /productos, /contacto, /login, /solicitar-acceso,
-// /gracias, /registro y el Home en mobile (app/(experience)/(marketing)/
-// page.tsx).
+// /gracias y el Home en mobile (app/(experience)/(marketing)/page.tsx).
 //
 // DOS CONTENEDORES RAÍZ INDEPENDIENTES — no uno solo con overrides `lg:`:
 //

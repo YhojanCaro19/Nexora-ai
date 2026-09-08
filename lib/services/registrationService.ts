@@ -2,27 +2,32 @@
 //
 // Orquesta el alta de cuentas por PAGO (Wompi):
 //   /precios  → createCheckoutSession → Wompi
-//   webhook   → processApprovedPayment → pending_registrations + correo
-//   /registro → completeRegistration  → cuenta + negocio + agente + créditos
+//   webhook   → processApprovedPayment → cuenta mínima + correo "cuenta lista"
 //
-// La creación real de la cuenta (usuario Auth sin password, negocio,
-// business_members, agent_configs, con rollback en cascada) vive en
-// `provisionBusinessAccount` — antes era `adminService.createAccountFromRequest`.
+// Ya NO hay link ni formulario por correo: el webhook provisiona la cuenta
+// mínima de inmediato (usuario Auth sin password + negocio con nombre e
+// industria provisionales). El dueño completa nombre/industria/teléfono y
+// se genera el agente en el ONBOARDING de su primer login (/bienvenida →
+// lib/services/onboardingService.ts).
+//
+// La creación de la cuenta (usuario Auth, negocio, business_members, con
+// rollback en cascada) vive en `provisionAccountCore` / `provisionMinimalAccount`.
 //
 // Degrada suave: si el módulo de créditos / estas tablas no están aplicados,
 // las funciones lanzan y el llamador (webhook / server action) lo atrapa.
-import { randomBytes, createHash } from "crypto";
+import { randomBytes } from "crypto";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { getIndustryTemplate } from "@/lib/services/agentTemplateService";
 import { industryTypes } from "@/lib/validators/businessSchema";
-import {
-  sendRegistrationLinkEmail,
-  sendAccountReadyEmail,
-} from "@/lib/services/emailService";
+import { sendAccountReadyEmail } from "@/lib/services/emailService";
 import { buildCheckoutUrl, type WompiTransaction } from "@/lib/services/wompiService";
 
-const REGISTRATION_TOKEN_TTL_DAYS = 30;
+// Industria placeholder para la cuenta recién provisionada — el dueño elige
+// la real en el onboarding. Se resuelve contra el catálogo por si el value
+// llega a cambiar.
+const DEFAULT_INDUSTRY_TYPE =
+  industryTypes.find((it) => it.value === "online_store")?.value ?? industryTypes[0].value;
 
 // ---------------------------------------------------------------
 // Planes
@@ -182,8 +187,10 @@ function isBillingPeriod(period: string): period is BillingPeriod {
 // Webhook — pago aprobado
 // ---------------------------------------------------------------
 
-function hashToken(rawToken: string): string {
-  return createHash("sha256").update(rawToken, "utf8").digest("hex");
+// `pending_registrations.token_hash` es NOT NULL + UNIQUE y ya no se usa
+// ningún link — se rellena con un valor descartable único por fila.
+function throwawayTokenHash(): string {
+  return randomBytes(24).toString("hex");
 }
 
 /**
@@ -216,10 +223,10 @@ export async function processApprovedPayment(tx: WompiTransaction): Promise<void
     return;
   }
 
-  // Marca "paid" de forma ATÓMICA: el `.eq("status","pending")` +
-  // `.select()` hace que solo UNA de dos entregas concurrentes del webhook
-  // (Wompi reintenta) se lleve la fila. Si no vino nada, otra entrega ya
-  // la tomó → esta se corta acá y no vuelve a acreditar el plan.
+  // Marca "paid" de forma ATÓMICA: el `.in("status", [...])` + `.select()`
+  // hace que solo UNA de dos entregas concurrentes del webhook (Wompi
+  // reintenta) se lleve la fila. Si no vino nada, otra entrega ya la tomó →
+  // esta se corta acá y no vuelve a acreditar el plan ni a provisionar.
   const { data: claimed } = await admin
     .from("checkout_sessions")
     .update({ status: "paid", wompi_transaction_id: tx.id, updated_at: new Date().toISOString() })
@@ -248,37 +255,49 @@ export async function processApprovedPayment(tx: WompiTransaction): Promise<void
     return;
   }
 
-  // Alta nueva: registro pendiente + correo con el link.
-  const rawToken = randomBytes(32).toString("base64url");
-  const { data: pending, error } = await admin
-    .from("pending_registrations")
-    .insert({
-      email,
-      token_hash: hashToken(rawToken),
-      plan_id: session.plan_id,
-      plan_key: session.plan_key,
-      billing_period: period,
-      checkout_session_id: session.id,
-      wompi_transaction_id: tx.id,
-      source: "payment",
-    })
-    .select("id, expires_at")
-    .single();
-
-  if (error || !pending) {
-    // wompi_transaction_id unique → si ya existe, es un reintento del webhook.
-    console.error("[processApprovedPayment] no se pudo crear pending_registration:", error?.message);
+  // Alta nueva: se provisiona la cuenta MÍNIMA de inmediato (sin link ni
+  // formulario). El dueño completa nombre/industria/teléfono y se crea el
+  // agente en el onboarding de su primer login (/bienvenida).
+  const provision = await provisionMinimalAccount({ email, createdBy: null });
+  if (provision.error || !provision.businessId) {
+    console.error("[processApprovedPayment] no se pudo provisionar la cuenta:", provision.error);
     return;
   }
 
-  const plan = await getPlanByKey(session.plan_key);
-  const { error: mailError } = await sendRegistrationLinkEmail(email, {
-    link: `${APP_URL()}/registro/${rawToken}`,
-    planName: plan?.name ?? session.plan_key,
-    expiresAt: pending.expires_at,
+  // Créditos del plan pagado.
+  try {
+    await applyPlanToBusiness(provision.businessId, session.plan_key, period);
+  } catch (err) {
+    console.error("[processApprovedPayment] no se pudieron acreditar los créditos del plan:", err);
+  }
+
+  // Fila en pending_registrations para que Superadmin → Registros lo vea.
+  // Nace 'completed' con el business_id: no hay nada pendiente por hacer.
+  // `wompi_transaction_id` (UNIQUE) mantiene la idempotencia si una
+  // reentrega del webhook llegara hasta acá pese al claim atómico de arriba.
+  const { error: pendingError } = await admin.from("pending_registrations").insert({
+    email,
+    token_hash: throwawayTokenHash(),
+    plan_id: session.plan_id,
+    plan_key: session.plan_key,
+    billing_period: period,
+    checkout_session_id: session.id,
+    wompi_transaction_id: tx.id,
+    source: "payment",
+    status: "completed",
+    business_id: provision.businessId,
+    completed_at: new Date().toISOString(),
   });
+  if (pendingError) {
+    console.error(
+      "[processApprovedPayment] no se pudo registrar en pending_registrations:",
+      pendingError.message
+    );
+  }
+
+  const { error: mailError } = await sendAccountReadyEmail(email);
   if (mailError) {
-    console.error("[processApprovedPayment] falló el envío del correo de registro:", mailError);
+    console.error("[processApprovedPayment] falló el envío del correo 'cuenta lista':", mailError);
   }
 }
 
@@ -310,8 +329,8 @@ async function findBusinessIdByOwnerEmail(email: string): Promise<string | null>
 
 /**
  * Acredita los créditos del plan a un negocio y deja registrado el plan
- * vigente en el wallet. Usado por la renovación (webhook) y por el alta
- * nueva (completeRegistration).
+ * vigente en el wallet. Usado por la renovación y por el alta nueva (webhook
+ * y alta manual del superadmin).
  */
 async function applyPlanToBusiness(
   businessId: string,
@@ -342,188 +361,32 @@ async function applyPlanToBusiness(
 }
 
 // ---------------------------------------------------------------
-// Registro — el cliente completa sus datos
+// Provisión de la cuenta
 // ---------------------------------------------------------------
-
-export interface PendingRegistrationView {
-  id: string;
-  email: string;
-  planKey: string;
-  planName: string;
-  billingPeriod: BillingPeriod;
-}
-
-type TokenLookup =
-  | { ok: true; registration: PendingRegistrationRow }
-  | { ok: false; reason: "not_found" | "completed" | "expired" };
-
-interface PendingRegistrationRow {
-  id: string;
-  email: string;
-  plan_id: string | null;
-  plan_key: string;
-  billing_period: BillingPeriod;
-  status: "pending" | "completed" | "expired";
-  expires_at: string;
-}
-
-async function lookupByToken(rawToken: string): Promise<TokenLookup> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("pending_registrations")
-    .select("id, email, plan_id, plan_key, billing_period, status, expires_at")
-    .eq("token_hash", hashToken(rawToken))
-    .maybeSingle();
-
-  if (!data) return { ok: false, reason: "not_found" };
-  const reg = data as PendingRegistrationRow;
-  if (reg.status === "completed") return { ok: false, reason: "completed" };
-  if (reg.status === "expired" || new Date(reg.expires_at).getTime() < Date.now()) {
-    return { ok: false, reason: "expired" };
-  }
-  return { ok: true, registration: reg };
-}
-
-/** Para la página /registro/[token] — datos a mostrar, o el motivo del rechazo. */
-export async function getPendingRegistrationByToken(
-  rawToken: string
-): Promise<
-  | { status: "ok"; data: PendingRegistrationView }
-  | { status: "not_found" | "completed" | "expired" }
-> {
-  const result = await lookupByToken(rawToken);
-  if (!result.ok) return { status: result.reason };
-
-  const reg = result.registration;
-  const plan = await getPlanByKey(reg.plan_key);
-  return {
-    status: "ok",
-    data: {
-      id: reg.id,
-      email: reg.email,
-      planKey: reg.plan_key,
-      planName: plan?.name ?? reg.plan_key,
-      billingPeriod: reg.billing_period,
-    },
-  };
-}
-
-export interface CompleteRegistrationInput {
-  businessName: string;
-  industryType: string;
-  phone: string;
-  countryIso2?: string;
-  fullName: string;
-}
-
-export interface CompleteRegistrationResult {
-  error: string | null;
-  data: { email: string } | null;
-}
-
-/**
- * El cliente envía el formulario de /registro. Crea la cuenta completa y
- * acredita los créditos del plan pagado.
- */
-export async function completeRegistration(
-  rawToken: string,
-  input: CompleteRegistrationInput
-): Promise<CompleteRegistrationResult> {
-  const lookup = await lookupByToken(rawToken);
-  if (!lookup.ok) {
-    const msg =
-      lookup.reason === "completed"
-        ? "Este enlace ya se usó. Entra con Google."
-        : lookup.reason === "expired"
-          ? "Este enlace venció. Escríbenos para reenviarte uno nuevo."
-          : "Enlace inválido.";
-    return { error: msg, data: null };
-  }
-
-  const reg = lookup.registration;
-
-  if (!industryTypes.some((it) => it.value === input.industryType)) {
-    return { error: "Tipo de negocio inválido", data: null };
-  }
-  if (input.businessName.trim().length < 2) {
-    return { error: "El nombre del negocio es muy corto", data: null };
-  }
-  if (input.fullName.trim().length < 2) {
-    return { error: "El nombre es muy corto", data: null };
-  }
-
-  const provision = await provisionBusinessAccount({
-    email: reg.email,
-    fullName: input.fullName.trim(),
-    businessName: input.businessName.trim(),
-    phone: input.phone,
-    industryType: input.industryType,
-    countryIso2: input.countryIso2,
-    createdBy: null,
-  });
-
-  if (provision.error || !provision.businessId) {
-    return { error: provision.error ?? "No se pudo crear la cuenta", data: null };
-  }
-
-  // Créditos del plan pagado.
-  try {
-    await applyPlanToBusiness(provision.businessId, reg.plan_key, reg.billing_period);
-  } catch (err) {
-    console.error("[completeRegistration] no se pudieron acreditar los créditos del plan:", err);
-    // No se revierte la cuenta: existe y es válida; el superadmin puede
-    // acreditar a mano. Se deja registrado.
-  }
-
-  const admin = createAdminClient();
-  await admin
-    .from("pending_registrations")
-    .update({
-      status: "completed",
-      business_id: provision.businessId,
-      completed_at: new Date().toISOString(),
-    })
-    .eq("id", reg.id);
-
-  const { error: mailError } = await sendAccountReadyEmail(reg.email, {
-    businessName: input.businessName.trim(),
-  });
-  if (mailError) {
-    console.error("[completeRegistration] falló el correo 'cuenta lista':", mailError);
-  }
-
-  return { error: null, data: { email: reg.email } };
-}
-
-// ---------------------------------------------------------------
-// Provisión de la cuenta (extraído de adminService.createAccountFromRequest)
-// ---------------------------------------------------------------
-
-export interface ProvisionInput {
-  email: string;
-  fullName: string;
-  businessName: string;
-  phone: string;
-  industryType: string;
-  countryIso2?: string;
-  /** superadmin, si el alta la hizo una persona; null en el flujo por pago. */
-  createdBy: string | null;
-}
 
 export interface ProvisionResult {
   error: string | null;
   businessId: string | null;
 }
 
+interface ProvisionCoreInput {
+  email: string;
+  fullName: string;
+  businessName: string;
+  phone: string | null;
+  industryType: string;
+  countryIso2?: string;
+  /** superadmin, si el alta la hizo una persona; null en el flujo por pago. */
+  createdBy: string | null;
+}
+
 /**
- * Crea: usuario de Auth (sin password, email_confirm) + negocio +
- * completa la fila que deja el trigger on_business_created en
- * business_members + agent_configs desde la plantilla de la industria.
- * Rollback en cascada si algo falla a mitad de camino.
+ * Crea: usuario de Auth (sin password, email_confirm) + negocio + completa
+ * la fila que deja el trigger on_business_created en business_members.
+ * NO crea agent_configs (eso ocurre al terminar el onboarding). Rollback en
+ * cascada si algo falla a mitad de camino.
  */
-export async function provisionBusinessAccount(
-  input: ProvisionInput
-): Promise<ProvisionResult> {
+async function provisionAccountCore(input: ProvisionCoreInput): Promise<ProvisionResult> {
   const admin = createAdminClient();
 
   // Sin `password`: la cuenta solo se usa vía Google OAuth con este mismo
@@ -552,7 +415,7 @@ export async function provisionBusinessAccount(
     .single();
 
   if (businessError || !business) {
-    console.error("[provisionBusinessAccount] error al crear businesses:", businessError?.message);
+    console.error("[provisionAccountCore] error al crear businesses:", businessError?.message);
     await admin.auth.admin.deleteUser(newUser.user.id);
     return { error: translateError(businessError), businessId: null };
   }
@@ -570,43 +433,77 @@ export async function provisionBusinessAccount(
     .eq("user_id", newUser.user.id);
 
   if (memberError) {
-    console.error("[provisionBusinessAccount] error al completar business_members:", memberError.message);
+    console.error("[provisionAccountCore] error al completar business_members:", memberError.message);
     await admin.from("businesses").delete().eq("id", business.id);
     await admin.auth.admin.deleteUser(newUser.user.id);
     return { error: translateError(memberError), businessId: null };
   }
 
-  // Agente con la plantilla COMPLETA de la industria (no solo tools).
-  const template = await getIndustryTemplate(input.industryType);
-  const { error: agentError } = await admin.from("agent_configs").insert({
-    business_id: business.id,
-    enabled_tools: template.toolKeys,
-    personality: template.personality,
-    greeting_message: template.greetingMessage,
-    escalation_message: template.escalationMessage,
-    fallback_message: template.fallbackMessage,
-    after_hours_message: template.afterHoursMessage,
-    farewell_message: template.farewellMessage,
-    faqs: template.faqs,
-    response_length: template.responseLength,
-    // Ya no se adivina desde un booleano — la plantilla trae su propio
-    // emoji_mode/address_form/escalation_triggers/language (2026-09-08),
-    // igual que Mi Agente. Ver docs/sql/industry-templates-persona.sql.
-    emoji_mode: template.emojiMode,
-    emoji_set: template.emojiSet,
-    address_form: template.addressForm,
-    escalation_triggers: template.escalationTriggers,
-    language: template.language,
-    restrictions: template.restrictions,
-  });
-
-  if (agentError) {
-    // No es fatal: la cuenta y el negocio ya son válidos. El admin puede
-    // configurar el agente después desde "Mi Agente".
-    console.error("[provisionBusinessAccount] error al crear agent_configs:", agentError.message);
-  }
-
   return { error: null, businessId: business.id };
+}
+
+/**
+ * Cuenta MÍNIMA para el flujo por pago / alta manual: usuario + negocio con
+ * nombre e industria provisionales, sin agente. El dueño completa los datos
+ * reales y genera el agente en /bienvenida
+ * (onboardingService.completeOnboarding).
+ */
+export async function provisionMinimalAccount(input: {
+  email: string;
+  createdBy: string | null;
+}): Promise<ProvisionResult> {
+  const localPart = input.email.split("@")[0]?.trim() || "Mi negocio";
+  return provisionAccountCore({
+    email: input.email,
+    fullName: localPart,
+    businessName: "Mi negocio",
+    phone: null,
+    industryType: DEFAULT_INDUSTRY_TYPE,
+    createdBy: input.createdBy,
+  });
+}
+
+/**
+ * Crea (o reemplaza) agent_configs de un negocio desde la plantilla COMPLETA
+ * de su industria. Lo usa el onboarding al terminar. Idempotente (upsert por
+ * business_id) para tolerar un doble submit.
+ */
+export async function createAgentConfigFromTemplate(
+  businessId: string,
+  industryType: string
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const template = await getIndustryTemplate(industryType);
+  const { error } = await admin.from("agent_configs").upsert(
+    {
+      business_id: businessId,
+      enabled_tools: template.toolKeys,
+      personality: template.personality,
+      greeting_message: template.greetingMessage,
+      escalation_message: template.escalationMessage,
+      fallback_message: template.fallbackMessage,
+      after_hours_message: template.afterHoursMessage,
+      farewell_message: template.farewellMessage,
+      faqs: template.faqs,
+      response_length: template.responseLength,
+      // Ya no se adivina desde un booleano — la plantilla trae su propio
+      // emoji_mode/address_form/escalation_triggers/language, igual que Mi
+      // Agente. Ver docs/sql/industry-templates-persona.sql.
+      emoji_mode: template.emojiMode,
+      emoji_set: template.emojiSet,
+      address_form: template.addressForm,
+      escalation_triggers: template.escalationTriggers,
+      language: template.language,
+      restrictions: template.restrictions,
+    },
+    { onConflict: "business_id" }
+  );
+
+  if (error) {
+    console.error("[createAgentConfigFromTemplate] error al crear agent_configs:", error.message);
+    return { error: translateError(error) };
+  }
+  return { error: null };
 }
 
 // ---------------------------------------------------------------
@@ -654,6 +551,11 @@ export async function listPendingRegistrations(): Promise<PendingRegistrationLis
   }));
 }
 
+/**
+ * Alta manual del superadmin (cortesías / soporte). Mismo camino que el
+ * webhook: provisiona la cuenta mínima directo. El negocio aparece en
+ * Registros y el dueño onboardea en su primer login.
+ */
 export async function createManualPendingRegistration(params: {
   email: string;
   planKey: string;
@@ -675,77 +577,57 @@ export async function createManualPendingRegistration(params: {
     return { error: "Ese correo ya tiene un negocio en AVENTHRA" };
   }
 
-  const admin = createAdminClient();
-  const rawToken = randomBytes(32).toString("base64url");
-  const { data: pending, error } = await admin
-    .from("pending_registrations")
-    .insert({
-      email,
-      token_hash: hashToken(rawToken),
-      plan_id: plan.id,
-      plan_key: plan.key,
-      billing_period: params.billingPeriod,
-      source: "manual",
-      created_by: params.createdBy,
-    })
-    .select("expires_at")
-    .single();
-
-  if (error || !pending) {
-    return { error: translateError(error) };
+  const provision = await provisionMinimalAccount({ email, createdBy: params.createdBy });
+  if (provision.error || !provision.businessId) {
+    return { error: provision.error ?? "No se pudo crear la cuenta" };
   }
 
-  const { error: mailError } = await sendRegistrationLinkEmail(email, {
-    link: `${APP_URL()}/registro/${rawToken}`,
-    planName: plan.name,
-    expiresAt: pending.expires_at,
+  try {
+    await applyPlanToBusiness(provision.businessId, plan.key, params.billingPeriod);
+  } catch (err) {
+    console.error("[createManualPendingRegistration] no se pudieron acreditar los créditos:", err);
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("pending_registrations").insert({
+    email,
+    token_hash: throwawayTokenHash(),
+    plan_id: plan.id,
+    plan_key: plan.key,
+    billing_period: params.billingPeriod,
+    source: "manual",
+    status: "completed",
+    business_id: provision.businessId,
+    created_by: params.createdBy,
+    completed_at: new Date().toISOString(),
   });
+  if (error) {
+    console.error("[createManualPendingRegistration] pending_registrations:", error.message);
+  }
+
+  const { error: mailError } = await sendAccountReadyEmail(email);
   if (mailError) {
-    return { error: `Registro creado, pero el correo falló: ${mailError}` };
+    return { error: `Cuenta creada, pero el correo falló: ${mailError}` };
   }
 
   return { error: null };
 }
 
 /**
- * Reenvía el correo de un registro pendiente. Rota el token (invalida el
- * anterior) y extiende la vigencia.
+ * Reenvía el correo de "cuenta lista" a un registro existente — para
+ * soporte, cuando el dueño perdió el correo original. Ya no hay token ni
+ * link que rotar: la cuenta existe desde que se creó el registro.
  */
-export async function resendRegistrationEmail(id: string): Promise<{ error: string | null }> {
+export async function resendAccountReadyEmail(id: string): Promise<{ error: string | null }> {
   const admin = createAdminClient();
   const { data: reg } = await admin
     .from("pending_registrations")
-    .select("id, email, plan_key, status")
+    .select("email, business_id")
     .eq("id", id)
     .maybeSingle();
 
   if (!reg) return { error: "Registro no encontrado" };
-  if ((reg as { status: string }).status !== "pending") {
-    return { error: "Este registro ya no está pendiente" };
-  }
 
-  const rawToken = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(
-    Date.now() + REGISTRATION_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000
-  ).toISOString();
-
-  const { error } = await admin
-    .from("pending_registrations")
-    .update({ token_hash: hashToken(rawToken), expires_at: expiresAt })
-    .eq("id", id);
-
-  if (error) return { error: translateError(error) };
-
-  const plan = await getPlanByKey((reg as { plan_key: string }).plan_key);
-  const { error: mailError } = await sendRegistrationLinkEmail(
-    (reg as { email: string }).email,
-    {
-      link: `${APP_URL()}/registro/${rawToken}`,
-      planName: plan?.name ?? (reg as { plan_key: string }).plan_key,
-      expiresAt,
-    }
-  );
-  if (mailError) return { error: mailError };
-
-  return { error: null };
+  const { error } = await sendAccountReadyEmail((reg as { email: string }).email);
+  return { error: error ?? null };
 }

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import {
-  resendRegistrationEmail,
+  resendAccountReadyEmail,
   createManualPendingRegistration,
   type BillingPeriod,
 } from "@/lib/services/registrationService";
@@ -14,11 +14,11 @@ async function requireSuperadmin() {
   return profile;
 }
 
-export async function resendRegistrationEmailAction(id: string) {
+export async function resendAccountEmailAction(id: string) {
   const profile = await requireSuperadmin();
   if (!profile) return { error: "No autorizado" };
 
-  const result = await resendRegistrationEmail(id);
+  const result = await resendAccountReadyEmail(id);
   revalidatePath("/superadmin/registros");
   return result;
 }

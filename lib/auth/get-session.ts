@@ -9,6 +9,12 @@ export interface SessionProfile {
   role: UserRole;
   businessId: string | null;
   permissions: string[];
+  /**
+   * `false` solo para un negocio recién provisionado que todavía no pasó
+   * por /bienvenida. Default `true` cuando no hay negocio (superadmin) para
+   * no bloquear a nadie por error. El gate vive en admin/layout.tsx.
+   */
+  onboardingCompleted: boolean;
 }
 
 export const getSessionProfile = cache(async (): Promise<SessionProfile | null> => {
@@ -33,12 +39,13 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
       role: 'superadmin',
       businessId: null,
       permissions: [],
+      onboardingCompleted: true,
     };
   }
 
   const { data: membership } = await supabase
     .from('business_members')
-    .select('role, business_id, full_name, permissions, businesses(is_active)')
+    .select('role, business_id, full_name, permissions, businesses(is_active, onboarding_completed)')
     .eq('user_id', user.id)
     .eq('is_active', true)
     .maybeSingle();
@@ -48,7 +55,10 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
     // TODOS sus miembros, admin y colaboradores por igual — no solo una
     // etiqueta visual en el panel de superadmin, un negocio inactivo no
     // puede entrar a la plataforma hasta que se vuelva a habilitar.
-    const businessActive = (membership.businesses as unknown as { is_active: boolean } | null)?.is_active ?? true;
+    const business = membership.businesses as unknown as
+      | { is_active: boolean; onboarding_completed: boolean }
+      | null;
+    const businessActive = business?.is_active ?? true;
     if (!businessActive) return null;
 
     return {
@@ -57,6 +67,7 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
       role: membership.role as UserRole,
       businessId: membership.business_id,
       permissions: (membership.permissions as string[]) ?? [],
+      onboardingCompleted: business?.onboarding_completed ?? true,
     };
   }
 

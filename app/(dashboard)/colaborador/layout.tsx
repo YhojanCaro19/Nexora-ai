@@ -9,6 +9,10 @@ export default async function ColaboradorLayout({ children }: { children: React.
   const profile = await getSessionProfile();
   if (!profile || profile.role !== 'colaborador') redirect('/login');
 
+  // El colaborador NO onboardea: el onboarding del negocio (nombre,
+  // industria, agente) lo hace el dueño en /bienvenida. Para cuando un
+  // colaborador entra, el negocio ya está configurado.
+
   const [avatarUrl, balance] = await Promise.all([
     getAvatarUrl(profile.userId, profile.businessId),
     profile.businessId ? getCreditBalance(profile.businessId) : Promise.resolve(null),

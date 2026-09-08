@@ -1,9 +1,10 @@
 // app/(experience)/(auth)/login/page.tsx
 //
 // Login de AVENTHRA. Auth SOLO con Google (ver docs/decisions.md). Las
-// cuentas se crean después de pagar un plan (webhook de Wompi → correo con
-// link → /registro/[token]); acá la persona entra con la MISMA cuenta de
-// Google del correo con el que pagó.
+// cuentas se crean después de pagar un plan (webhook de Wompi → cuenta
+// mínima + correo "cuenta lista"); acá la persona entra con la MISMA cuenta
+// de Google del correo con el que pagó y completa el onboarding
+// (/bienvenida) en su primer ingreso.
 //
 // Ruta de "Pantalla 2" (SCREEN_TWO_NAVBAR_ROUTES en Experience.tsx): sin
 // robot 3D, con el navbar dedicado (ScreenTwoNavbar) y el fondo de puntos.

@@ -127,8 +127,8 @@ export const Experience = ({
                   campo de estrellas (AuthStarfield: mismo DeepSpaceStars,
                   sin wordmark) como fondo, y el contenido entra de una
                   (RevealedContent ya no espera ninguna fase). Las rutas
-                  "bare" (login, registro) montan su propio AuthStarfield en
-                  su page.tsx, así que acá se salta con `!shouldHideRobot`. */}
+                  "bare" (login) montan su propio AuthStarfield en su
+                  page.tsx, así que acá se salta con `!shouldHideRobot`. */}
               {!showRobot3D && !shouldHideRobot && <AuthStarfield />}
 
             </div>
@@ -218,15 +218,11 @@ function RevealedContent({
 // su contenido vive hoy en la landing larga.)
 const SCREEN_TWO_NAVBAR_ROUTES = ['/', '/productos', '/contacto', '/login', '/solicitar-acceso', '/gracias'];
 
-// Match de ruta contra la lista de arriba, con soporte para prefijos en las
-// rutas del flujo de compra que tienen segmentos dinámicos:
-//   /gracias            → "pago recibido" (redirect de Wompi)
-//   /registro/<token>   → formulario de alta tras pagar
-// Comparten el mismo criterio de "entorno aparte": su propio
+// Match de ruta contra la lista de arriba. `/gracias` ("pago recibido",
+// redirect de Wompi) comparte el criterio de "entorno aparte": su propio
 // ScreenTwoNavbar, sin robot ni fondo 3D.
 function matchesScreenTwoNavbar(pathname: string): boolean {
-  if (SCREEN_TWO_NAVBAR_ROUTES.includes(pathname)) return true;
-  return pathname.startsWith('/registro/');
+  return SCREEN_TWO_NAVBAR_ROUTES.includes(pathname);
 }
 
 // Las rutas de `matchesScreenTwoNavbar` montan su PROPIO navbar

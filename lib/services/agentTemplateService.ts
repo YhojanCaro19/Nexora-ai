@@ -6,9 +6,9 @@
 // horario, despedida), cuándo escalar a una persona, FAQs base, largo de
 // respuesta e idioma. Se usa en dos momentos:
 // - superadmin la edita acá (Agentes → Plantillas por industria).
-// - provisionBusinessAccount (registrationService.ts) la copia completa a
-//   agent_configs cuando se crea un negocio nuevo, para que el admin no
-//   empiece con el agente en blanco.
+// - createAgentConfigFromTemplate (registrationService.ts) la copia
+//   completa a agent_configs al terminar el onboarding del negocio
+//   (/bienvenida), para que el admin no empiece con el agente en blanco.
 //
 // A propósito NO incluye nada que deba ser de cada negocio (horarios,
 // descripción del negocio, ubicaciones, redes, métodos de pago,

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dropdown } from "@/components/dashboard/shared/Dropdown";
 import { formatShortDateTime } from "@/lib/utils/date";
-import { createManualRegistrationAction, resendRegistrationEmailAction } from "./actions";
+import { createManualRegistrationAction, resendAccountEmailAction } from "./actions";
 
 type Registro = {
   id: string;
@@ -67,7 +67,7 @@ export function RegistrosPanel({
       setFeedback(
         result.error
           ? { kind: "error", text: result.error }
-          : { kind: "ok", text: "Registro creado y correo enviado." }
+          : { kind: "ok", text: "Cuenta creada y correo enviado." }
       );
       if (!result.error) setCreating(false);
     });
@@ -77,7 +77,7 @@ export function RegistrosPanel({
     setFeedback(null);
     setResendingId(id);
     startTransition(async () => {
-      const result = await resendRegistrationEmailAction(id);
+      const result = await resendAccountEmailAction(id);
       setResendingId(null);
       setFeedback(
         result.error
@@ -241,7 +241,7 @@ export function RegistrosPanel({
                         {formatShortDateTime(r.createdAt)}
                       </td>
                       <td className="p-3 text-right">
-                        {r.status === "pending" && (
+                        {r.businessId && (
                           <Button
                             type="button"
                             variant="outline"
