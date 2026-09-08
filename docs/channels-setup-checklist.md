@@ -201,7 +201,10 @@
 
 ## FASE 5 — WhatsApp
 
-*(pasos concretos dependen de la decisión BSP vs directo — G)*
+> 📄 **Paso a paso completo en `docs/whatsapp-setup-checklist.md`** (2026-09-07):
+> las 3 opciones de alta (Embedded Signup / BSP / número propio), los trámites
+> en Meta, el token permanente, las plantillas y qué falta de código.
+> Resumen de los hitos:
 - [ ] **[TÚ]** Alta del número (Embedded Signup o panel del BSP)
 - [ ] **[CLAUDE]** Flujo de conexión de WhatsApp en **Mi Agente → Canales**
 - [ ] **[CLAUDE]** Enrutado `object: "whatsapp_business_account"` +
