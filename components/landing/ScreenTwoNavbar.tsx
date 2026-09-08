@@ -143,14 +143,24 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
               >
                 {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
               </button>
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                aria-label={t('login')}
-                className="-mr-1 rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
+              {/* Mismo marco de degradado girando que el login de desktop
+                  (OrbitFrame / .nexora-navlogin-orbit), a escala de ícono —
+                  el usuario lo pidió de vuelta al pasar el login a ícono
+                  compacto. */}
+              <OrbitFrame
+                className="-mr-1 inline-block shrink-0 rounded-full"
+                innerClassName="rounded-full bg-[#0b0b0f]"
+                ringSize="h-16 w-16"
               >
-                <LogIn size={20} strokeWidth={1.5} />
-              </Link>
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  aria-label={t('login')}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-white/85 transition-colors hover:text-white"
+                >
+                  <LogIn size={18} strokeWidth={1.5} />
+                </Link>
+              </OrbitFrame>
             </div>
           </div>
 

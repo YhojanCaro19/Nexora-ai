@@ -12,6 +12,7 @@ import { Mail } from "lucide-react";
 import { signInWithGoogle } from "../actions";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
 import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
+import { AuthStarfield } from "@/components/landing/AuthStarfield";
 
 function GoogleLogo() {
   return (
@@ -47,6 +48,7 @@ export default async function LoginPage({
   return (
     <>
       <ScreenTwoBackground />
+      <AuthStarfield />
       <ScreenTwoNavbar />
 
       {/* Centrado real: en desktop contra el alto que queda bajo el navbar

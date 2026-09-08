@@ -11,6 +11,7 @@ import Link from "next/link";
 import { getPendingRegistrationByToken } from "@/lib/services/registrationService";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
 import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
+import { AuthStarfield } from "@/components/landing/AuthStarfield";
 import { HideStarfield } from "@/components/landing/HideStarfield";
 import { RegistrationForm } from "./RegistrationForm";
 
@@ -19,6 +20,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <>
       <HideStarfield />
       <ScreenTwoBackground />
+      <AuthStarfield />
       <ScreenTwoNavbar />
       <div className="flex min-h-screen w-full items-center justify-center px-6 py-28 md:px-10 lg:min-h-[calc(100vh-6rem)] lg:px-16 lg:py-0">
         <div className="mx-auto w-full max-w-xl">{children}</div>
