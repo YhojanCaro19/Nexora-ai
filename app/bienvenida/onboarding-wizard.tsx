@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { OrbitFrame } from "@/components/landing/OrbitFrame";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
@@ -377,10 +378,23 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </p>
 
             <div className="mt-10">
-              <GradientPill as="button" onClick={() => setStarted(true)}>
-                Comenzar
-                <ArrowRight size={15} />
-              </GradientPill>
+              {/* Mismo efecto de anillo girando que el login del navbar
+                  móvil (OrbitFrame / .nexora-navlogin-orbit). */}
+              <OrbitFrame
+                className="inline-block rounded-full"
+                innerClassName="rounded-full"
+                ringSize="h-[240px] w-[240px]"
+              >
+                <button
+                  type="button"
+                  onClick={() => setStarted(true)}
+                  className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
+                  style={{ backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" }}
+                >
+                  Comenzar
+                  <ArrowRight size={15} />
+                </button>
+              </OrbitFrame>
             </div>
           </motion.div>
         )}
