@@ -200,6 +200,30 @@ export async function sendAccountChangeResolvedEmail(
   });
 }
 
+// Aviso de vencimiento de mensualidad — cron plan-renewal-reminders (ver
+// planRenewalService.ts). Solo informativo: hoy no hay cobro recurrente
+// automático (Wompi todavía procesa pago único), así que el texto NO
+// promete que el acceso se corte solo — evita crear una alarma falsa
+// sobre algo que el sistema todavía no hace de verdad.
+export async function sendPlanRenewalReminderEmail(
+  to: string,
+  data: { businessName: string; renewsAtLabel: string; overdue: boolean }
+): Promise<{ error: string | null }> {
+  return sendEmail({
+    to,
+    subject: data.overdue
+      ? `La mensualidad de ${data.businessName} ya venció`
+      : `La mensualidad de ${data.businessName} está por vencer`,
+    html: emailShell(`
+      <h2 style="margin-bottom: 4px;">${data.overdue ? "Tu mensualidad ya venció" : "Tu mensualidad está por vencer"}</h2>
+      <p>El plan de <strong>${data.businessName}</strong> ${data.overdue ? "venció el" : "se renueva el"}
+      <strong>${data.renewsAtLabel}</strong>.</p>
+      <p style="color: #6b7280; font-size: 13px;">Si ya renovaste, ignora este correo. Si tienes dudas sobre tu
+      plan, contáctanos.</p>
+    `),
+  });
+}
+
 // No lanza — cualquier falla (key faltante, from sin verificar, Resend
 // caído) se devuelve como { error } para que el caller decida si
 // reintenta en la siguiente pasada del cron, nunca tumba el proceso.
