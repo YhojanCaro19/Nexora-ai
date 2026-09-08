@@ -12,6 +12,7 @@ export default async function RegistrosPage() {
 
   const pendientes = registros.filter((r) => r.status === "pending").length;
   const completados = registros.filter((r) => r.status === "completed").length;
+  const manuales = registros.filter((r) => r.source === "manual").length;
 
   return (
     <div className="space-y-6">
@@ -20,11 +21,12 @@ export default async function RegistrosPage() {
       </h1>
 
       {registros.length > 0 && (
-        <div className="mx-auto grid max-w-xl grid-cols-3 gap-4">
+        <div className="mx-auto grid max-w-xl grid-cols-2 sm:grid-cols-4 gap-4">
           {[
             { label: "Total", value: registros.length },
             { label: "Pendientes", value: pendientes },
             { label: "Completados", value: completados },
+            { label: "Altas manuales", value: manuales },
           ].map((kpi) => (
             <div
               key={kpi.label}

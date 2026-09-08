@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { Plus, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dropdown } from "@/components/dashboard/shared/Dropdown";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { createManualRegistrationAction, resendRegistrationEmailAction } from "./actions";
 
@@ -27,6 +28,12 @@ const STATUS_LABEL: Record<string, string> = {
   expired: "Vencido",
 };
 
+const STATUS_COLOR: Record<string, string> = {
+  pending: "var(--nexora-nova)",
+  completed: "var(--nexora-signal)",
+  expired: "var(--nexora-alert)",
+};
+
 const PERIOD_LABEL: Record<string, string> = {
   monthly: "Mensual",
   annual: "Anual",
@@ -42,6 +49,16 @@ export function RegistrosPanel({
   const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  const manualCount = registros.filter((r) => r.source === "manual").length;
+
+  const filtered = useMemo(() => {
+    if (sourceFilter === "all") return registros;
+    if (sourceFilter === "manual") return registros.filter((r) => r.source === "manual");
+    return registros.filter((r) => r.source !== "manual");
+  }, [registros, sourceFilter]);
 
   function handleCreate(formData: FormData) {
     setFeedback(null);
@@ -52,6 +69,7 @@ export function RegistrosPanel({
           ? { kind: "error", text: result.error }
           : { kind: "ok", text: "Registro creado y correo enviado." }
       );
+      if (!result.error) setCreating(false);
     });
   }
 
@@ -73,7 +91,7 @@ export function RegistrosPanel({
     <div className="mx-auto max-w-3xl space-y-6">
       {feedback && (
         <p
-          className={`rounded-lg border p-3 text-sm ${
+          className={`rounded-lg border p-3 text-sm text-center ${
             feedback.kind === "error"
               ? "border-red-500/20 bg-red-500/10 text-red-400"
               : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
@@ -83,13 +101,27 @@ export function RegistrosPanel({
         </p>
       )}
 
-      {/* Alta manual — solo para soporte / cortesías. El alta normal la
-          dispara el pago en Wompi. */}
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-base">Crear registro manual</CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Alta manual — solo para soporte/cortesías. Plegable (no un Card
+          siempre visible): es una acción poco frecuente, no la primera
+          cosa que hay que ver al entrar a Registros. */}
+      {!creating ? (
+        <div className="flex justify-center">
+          <Button type="button" variant="outline" size="sm" onClick={() => setCreating(true)}>
+            <Plus size={14} strokeWidth={2} />
+            Crear registro manual
+          </Button>
+        </div>
+      ) : (
+        <div className="rounded-2xl border p-6 space-y-4" style={{ borderColor: "var(--nexora-line)" }}>
+          <button
+            type="button"
+            onClick={() => setCreating(false)}
+            className="inline-flex items-center gap-1 rounded-full px-1 text-sm transition-colors hover:opacity-80"
+            style={{ color: "var(--nexora-ink-dim)" }}
+          >
+            <ChevronLeft size={16} />
+            Cancelar
+          </button>
           <form action={handleCreate} className="mx-auto max-w-sm space-y-3">
             <div className="space-y-1">
               <Label htmlFor="email" className="block text-center text-xs">
@@ -143,60 +175,91 @@ export function RegistrosPanel({
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {registros.length === 0 ? (
         <p className="py-16 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
           Aún no hay registros. Aparecerán acá cuando alguien pague un plan.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border" style={{ borderColor: "var(--nexora-line)" }}>
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ color: "var(--nexora-ink-dim)" }} className="text-left text-xs uppercase tracking-wide">
-                <th className="p-3">Correo</th>
-                <th className="p-3">Plan</th>
-                <th className="p-3">Origen</th>
-                <th className="p-3">Estado</th>
-                <th className="p-3">Creado</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {registros.map((r) => (
-                <tr key={r.id} className="border-t" style={{ borderColor: "var(--nexora-line)" }}>
-                  <td className="p-3" style={{ color: "var(--nexora-ink)" }}>{r.email}</td>
-                  <td className="p-3" style={{ color: "var(--nexora-ink)" }}>
-                    {r.planKey} · {PERIOD_LABEL[r.billingPeriod] ?? r.billingPeriod}
-                  </td>
-                  <td className="p-3" style={{ color: "var(--nexora-ink-dim)" }}>
-                    {r.source === "manual" ? "Manual" : "Pago"}
-                  </td>
-                  <td className="p-3" style={{ color: "var(--nexora-ink-dim)" }}>
-                    {STATUS_LABEL[r.status] ?? r.status}
-                  </td>
-                  <td className="p-3" style={{ color: "var(--nexora-ink-dim)" }}>
-                    {formatShortDateTime(r.createdAt)}
-                  </td>
-                  <td className="p-3 text-right">
-                    {r.status === "pending" && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={pending}
-                        onClick={() => handleResend(r.id)}
-                      >
-                        {resendingId === r.id ? "Enviando…" : "Reenviar correo"}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <Dropdown
+            className="mx-auto max-w-xs"
+            triggerLabel={
+              sourceFilter === "manual"
+                ? `Altas manuales (${manualCount})`
+                : sourceFilter === "wompi"
+                  ? `Por pago (${registros.length - manualCount})`
+                  : `Todos (${registros.length})`
+            }
+            activeKey={sourceFilter}
+            options={[
+              { key: "all", label: `Todos (${registros.length})` },
+              { key: "wompi", label: `Por pago (${registros.length - manualCount})` },
+              { key: "manual", label: `Altas manuales (${manualCount})` },
+            ]}
+            onSelect={setSourceFilter}
+          />
+
+          {filtered.length === 0 ? (
+            <p className="py-12 text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+              No hay registros que coincidan con el filtro.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border" style={{ borderColor: "var(--nexora-line)" }}>
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr style={{ color: "var(--nexora-ink-dim)" }} className="text-left text-xs uppercase tracking-wide">
+                    <th className="p-3">Correo</th>
+                    <th className="p-3">Plan</th>
+                    <th className="p-3">Origen</th>
+                    <th className="p-3">Estado</th>
+                    <th className="p-3">Creado</th>
+                    <th className="p-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => (
+                    <tr key={r.id} className="border-t" style={{ borderColor: "var(--nexora-line)" }}>
+                      <td className="p-3" style={{ color: "var(--nexora-ink)" }}>{r.email}</td>
+                      <td className="p-3" style={{ color: "var(--nexora-ink)" }}>
+                        {r.planKey} · {PERIOD_LABEL[r.billingPeriod] ?? r.billingPeriod}
+                      </td>
+                      <td className="p-3" style={{ color: "var(--nexora-ink-dim)" }}>
+                        {r.source === "manual" ? "Manual" : "Pago"}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className="rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
+                          style={{ color: STATUS_COLOR[r.status], background: `${STATUS_COLOR[r.status]}1A` }}
+                        >
+                          {STATUS_LABEL[r.status] ?? r.status}
+                        </span>
+                      </td>
+                      <td className="p-3" style={{ color: "var(--nexora-ink-dim)" }}>
+                        {formatShortDateTime(r.createdAt)}
+                      </td>
+                      <td className="p-3 text-right">
+                        {r.status === "pending" && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={pending}
+                            onClick={() => handleResend(r.id)}
+                          >
+                            {resendingId === r.id ? "Enviando…" : "Reenviar correo"}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
