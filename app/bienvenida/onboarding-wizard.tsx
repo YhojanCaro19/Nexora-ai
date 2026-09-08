@@ -93,8 +93,6 @@ function normalize(value: string): string {
     .trim();
 }
 
-const PILL_PRIMARY =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full px-8 text-sm font-medium transition-[filter,opacity] hover:brightness-95 disabled:pointer-events-none disabled:opacity-35";
 const PILL_GHOST =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-medium transition-colors hover:bg-white/[0.06]";
 
@@ -171,7 +169,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
         }
         aria-hidden={screen !== "form"}
       >
-        <GlassCard>
+        <div className="mx-auto w-full max-w-lg">
           <StepHeader
             index={dataStep === "datos" ? 1 : 2}
             title={dataStep === "datos" ? "Tus datos" : "Tu industria"}
@@ -209,20 +207,14 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
               <PhoneField />
 
-              <div className="flex justify-center pt-1">
-                <button
-                  type="button"
+              <div className="flex justify-center pt-2">
+                <OrbitPillButton
                   disabled={!step1Ready}
                   onClick={() => setDataStep("industria")}
-                  className={PILL_PRIMARY}
-                  style={{
-                    backgroundColor: "var(--nexora-nova)",
-                    color: "var(--nexora-nova-ink)",
-                  }}
                 >
                   Continuar
                   <ArrowRight size={15} />
-                </button>
+                </OrbitPillButton>
               </div>
             </div>
 
@@ -324,7 +316,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 </p>
               )}
 
-              <div className="flex items-center justify-center gap-3 pt-1">
+              <div className="flex items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setDataStep("datos")}
@@ -336,22 +328,17 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 >
                   Atrás
                 </button>
-                <button
+                <OrbitPillButton
                   type="submit"
                   disabled={pending || !industryType}
                   onClick={() => setMsgIdx(0)}
-                  className={PILL_PRIMARY}
-                  style={{
-                    backgroundColor: "var(--nexora-nova)",
-                    color: "var(--nexora-nova-ink)",
-                  }}
                 >
                   Crear mi cuenta
-                </button>
+                </OrbitPillButton>
               </div>
             </div>
           </form>
-        </GlassCard>
+        </div>
       </div>
 
       <AnimatePresence mode="wait" initial={false}>
@@ -378,23 +365,10 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </p>
 
             <div className="mt-10">
-              {/* Mismo efecto de anillo girando que el login del navbar
-                  móvil (OrbitFrame / .nexora-navlogin-orbit). */}
-              <OrbitFrame
-                className="inline-block rounded-full"
-                innerClassName="rounded-full"
-                ringSize="h-[240px] w-[240px]"
-              >
-                <button
-                  type="button"
-                  onClick={() => setStarted(true)}
-                  className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
-                  style={{ backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" }}
-                >
-                  Comenzar
-                  <ArrowRight size={15} />
-                </button>
-              </OrbitFrame>
+              <OrbitPillButton onClick={() => setStarted(true)}>
+                Comenzar
+                <ArrowRight size={15} />
+              </OrbitPillButton>
             </div>
           </motion.div>
         )}
@@ -481,18 +455,52 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
 /* --- piezas internas --- */
 
-function GlassCard({ children }: { children: ReactNode }) {
-  return (
-    <div
-      className="rounded-[28px] border p-6 backdrop-blur-xl sm:p-8"
+// Píldora oscura con el anillo de degradado girando (OrbitFrame /
+// .nexora-navlogin-orbit) — el mismo botón del welcome ("Comenzar"). Al
+// estar deshabilitado no gira: cae a un borde estático tenue.
+function OrbitPillButton({
+  children,
+  type = "button",
+  disabled = false,
+  onClick,
+}: {
+  children: ReactNode;
+  type?: "button" | "submit";
+  disabled?: boolean;
+  onClick?: () => void;
+}) {
+  const btn = (
+    <button
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
       style={{
-        borderColor: "var(--nexora-line)",
-        backgroundColor: "color-mix(in oklch, var(--nexora-panel) 68%, transparent)",
-        boxShadow: "0 32px 90px -24px rgba(0, 0, 0, 0.75)",
+        backgroundColor: "#0b0b0f",
+        color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
       }}
     >
       {children}
-    </div>
+    </button>
+  );
+  if (disabled) {
+    return (
+      <span
+        className="inline-block rounded-full border p-px opacity-60"
+        style={{ borderColor: "var(--nexora-line)" }}
+      >
+        {btn}
+      </span>
+    );
+  }
+  return (
+    <OrbitFrame
+      className="inline-block rounded-full"
+      innerClassName="rounded-full"
+      ringSize="h-[240px] w-[240px]"
+    >
+      {btn}
+    </OrbitFrame>
   );
 }
 
@@ -513,16 +521,15 @@ function StepHeader({
             key={n}
             className="h-1 flex-1 rounded-full transition-colors"
             style={{
-              backgroundColor:
-                n <= index ? "var(--nexora-ink)" : "var(--nexora-line)",
+              background:
+                n <= index
+                  ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
+                  : "var(--nexora-line)",
             }}
           />
         ))}
       </div>
-      <p
-        className="mb-2 text-[11px] uppercase tracking-[0.2em]"
-        style={{ color: "var(--nexora-ink-dim)" }}
-      >
+      <p className="aventhra-iridescent mb-2 text-[11px] font-semibold uppercase tracking-[0.2em]">
         Paso {index} de 2
       </p>
       <h2
