@@ -19,7 +19,9 @@
 // OJO: al cambiar `.env.local` hay que reiniciar `npm run dev`.
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useExperience } from '@/components/experience/providers/ExperienceProvider';
 
 // E.164 sin "+" — solo dígitos. wa.me lo quiere así.
 const CONFIGURED = (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? '').replace(/\D/g, '');
@@ -54,8 +56,16 @@ function WhatsAppMark({ className = '' }: { className?: string }) {
 
 export function WhatsAppFab() {
   const t = useTranslations('whatsapp');
+  const pathname = usePathname();
+  const { state } = useExperience();
 
   if (!NUMBER) return null;
+
+  // En el Home, oculto mientras se ve la Pantalla 1 (la "cortina" con el
+  // wordmark + SCROLL): `homeMomentTwoVisible` pasa a true recién cuando el
+  // scroll entra a la Pantalla 2. Fuera de '/' no hay Pantalla 1, así que
+  // solo se gatea ahí.
+  if (pathname === '/' && !state.homeMomentTwoVisible) return null;
 
   const href = `https://wa.me/${NUMBER}?text=${encodeURIComponent(t('prefill'))}`;
 

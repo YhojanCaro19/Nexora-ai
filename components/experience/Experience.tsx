@@ -8,6 +8,7 @@ import { QualityProvider } from './providers/QualityProvider';
 import { SceneContainer } from '@/components/experience/scene/SceneContainer';
 import { AuthStarfield } from '@/components/landing/AuthStarfield';
 import { Navbar } from '@/components/landing/Navbar';
+import { WhatsAppFab } from '@/components/landing/WhatsAppFab';
 import { useViewportTier } from '@/core/hooks/useQuality';
 
 export const Experience = ({
@@ -157,6 +158,11 @@ export const Experience = ({
                 <Navbar />
               </ScreenTwoNavbarGate>
             </RevealedContent>
+
+            {/* Botón flotante de WhatsApp — común a landing y auth. Vive
+                acá dentro (no en el layout) para poder ocultarse durante la
+                Pantalla 1 del Home (necesita el contexto del provider). */}
+            <WhatsAppFab />
 
           </div>
         </ExperienceProvider>

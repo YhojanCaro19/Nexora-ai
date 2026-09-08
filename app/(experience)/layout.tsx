@@ -7,21 +7,16 @@
 // del robot cada vez. Al vivir un nivel arriba, persiste entre esas
 // páginas: la animación de descenso solo se ve una vez por carga real de
 // la app, y de ahí en adelante el robot ya está flotando.
+//
+// El botón flotante de WhatsApp se monta DENTRO de <Experience> (ver ese
+// archivo) — necesita el contexto del ExperienceProvider para ocultarse
+// durante la Pantalla 1 del Home.
 import { Experience } from "@/components/experience/Experience";
-import { WhatsAppFab } from "@/components/landing/WhatsAppFab";
 
 export default function ExperienceLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <Experience>{children}</Experience>
-      {/* Botón flotante de WhatsApp (abajo a la derecha) — común a landing
-          y auth. En prod se oculta si NEXT_PUBLIC_WHATSAPP_NUMBER no está
-          seteada; en dev usa un placeholder para verlo. */}
-      <WhatsAppFab />
-    </>
-  );
+  return <Experience>{children}</Experience>;
 }

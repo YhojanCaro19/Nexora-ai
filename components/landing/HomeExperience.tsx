@@ -66,11 +66,18 @@ import { useReducedMotion } from 'framer-motion';
 import { ProductosLanding } from '@/components/landing/ProductosLanding';
 import { ScreenTwoNavbar } from '@/components/landing/ScreenTwoNavbar';
 import { ScreenTwoBackground } from '@/components/landing/ScreenTwoBackground';
+import { AuthStarfield } from '@/components/landing/AuthStarfield';
 import { useExperience } from '@/components/experience/providers/ExperienceProvider';
+import { useViewportTier } from '@/core/hooks/useQuality';
 
 export function HomeExperience() {
   const { state, actions } = useExperience();
   const prefersReducedMotion = useReducedMotion();
+  // El navbar de móvil (ScreenTwoNavbar) es `position: fixed`, así que se
+  // vería sobre la Pantalla 1 aunque viva dentro de la Pantalla 2. En
+  // desktop es `sticky` (queda en flujo, abajo del fold) y no molesta. Así
+  // que en móvil solo se monta cuando la Pantalla 2 ya cubre.
+  const isDesktopTier = useViewportTier() === 'desktop';
 
   // 🐛→✅ Antes esto usaba `useInView(sentinelRef, { margin: '0px 0px -100%
   // 0px' })` sobre un sentinel de 1px: la idea era que ese margin negativo
@@ -256,6 +263,7 @@ export function HomeExperience() {
     return (
       <>
         <ScreenTwoBackground />
+        <AuthStarfield />
         <ScreenTwoNavbar />
         <ProductosLanding />
       </>
@@ -276,14 +284,15 @@ export function HomeExperience() {
           aria-hidden
         >
           <div className="flex flex-col items-center">
-            <h1 className="aventhra-logo text-6xl tracking-[0.18em] text-white xl:text-7xl">
+            {/* Tamaño responsive: en móvil "AVENTHRA" con letter-spacing a
+                text-6xl se sale de pantalla. */}
+            <h1 className="aventhra-logo text-3xl tracking-[0.16em] text-white sm:text-5xl sm:tracking-[0.18em] lg:text-6xl xl:text-7xl">
               AVENTHRA
             </h1>
             {/* Sin `.aventhra-logo` acá a propósito — mismo criterio que el
-                logo real (Navbar.tsx) y que MobileTextIntro (Experience.tsx):
-                SOLO "AVENTHRA" hereda Space Grotesk, el tagline va con la
-                tipografía normal de la app. */}
-            <p className="mt-6 text-sm uppercase tracking-[0.35em] text-white/55">
+                logo real (Navbar.tsx): SOLO "AVENTHRA" hereda Space Grotesk,
+                el tagline va con la tipografía normal de la app. */}
+            <p className="mt-5 text-xs uppercase tracking-[0.3em] text-white/55 sm:mt-6 sm:text-sm sm:tracking-[0.35em]">
               Tu empleado virtual
             </p>
           </div>
@@ -314,10 +323,23 @@ export function HomeExperience() {
       <div aria-hidden className={screenTwoCovers ? 'h-0 w-full' : 'h-screen w-full'} />
 
       {/* Momento 2 — bloque normal (no fixed, no animado): scroll nativo
-          normal lo sube y tapa a la Pantalla 1. Fondo propio opaco
-          (#08090D, el mismo tono base de toda la app) para taparla de
-          verdad, no solo visualmente "encima" sin cubrir. */}
-      <div ref={screenTwoRef} className="relative z-10 w-full bg-black">
+          normal lo sube y tapa a la Pantalla 1. Fondo propio OPACO para
+          taparla de verdad al subir (no solo visualmente "encima"). El
+          color base va por `style` inline para que gane siempre, aunque el
+          navegador sirva un CSS cacheado viejo. */}
+      <div
+        ref={screenTwoRef}
+        className="relative z-10 w-full"
+        style={{ background: '#050507' }}
+      >
+        {/* Fondo estrellado de la Pantalla 2 en móvil (el mismo campo de
+            estrellas de la Pantalla 1): sin esto, al scrollear la landing
+            quedaba sobre negro plano. En desktop (lg+) el fondo es el
+            trazo de puntos de ScreenTwoBackground, así que AuthStarfield
+            es `lg:hidden`. Igual que ScreenTwoBackground, solo se monta
+            cuando la Pantalla 2 ya cubre — mientras el `fixed` no debe
+            pintarse sobre la Pantalla 1. */}
+        {screenTwoCovers && <AuthStarfield />}
         {/* Fondo de puntos compartido — solo cuando la Pantalla 2 ya
             cubre (si no, el `fixed` se pintaría sobre la Pantalla 1). */}
         {screenTwoCovers && <ScreenTwoBackground />}
@@ -331,8 +353,10 @@ export function HomeExperience() {
             sube en flujo normal junto con el resto del contenido y se
             queda pegado arriba en cuanto llega al borde superior real —
             sin ningún gate de opacidad, siempre visible como parte normal
-            de la Pantalla 2. */}
-        <ScreenTwoNavbar />
+            de la Pantalla 2. En móvil el navbar es `fixed`, así que solo se
+            monta cuando la Pantalla 2 ya cubre (si no, tapa la Pantalla 1
+            limpia). */}
+        {(isDesktopTier || screenTwoCovers) && <ScreenTwoNavbar />}
         <ProductosLanding />
       </div>
     </>
