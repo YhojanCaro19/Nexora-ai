@@ -370,12 +370,6 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             <h1 className="aventhra-logo text-5xl tracking-[0.16em] sm:text-6xl">
               <span className="aventhra-iridescent">AVENTHRA</span>
             </h1>
-            <p
-              className="aventhra-copy mx-auto mt-5 max-w-sm text-sm sm:text-base"
-              style={{ color: "var(--nexora-ink-dim)" }}
-            >
-              Vamos a dejar tu agente listo en un minuto.
-            </p>
 
             <div className="mt-10">
               {/* Mismo efecto de anillo girando que el login del navbar
