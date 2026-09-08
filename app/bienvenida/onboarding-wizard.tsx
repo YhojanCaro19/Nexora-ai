@@ -474,7 +474,7 @@ function OrbitPillButton({
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
+      className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
       style={{
         backgroundColor: "#0b0b0f",
         color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
@@ -484,9 +484,11 @@ function OrbitPillButton({
     </button>
   );
   if (disabled) {
+    // Mismo interior oscuro que habilitado; sin el anillo girando, con un
+    // borde estático tenue.
     return (
       <span
-        className="inline-block rounded-full border p-px opacity-60"
+        className="inline-block rounded-full border p-px"
         style={{ borderColor: "var(--nexora-line)" }}
       >
         {btn}
