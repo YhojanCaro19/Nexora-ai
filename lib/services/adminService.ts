@@ -107,8 +107,14 @@ export interface BusinessWithOwner {
   ownerPhone: string | null;
   orderCount: number;
   customerCount: number;
+  reservationCount: number;
   agentTokens: number;
+  /** Costo estimado en USD del consumo del agente, a precio de lista de Anthropic. */
+  agentCostUsd: number;
   lastActivityAt: string | null;
+  /** Cuándo se renueva la mensualidad — null si el negocio no tiene wallet todavía. */
+  planRenewsAt: string | null;
+  planKey: string | null;
 }
 
 export async function getBusinesses(): Promise<BusinessWithOwner[]> {
@@ -137,6 +143,14 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
     (await getAgentUsageByBusiness()).map((u) => [u.businessId, u])
   );
 
+  // Fecha de renovación del plan — una sola consulta para todos los
+  // negocios (mismo criterio que el consumo del agente), en vez de una
+  // por negocio dentro del Promise.all de abajo.
+  const { data: wallets } = await admin.from("credit_wallets").select("business_id, plan_renews_at, plan_key");
+  const walletByBusiness = new Map(
+    (wallets ?? []).map((w) => [w.business_id as string, w as { plan_renews_at: string | null; plan_key: string | null }])
+  );
+
   // Datos del dueño: full_name/phone viven en business_members, el correo
   // solo existe en Auth (no se duplica en ninguna tabla), así que hace
   // falta una llamada aparte a la Admin API por cada negocio. Los conteos
@@ -145,24 +159,27 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
   // el consumo del agente.
   return Promise.all(
     businesses.map(async (b) => {
-      const [{ data: member }, { data: authUser }, ordersResult, { count: customerCount }] = await Promise.all([
-        admin
-          .from("business_members")
-          .select("full_name, phone")
-          .eq("business_id", b.id)
-          .eq("user_id", b.owner_id)
-          .maybeSingle(),
-        admin.auth.admin.getUserById(b.owner_id),
-        admin
-          .from("orders")
-          .select("created_at", { count: "exact" })
-          .eq("business_id", b.id)
-          .order("created_at", { ascending: false })
-          .limit(1),
-        admin.from("customers").select("id", { count: "exact", head: true }).eq("business_id", b.id),
-      ]);
+      const [{ data: member }, { data: authUser }, ordersResult, { count: customerCount }, { count: reservationCount }] =
+        await Promise.all([
+          admin
+            .from("business_members")
+            .select("full_name, phone")
+            .eq("business_id", b.id)
+            .eq("user_id", b.owner_id)
+            .maybeSingle(),
+          admin.auth.admin.getUserById(b.owner_id),
+          admin
+            .from("orders")
+            .select("created_at", { count: "exact" })
+            .eq("business_id", b.id)
+            .order("created_at", { ascending: false })
+            .limit(1),
+          admin.from("customers").select("id", { count: "exact", head: true }).eq("business_id", b.id),
+          admin.from("reservations").select("id", { count: "exact", head: true }).eq("business_id", b.id),
+        ]);
 
       const usage = usageByBusiness.get(b.id);
+      const wallet = walletByBusiness.get(b.id);
 
       return {
         ...b,
@@ -171,8 +188,12 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
         ownerPhone: member?.phone ?? null,
         orderCount: ordersResult.count ?? 0,
         customerCount: customerCount ?? 0,
+        reservationCount: reservationCount ?? 0,
         agentTokens: usage?.totalTokens ?? 0,
+        agentCostUsd: usage?.estimatedCostUsd ?? 0,
         lastActivityAt: ordersResult.data?.[0]?.created_at ?? null,
+        planRenewsAt: wallet?.plan_renews_at ?? null,
+        planKey: wallet?.plan_key ?? null,
       };
     })
   );

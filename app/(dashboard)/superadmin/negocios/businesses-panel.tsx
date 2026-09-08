@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, Building2, UserCircle, Activity, Bot, Power, PowerOff } from "lucide-react";
+import { ChevronLeft, ChevronDown, Building2, UserCircle, Activity, Bot, Power, PowerOff } from "lucide-react";
 import { toggleBusinessActiveAction, getBusinessAgentSummaryAction } from "./actions";
 import type { BusinessWithOwner, BusinessAgentSummary } from "@/lib/services/adminService";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
-import { InfoRow } from "@/components/dashboard/shared/InfoRow";
+import { Button } from "@/components/ui/button";
 
 const industryLabel = (value: string) =>
   industryTypes.find((it) => it.value === value)?.label ?? value;
+
+const fmtUsd = (n: number) => (n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`);
 
 type Tab = "active" | "inactive";
 
@@ -18,17 +20,20 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = businesses.find((b) => b.id === selectedId) ?? null;
 
+  // BusinessDetail lleva su propio estado local de is_active (para
+  // reflejar el toggle sin parpadeo) — revalidatePath ya se encarga de
+  // refrescar la lista de atrás cuando se vuelve a "Volver".
+  if (selected) {
+    return <BusinessDetail business={selected} onBack={() => setSelectedId(null)} />;
+  }
+
   const filtered = businesses.filter((b) => (tab === "active" ? b.is_active : !b.is_active));
   const activeCount = businesses.filter((b) => b.is_active).length;
   const inactiveCount = businesses.length - activeCount;
 
-  if (selected) {
-    // BusinessDetail lleva su propio estado local de is_active (para
-    // reflejar el toggle sin parpadeo) — revalidatePath ya se encarga de
-    // refrescar la lista de atrás cuando se vuelve a "Volver".
-    return <BusinessDetail business={selected} onBack={() => setSelectedId(null)} />;
-  }
-
+  // Los totales de plataforma (pedidos, reservas, tokens, costo) viven en
+  // Inicio (mes en curso) y Estadísticas (historial mensual) — acá solo
+  // queda lo que es sobre el ESTADO de los negocios en sí.
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-center gap-2">
@@ -73,6 +78,73 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
   );
 }
 
+// Fila label (izquierda) / valor (derecha) — mismo patrón que
+// admin/perfil/profile-panel.tsx (Row), en vez de texto centrado apilado:
+// se lee de un vistazo, no hay que ir línea por línea.
+function Row({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {label}
+      </dt>
+      <dd className="min-w-0 truncate text-right text-sm font-medium" style={{ color: valueColor ?? 'var(--nexora-ink)' }}>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+// Para valores largos (personalidad, lista de herramientas) — Row los
+// cortaba con "..." y no había forma de leer el resto. Colapsado se ve
+// igual que un Row normal (una línea, truncado); al tocarlo despliega el
+// texto completo debajo, envuelto en varias líneas.
+function ExpandableRow({ label, value }: { label: string; value: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="py-2.5">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-4 text-left">
+        <span className="shrink-0 text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {label}
+        </span>
+        <span className={`min-w-0 flex-1 text-sm font-medium ${open ? "" : "truncate text-right"}`} style={{ color: 'var(--nexora-ink)' }}>
+          {value}
+        </span>
+        <ChevronDown
+          size={14}
+          className="shrink-0 transition-transform"
+          style={{ color: 'var(--nexora-ink-dim)', transform: open ? "rotate(180deg)" : undefined }}
+        />
+      </button>
+    </div>
+  );
+}
+
+// Card con encabezado (ícono + título) y una `dl` de Rows con divisores —
+// mismo bloque reutilizado en las 4 secciones del detalle, en vez de
+// repetir el mismo `<section className="rounded-2xl border p-8...">`
+// cuatro veces con contenido distinto adentro.
+function DetailSection({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof Building2;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border p-6" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+      <div className="mb-3 flex items-center gap-2">
+        <Icon size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--nexora-nova)' }}>
+          {title}
+        </h3>
+      </div>
+      <dl className="divide-y divide-white/[0.06]">{children}</dl>
+    </section>
+  );
+}
+
 function BusinessDetail({
   business,
   onBack,
@@ -103,180 +175,158 @@ function BusinessDetail({
     setConfirming(false);
   }
 
+  const renewal = renewalInfo(business.planRenewsAt);
+
   return (
     <div className="space-y-8">
-      <div className="relative flex items-center justify-center">
-        <button
-          onClick={onBack}
-          className="absolute left-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
-          style={{ color: 'var(--nexora-ink-dim)' }}
-        >
-          <ChevronLeft size={16} />
-          Volver
-        </button>
-
-        {!confirming ? (
-          <button
-            type="button"
-            onClick={() => setConfirming(true)}
-            title={isActive ? "Inhabilitar este negocio" : "Habilitar este negocio"}
-            aria-label={isActive ? "Inhabilitar este negocio" : "Habilitar este negocio"}
-            className="absolute right-0 inline-flex items-center justify-center w-9 h-9 rounded-full transition-colors"
-            style={
-              isActive
-                ? { color: 'var(--nexora-alert)' }
-                : { color: 'var(--nexora-signal)' }
-            }
-          >
-            {isActive ? <PowerOff size={17} strokeWidth={1.5} /> : <Power size={17} strokeWidth={1.5} />}
-          </button>
-        ) : null}
-      </div>
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
+        style={{ color: 'var(--nexora-ink-dim)' }}
+      >
+        <ChevronLeft size={16} />
+        Volver
+      </button>
 
       <div className="text-center space-y-2">
-        <h2 className="font-nexora text-3xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+        <h2 className="font-nexora text-2xl md:text-3xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
           {business.name}
         </h2>
-        <div className="flex items-center justify-center gap-2">
-          <span
-            className="inline-block rounded-full px-3 py-1 text-xs uppercase tracking-wide"
-            style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
-          >
-            {industryLabel(business.industry_type)}
-          </span>
-          <span
-            className="inline-block rounded-full px-3 py-1 text-xs uppercase tracking-wide"
-            style={
-              isActive
-                ? { background: 'rgba(52,211,153,0.12)', color: 'var(--nexora-signal)' }
-                : { background: 'rgba(248,113,113,0.12)', color: 'var(--nexora-alert)' }
-            }
-          >
-            {isActive ? "Activo" : "Inhabilitado"}
-          </span>
-        </div>
+        <span
+          className="inline-block rounded-full px-3 py-1 text-xs uppercase tracking-wide"
+          style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
+        >
+          {industryLabel(business.industry_type)}
+        </span>
       </div>
 
-      {confirming && (
-        <div className="max-w-sm mx-auto space-y-2 text-center">
-          <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-            {isActive
-              ? "El admin y los colaboradores de este negocio no podrán iniciar sesión hasta que lo vuelvas a habilitar."
-              : "El negocio recupera el acceso de inmediato."}
-          </p>
-          <div className="flex justify-center gap-2">
-            <button
-              type="button"
-              disabled={toggling}
-              onClick={handleToggle}
-              className="rounded-full px-4 py-1.5 text-xs font-medium"
-              style={
-                isActive
-                  ? { background: 'rgba(248,113,113,0.12)', color: 'var(--nexora-alert)' }
-                  : { background: 'rgba(52,211,153,0.12)', color: 'var(--nexora-signal)' }
-              }
-            >
-              {toggling ? "Aplicando..." : isActive ? "Inhabilitar" : "Habilitar"}
-            </button>
-            <button
-              type="button"
-              disabled={toggling}
-              onClick={() => setConfirming(false)}
-              className="rounded-full px-4 py-1.5 text-xs font-medium"
-              style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
-            >
-              Cancelar
-            </button>
-          </div>
-          {error && <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        <section
-          className="rounded-2xl border p-8 space-y-6 text-center"
-          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+      {/* Control de acceso — estado a la izquierda, acción a la derecha,
+          mismo patrón que las filas de "Conectar" en Marketing → Conexiones. */}
+      <div className="mx-auto max-w-sm space-y-3">
+        <div
+          className="flex items-center gap-3 rounded-xl border p-4"
+          style={{ borderColor: isActive ? 'var(--nexora-line)' : 'rgba(248,113,113,0.35)' }}
         >
-          <div className="flex flex-col items-center gap-2">
-            <Building2 size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
-              Negocio
-            </h3>
-          </div>
-          <div className="space-y-5">
-            <InfoRow label="Tipo de negocio" value={industryLabel(business.industry_type)} />
-            <InfoRow label="Cliente desde" value={formatShortDateTime(business.created_at)} />
-          </div>
-        </section>
-
-        <section
-          className="rounded-2xl border p-8 space-y-6 text-center"
-          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <UserCircle size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
-              Administrador
-            </h3>
-          </div>
-          <div className="space-y-5">
-            <InfoRow label="Nombre" value={business.ownerName ?? "—"} />
-            <InfoRow label="Correo" value={business.ownerEmail ?? "—"} />
-            <InfoRow label="Teléfono" value={business.ownerPhone ?? "—"} />
-          </div>
-        </section>
-
-        <section
-          className="rounded-2xl border p-8 space-y-6 text-center"
-          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <Activity size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
-              Actividad
-            </h3>
-          </div>
-          <div className="space-y-5">
-            <InfoRow label="Pedidos totales" value={String(business.orderCount)} />
-            <InfoRow label="Clientes" value={String(business.customerCount)} />
-            <InfoRow label="Tokens consumidos" value={business.agentTokens.toLocaleString("en-US")} />
-            <InfoRow
-              label="Última actividad"
-              value={business.lastActivityAt ? formatShortDateTime(business.lastActivityAt) : "Sin pedidos aún"}
-            />
-          </div>
-        </section>
-
-        <section
-          className="rounded-2xl border p-8 space-y-6 text-center"
-          style={{ borderColor: 'rgba(255,255,255,0.08)' }}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <Bot size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-            <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
-              Agente
-            </h3>
-          </div>
-          {agentSummary === undefined ? (
-            <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Cargando...</p>
-          ) : agentSummary === null ? (
+          {isActive ? (
+            <Power size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-signal)' }} />
+          ) : (
+            <PowerOff size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-alert)' }} />
+          )}
+          <div className="min-w-0 flex-1 text-left">
+            <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+              {isActive ? "Negocio activo" : "Negocio inhabilitado"}
+            </p>
             <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+              {isActive ? "Tiene acceso a la plataforma" : "No puede iniciar sesión ningún miembro"}
+            </p>
+          </div>
+          {!confirming && (
+            <Button type="button" variant={isActive ? "outline" : "default"} size="sm" onClick={() => setConfirming(true)}>
+              {isActive ? "Inhabilitar" : "Habilitar"}
+            </Button>
+          )}
+        </div>
+
+        {confirming && (
+          <div className="rounded-xl border p-4 space-y-3 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
+            <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+              {isActive
+                ? "El admin y los colaboradores de este negocio no podrán iniciar sesión hasta que lo vuelvas a habilitar."
+                : "El negocio recupera el acceso de inmediato."}
+            </p>
+            <div className="flex justify-center gap-2">
+              <Button
+                type="button"
+                variant={isActive ? "destructive" : "default"}
+                size="sm"
+                disabled={toggling}
+                onClick={handleToggle}
+              >
+                {toggling ? "Aplicando..." : isActive ? "Inhabilitar" : "Habilitar"}
+              </Button>
+              <Button type="button" variant="outline" size="sm" disabled={toggling} onClick={() => setConfirming(false)}>
+                Cancelar
+              </Button>
+            </div>
+            {error && <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+        <DetailSection icon={Building2} title="Negocio">
+          <Row label="Tipo de negocio" value={industryLabel(business.industry_type)} />
+          <Row label="Cliente desde" value={formatShortDateTime(business.created_at)} />
+          <Row label="Plan" value={business.planKey ? business.planKey.charAt(0).toUpperCase() + business.planKey.slice(1) : "Sin plan"} />
+          <Row label="Vence" value={renewal.label} valueColor={renewal.color} />
+        </DetailSection>
+
+        <DetailSection icon={UserCircle} title="Administrador">
+          <Row label="Nombre" value={business.ownerName ?? "—"} />
+          <Row label="Correo" value={business.ownerEmail ?? "—"} />
+          <Row label="Teléfono" value={business.ownerPhone ?? "—"} />
+        </DetailSection>
+
+        <DetailSection icon={Activity} title="Actividad">
+          <Row label="Pedidos totales" value={String(business.orderCount)} />
+          <Row label="Reservas totales" value={String(business.reservationCount)} />
+          <Row label="Clientes" value={String(business.customerCount)} />
+          <Row label="Última actividad" value={business.lastActivityAt ? formatShortDateTime(business.lastActivityAt) : "Sin pedidos aún"} />
+        </DetailSection>
+
+        <DetailSection icon={Bot} title="Agente">
+          <Row label="Tokens consumidos" value={business.agentTokens.toLocaleString("en-US")} />
+          <Row label="Costo del agente" value={fmtUsd(business.agentCostUsd)} />
+          {agentSummary === undefined ? (
+            <p className="py-3 text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Cargando configuración...</p>
+          ) : agentSummary === null ? (
+            <p className="py-3 text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
               Este negocio todavía no tiene un agente configurado.
             </p>
           ) : (
-            <div className="space-y-5">
-              <InfoRow label="Nombre del agente" value={agentSummary.agentName} />
-              <InfoRow label="Personalidad" value={agentSummary.personality} />
-              <InfoRow
+            <>
+              <Row label="Nombre del agente" value={agentSummary.agentName} />
+              <ExpandableRow label="Personalidad" value={agentSummary.personality} />
+              <ExpandableRow
                 label="Herramientas activas"
                 value={agentSummary.enabledToolLabels.length > 0 ? agentSummary.enabledToolLabels.join(", ") : "Ninguna"}
               />
-            </div>
+            </>
           )}
-        </section>
+        </DetailSection>
       </div>
     </div>
   );
+}
+
+// Días de gracia antes del vencimiento en los que ya se avisa en naranja —
+// mismo umbral que usa el cron de recordatorios (planRenewalService.ts),
+// para que lo que ve el superadmin acá coincida con cuándo se dispara el
+// correo automático.
+const RENEWAL_WARNING_DAYS = 5;
+
+// Función aparte (no inline en el componente) — mismo patrón que
+// matchesDateFilter en admin/pedidos/orders-table.tsx: Date.now() acá no
+// dispara la regla de pureza de React porque no vive dentro del cuerpo
+// de un componente.
+function daysUntil(iso: string): number {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+}
+
+function renewalInfo(renewsAt: string | null): { label: string; color: string } {
+  if (!renewsAt) return { label: "Sin fecha (sin plan asignado)", color: 'var(--nexora-ink)' };
+  const daysLeft = daysUntil(renewsAt);
+  const overdue = daysLeft < 0;
+  const soon = !overdue && daysLeft <= RENEWAL_WARNING_DAYS;
+  const hint = overdue
+    ? ` (vencido hace ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? "día" : "días"})`
+    : soon
+      ? ` (en ${daysLeft} ${daysLeft === 1 ? "día" : "días"})`
+      : "";
+  return {
+    label: `${formatShortDateTime(renewsAt)}${hint}`,
+    color: overdue ? 'var(--nexora-alert)' : soon ? '#F5A623' : 'var(--nexora-ink)',
+  };
 }
 
 function BusinessCard({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
