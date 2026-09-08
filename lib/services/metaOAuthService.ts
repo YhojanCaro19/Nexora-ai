@@ -10,7 +10,12 @@
 // hace falta el flujo multi-negocio de Tech Provider, se migra.
 //
 // Solo código server. Ver docs/channels-module-plan.md §4.5.
-import { createHmac, timingSafeEqual } from "crypto";
+import {
+  signOAuthState,
+  verifyOAuthState,
+  oauthStateSecret,
+  type OAuthStateBase,
+} from "@/lib/utils/oauthState";
 
 /**
  * Qué está conectando el negocio:
@@ -37,8 +42,6 @@ const SCOPES: Record<MetaConnectionKind, string[]> = {
   marketing: ["ads_management", "business_management", "pages_show_list"],
 };
 
-const STATE_TTL_MS = 10 * 60 * 1000; // 10 min entre "Conectar" y el callback
-
 function graphVersion(): string {
   return process.env.META_GRAPH_VERSION || "v21.0";
 }
@@ -46,12 +49,6 @@ function graphVersion(): string {
 function appId(): string {
   const v = process.env.META_APP_ID;
   if (!v) throw new Error("META_APP_ID no está definida.");
-  return v;
-}
-
-function stateSecret(): string {
-  const v = process.env.META_OAUTH_STATE_SECRET;
-  if (!v) throw new Error("META_OAUTH_STATE_SECRET no está definida.");
   return v;
 }
 
@@ -75,46 +72,19 @@ export function instagramRedirectUri(): string {
 }
 
 // ── state firmado ────────────────────────────────────────────────────────
+// La firma en sí (HMAC + TTL) vive en lib/utils/oauthState.ts, compartida
+// con Google Ads. Acá solo se fija la forma del payload de Meta.
 
-export interface OAuthStatePayload {
-  businessId: string;
-  userId: string;
+export interface OAuthStatePayload extends OAuthStateBase {
   kind: MetaConnectionKind;
-  /** A dónde volver en el panel después del callback. */
-  returnPath: string;
-  iat: number;
-}
-
-function b64url(buf: Buffer): string {
-  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function fromB64url(s: string): Buffer {
-  return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64");
 }
 
 export function signState(payload: Omit<OAuthStatePayload, "iat">): string {
-  const full: OAuthStatePayload = { ...payload, iat: Date.now() };
-  const body = b64url(Buffer.from(JSON.stringify(full), "utf8"));
-  const sig = b64url(createHmac("sha256", stateSecret()).update(body).digest());
-  return `${body}.${sig}`;
+  return signOAuthState(payload, oauthStateSecret());
 }
 
 export function verifyState(state: string): OAuthStatePayload | null {
-  const parts = state.split(".");
-  if (parts.length !== 2) return null;
-  const [body, sig] = parts;
-  const expected = createHmac("sha256", stateSecret()).update(body).digest();
-  const got = fromB64url(sig);
-  if (got.length !== expected.length || !timingSafeEqual(got, expected)) return null;
-
-  let payload: OAuthStatePayload;
-  try {
-    payload = JSON.parse(fromB64url(body).toString("utf8")) as OAuthStatePayload;
-  } catch {
-    return null;
-  }
-  if (typeof payload.iat !== "number" || Date.now() - payload.iat > STATE_TTL_MS) return null;
-  return payload;
+  return verifyOAuthState<Omit<OAuthStatePayload, "iat">>(state, oauthStateSecret());
 }
 
 // ── URL de autorización ──────────────────────────────────────────────────

@@ -23,6 +23,11 @@ import {
   type PieceStatus,
 } from "@/lib/services/marketingService";
 import { signState, buildAuthorizeUrl } from "@/lib/services/metaOAuthService";
+import {
+  signState as signGoogleAdsState,
+  buildAuthorizeUrl as buildGoogleAdsAuthorizeUrl,
+  isGoogleAdsConfigured,
+} from "@/lib/services/googleAdsOAuthService";
 import { revokeAdAccount, getActiveAdAccount } from "@/lib/services/adAccountService";
 import { getActiveConnection } from "@/lib/services/channelConnectionService";
 import { generatePieceVariants, piecePublicUrl, type GeneratePiecesResult } from "@/lib/services/creativeService";
@@ -212,6 +217,33 @@ export async function startMetaAdsConnectAction(): Promise<void> {
     returnPath: MARKETING_RETURN_PATH,
   });
   redirect(buildAuthorizeUrl(state, "marketing"));
+}
+
+/**
+ * Arranca el OAuth de Google Ads (Marketing → Conexiones → Conectar).
+ * Mismo patrón que `startMetaAdsConnectAction`, con otro proveedor.
+ */
+export async function startGoogleAdsConnectAction(): Promise<void> {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    redirect("/login");
+  }
+
+  if (!isGoogleAdsConfigured()) {
+    redirect(`${MARKETING_RETURN_PATH}?error=google_no_configurado`);
+  }
+
+  const limit = checkRateLimit(`google-ads-connect:${profile.userId}`, 8, 60 * 1000);
+  if (!limit.allowed) {
+    redirect(`${MARKETING_RETURN_PATH}?error=rate`);
+  }
+
+  const state = signGoogleAdsState({
+    businessId: profile.businessId,
+    userId: profile.userId,
+    returnPath: MARKETING_RETURN_PATH,
+  });
+  redirect(buildGoogleAdsAuthorizeUrl(state));
 }
 
 /** Desconecta la cuenta de pauta de un proveedor (marca la conexión como revocada). */

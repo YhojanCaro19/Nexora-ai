@@ -122,6 +122,9 @@ lee el backend con service role — nunca llegan al cliente.
 
 ### Fase 3 — Google Ads + TikTok Ads
 - Mismo patrón, un proveedor a la vez
+- **Google Ads:** conexión OAuth construida (2026-09-07) — falta publicar y
+  sincronizar métricas. Trámites en `docs/google-ads-setup-checklist.md`
+- **TikTok Ads:** sin empezar. Trámites en `docs/tiktok-ads-setup-checklist.md`
 
 ### Fase 4 — CRM de ventas + atribución
 - `orders.campaign_id` + atribución (UTM / pixel / manual)

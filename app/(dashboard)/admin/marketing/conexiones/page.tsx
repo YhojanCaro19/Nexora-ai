@@ -1,12 +1,13 @@
 // app/(dashboard)/admin/marketing/conexiones/page.tsx
 //
 // "Marketing → Conexiones" — conectar la cuenta de pauta del propio negocio
-// (Meta Ads hoy; Google/TikTok Ads llegan después). El rol ya lo validó el
+// (Meta y Google Ads hoy; TikTok Ads llega después). El rol ya lo validó el
 // layout de /admin. Ver docs/marketing-module-plan.md §8.
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { listAdAccountsForBusiness } from "@/lib/services/adAccountService";
+import { isGoogleAdsConfigured } from "@/lib/services/googleAdsOAuthService";
 import { ConnectAdAccountsSection } from "./connect-ad-accounts-section";
 
 export default async function MarketingConexionesPage() {
@@ -31,7 +32,7 @@ export default async function MarketingConexionesPage() {
           Conexiones
         </h1>
       </div>
-      <ConnectAdAccountsSection connections={connections} />
+      <ConnectAdAccountsSection connections={connections} googleEnabled={isGoogleAdsConfigured()} />
     </div>
   );
 }

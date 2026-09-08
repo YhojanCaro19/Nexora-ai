@@ -1,9 +1,14 @@
 // lib/services/adAccountService.ts
 //
 // CRUD de `ad_accounts` — las conexiones OAuth de cada negocio a sus
-// cuentas publicitarias (Meta Ads hoy; Google/TikTok Ads después, mismo
+// cuentas publicitarias (Meta y Google Ads hoy; TikTok Ads después, mismo
 // esquema). El token se guarda CIFRADO (tokenCrypto) y solo se descifra
 // acá, para código server. Mismo patrón que channelConnectionService.ts.
+//
+// Meta da un token largo (~60 días) y no usa refresh token. Google da un
+// access token de 1 hora + un `refresh_token` permanente: por eso la fila
+// guarda AMBOS (los dos cifrados) y `getActiveAdAccount` renueva solo el
+// access token cuando ya venció.
 //
 // - Lecturas para la UI     → `listAdAccountsForBusiness` (cliente de
 //   sesión, RLS deja ver solo al admin del negocio; nunca selecciona el
@@ -15,6 +20,7 @@
 // Ver docs/marketing-module-plan.md §8.
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { encryptToken, decryptToken } from "@/lib/utils/tokenCrypto";
+import { refreshAccessToken } from "./googleAdsClient";
 import {
   isAdProvider,
   type AdProvider,
@@ -74,19 +80,41 @@ export async function listAdAccountsForBusiness(businessId: string): Promise<AdA
 export interface AdAccountWithToken extends AdAccountPublic {
   /** Token en claro — NUNCA devolver esto a un client component. */
   accessToken: string;
+  /** Solo Google: sirve para renovar el access token. También en claro. */
+  refreshToken: string | null;
+  /** Solo Google: MCC desde el que se accede a la cuenta, si aplica. */
+  loginCustomerId: string | null;
 }
 
-const FULL_COLUMNS = `${PUBLIC_COLUMNS}, access_token`;
+const FULL_COLUMNS = `${PUBLIC_COLUMNS}, access_token, refresh_token, login_customer_id`;
 
 interface FullRow extends PublicRow {
   access_token: string;
+  refresh_token: string | null;
+  login_customer_id: string | null;
 }
 
 function toWithToken(row: FullRow): AdAccountWithToken {
-  return { ...toPublic(row), accessToken: decryptToken(row.access_token) };
+  return {
+    ...toPublic(row),
+    accessToken: decryptToken(row.access_token),
+    refreshToken: row.refresh_token ? decryptToken(row.refresh_token) : null,
+    loginCustomerId: row.login_customer_id,
+  };
 }
 
-/** Cuenta activa de un negocio en un proveedor, para publicar pauta (Fase 2b). */
+/** Margen antes de dar un access token por vencido (evita usarlo justo al filo). */
+const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000;
+
+/**
+ * Cuenta activa de un negocio en un proveedor, para publicar pauta.
+ *
+ * En Google el access token dura 1 hora, así que acá se renueva solo con
+ * el refresh token (y se guarda el nuevo) antes de devolverlo — el que
+ * llama recibe siempre un token utilizable. En Meta el token es largo y
+ * no hay refresh: si venció, lo agarra el cron de salud y el admin
+ * reconecta.
+ */
 export async function getActiveAdAccount(
   businessId: string,
   provider: AdProvider
@@ -104,7 +132,44 @@ export async function getActiveAdAccount(
     console.error("[getActiveAdAccount] error:", error);
     return null;
   }
-  return data ? toWithToken(data as FullRow) : null;
+  if (!data) return null;
+
+  const account = toWithToken(data as FullRow);
+  if (provider !== "google" || !account.refreshToken) return account;
+
+  const expiresAt = account.tokenExpiresAt ? Date.parse(account.tokenExpiresAt) : 0;
+  if (expiresAt - TOKEN_REFRESH_MARGIN_MS > Date.now()) return account;
+
+  try {
+    const fresh = await refreshAccessToken(account.refreshToken);
+    await admin
+      .from(TABLE)
+      .update({
+        access_token: encryptToken(fresh.accessToken),
+        token_expires_at: fresh.expiresAt,
+        status: "active",
+        last_error: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", account.id);
+    return { ...account, accessToken: fresh.accessToken, tokenExpiresAt: fresh.expiresAt };
+  } catch (err) {
+    // El admin revocó el acceso, o el refresh token de una app en modo
+    // "Testing" pasó de los 7 días: hay que reconectar a mano.
+    console.error("[getActiveAdAccount] no se pudo renovar el token de Google:", err);
+    await markAdAccountExpired(account.id, "El acceso a Google Ads venció. Reconecta la cuenta.");
+    return null;
+  }
+}
+
+/** Marca la conexión como vencida — el admin tiene que volver a conectar. */
+export async function markAdAccountExpired(id: string, message: string): Promise<void> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from(TABLE)
+    .update({ status: "expired", last_error: message.slice(0, 500), updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) console.error("[markAdAccountExpired] error:", error);
 }
 
 export interface SaveAdAccountInput {
@@ -115,6 +180,10 @@ export interface SaveAdAccountInput {
   currency?: string | null;
   /** Token en claro — se cifra antes de escribir. */
   accessToken: string;
+  /** Solo Google: refresh token en claro — se cifra antes de escribir. */
+  refreshToken?: string | null;
+  /** Solo Google: MCC desde el que se accede a la cuenta, si aplica. */
+  loginCustomerId?: string | null;
   tokenExpiresAt?: string | null;
   connectedBy?: string | null;
 }
@@ -139,6 +208,8 @@ export async function saveAdAccount(
         external_name: input.externalName ?? null,
         currency: input.currency ?? null,
         access_token: encryptToken(input.accessToken),
+        refresh_token: input.refreshToken ? encryptToken(input.refreshToken) : null,
+        login_customer_id: input.loginCustomerId ?? null,
         token_expires_at: input.tokenExpiresAt ?? null,
         status: "active",
         last_error: null,

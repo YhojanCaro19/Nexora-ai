@@ -1,30 +1,59 @@
 "use client";
 
 // Mismo patrón que app/(dashboard)/admin/perfil/connect-networks-section.tsx
-// (conectar redes), aplicado a cuentas publicitarias. Meta Ads ya funciona
-// (OAuth real, ver metaOAuthService + app/api/auth/meta/callback); Google y
-// TikTok Ads quedan "Próximamente" hasta que exista su propia app/credenciales.
+// (conectar redes), aplicado a cuentas publicitarias. Meta Ads y Google Ads
+// ya funcionan con OAuth real (metaOAuthService + app/api/auth/meta/callback;
+// googleAdsOAuthService + app/api/auth/google-ads/callback). TikTok Ads
+// queda "Próximamente" hasta que exista su propia app/credenciales.
+//
+// Google se muestra como "Próximamente" mientras no estén cargadas sus
+// credenciales (`googleEnabled`): sin ellas el botón solo daría un error.
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startMetaAdsConnectAction, disconnectAdAccountAction } from "../actions";
+import {
+  startMetaAdsConnectAction,
+  startGoogleAdsConnectAction,
+  disconnectAdAccountAction,
+} from "../actions";
 import { AdProviderIcon } from "./ad-provider-icons";
 import { AD_PROVIDER_LABELS, type AdProvider, type AdAccountPublic } from "@/lib/types/adAccount";
 
 const ERROR_LABELS: Record<string, string> = {
-  cancelado: "Cancelaste la conexión en Facebook.",
+  cancelado: "Cancelaste la conexión.",
   state_invalido: "El enlace de conexión venció. Intenta de nuevo.",
   sesion: "La sesión no coincide. Vuelve a intentar desde tu cuenta.",
-  sin_cuentas_publicitarias: "Tu cuenta de Facebook no tiene ninguna cuenta publicitaria para conectar.",
+  sin_cuentas_publicitarias: "Esa cuenta no tiene ninguna cuenta publicitaria para conectar.",
   guardar: "No se pudo guardar la conexión.",
   graph: "Facebook rechazó la conexión. Revisa los permisos e intenta de nuevo.",
   rate: "Demasiados intentos seguidos. Espera un momento.",
   inesperado: "Ocurrió un error inesperado.",
   kind_no_soportado: "Ese tipo de conexión aún no está disponible.",
+  // Google Ads
+  google: "Google rechazó la conexión. Revisa los permisos e intenta de nuevo.",
+  google_no_configurado: "Google Ads todavía no está configurado en AVENTHRA.",
+  sin_refresh_token:
+    "Google no entregó el permiso permanente. Vuelve a intentar y acepta la pantalla de consentimiento.",
+  solo_manager:
+    "Esa cuenta de Google solo administra otras cuentas (Manager). Conecta la cuenta con la que pautas.",
+  developer_token:
+    "Google no permitió el acceso a esa cuenta todavía (el acceso a la API sigue en nivel de prueba).",
 };
 
-export function ConnectAdAccountsSection({ connections }: { connections: AdAccountPublic[] }) {
+/** Etiqueta del banner de éxito según el valor de `?connected=`. */
+const CONNECTED_LABELS: Record<string, string> = {
+  meta_ads: AD_PROVIDER_LABELS.meta,
+  google_ads: AD_PROVIDER_LABELS.google,
+};
+
+export function ConnectAdAccountsSection({
+  connections,
+  googleEnabled,
+}: {
+  connections: AdAccountPublic[];
+  googleEnabled: boolean;
+}) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -51,7 +80,7 @@ export function ConnectAdAccountsSection({ connections }: { connections: AdAccou
     <div className="mx-auto max-w-md space-y-4">
       {notice && connected && (
         <Banner tone="ok" onClose={dismissNotice}>
-          {AD_PROVIDER_LABELS.meta} conectado
+          {CONNECTED_LABELS[connected] ?? "Cuenta"} conectado
           {accountName ? ` — «${accountName}»` : ""}.
         </Banner>
       )}
@@ -61,8 +90,17 @@ export function ConnectAdAccountsSection({ connections }: { connections: AdAccou
         </Banner>
       )}
 
-      <ProviderRow provider="meta" connection={byProvider.get("meta")} />
-      <ProviderRow provider="google" connection={byProvider.get("google")} comingSoon />
+      <ProviderRow
+        provider="meta"
+        connection={byProvider.get("meta")}
+        connectAction={startMetaAdsConnectAction}
+      />
+      <ProviderRow
+        provider="google"
+        connection={byProvider.get("google")}
+        connectAction={startGoogleAdsConnectAction}
+        comingSoon={!googleEnabled}
+      />
       <ProviderRow provider="tiktok" connection={byProvider.get("tiktok")} comingSoon />
     </div>
   );
@@ -71,10 +109,12 @@ export function ConnectAdAccountsSection({ connections }: { connections: AdAccou
 function ProviderRow({
   provider,
   connection,
+  connectAction,
   comingSoon,
 }: {
   provider: AdProvider;
   connection?: AdAccountPublic;
+  connectAction?: () => Promise<void>;
   comingSoon?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
@@ -114,24 +154,18 @@ function ProviderRow({
         )}
       </div>
 
-      {comingSoon ? (
+      {comingSoon || !connectAction ? (
         <Button variant="outline" size="sm" disabled>
           Pronto
         </Button>
-      ) : isError ? (
-        <form action={startMetaAdsConnectAction}>
-          <Button type="submit" size="sm">
-            Reconectar
-          </Button>
-        </form>
       ) : isActive ? (
         <Button variant="outline" size="sm" onClick={disconnect} disabled={busy}>
           {busy ? "..." : "Desconectar"}
         </Button>
       ) : (
-        <form action={startMetaAdsConnectAction}>
+        <form action={connectAction}>
           <Button type="submit" size="sm">
-            Conectar
+            {isError ? "Reconectar" : "Conectar"}
           </Button>
         </form>
       )}
