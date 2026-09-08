@@ -127,22 +127,31 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
       {/* ══════ MOBILE / TABLET ══════ contenedor `fixed` (no empuja layout). */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:hidden">
         <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl">
-          {/* Grid 1fr/auto/1fr: el wordmark queda REALMENTE centrado en la
-              barra (columna del medio); el botón de menú cae a la derecha
-              con justify-self-end, en el mismo borde donde ya estaba. La
-              columna izquierda vacía solo balancea. */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3">
-            <span aria-hidden />
-            <span className="justify-self-center">{logo}</span>
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-expanded={menuOpen}
-              aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
-              className="-mr-1 shrink-0 justify-self-end rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
-            >
-              {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
-            </button>
+          {/* Wordmark a la izquierda; a la derecha, juntos, el botón de menú
+              y un acceso compacto a login (solo ícono, mismo peso visual que
+              la hamburguesa). El login vive acá arriba y ya no dentro del
+              panel desplegable. */}
+          <div className="flex items-center justify-between gap-3 px-5 py-3">
+            {logo}
+            <div className="flex shrink-0 items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
+                className="rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
+              >
+                {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
+              </button>
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                aria-label={t('login')}
+                className="-mr-1 rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
+              >
+                <LogIn size={20} strokeWidth={1.5} />
+              </Link>
+            </div>
           </div>
 
           {menuOpen && (
@@ -157,15 +166,8 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
                   {t(section.key)}
                 </button>
               ))}
-              <div className="mt-3 flex items-center justify-center gap-4 border-t border-white/10 pt-4">
+              <div className="mt-3 flex items-center justify-center border-t border-white/10 pt-4">
                 <LocaleToggle />
-                <OrbitFrame
-                  className="inline-block shrink-0 rounded-full"
-                  innerClassName="rounded-full bg-[#0b0b0f]"
-                  ringSize="h-[220px] w-[220px]"
-                >
-                  {loginLink}
-                </OrbitFrame>
               </div>
             </div>
           )}
