@@ -33,11 +33,18 @@ export function ProductosHero() {
       id="productos"
       className="relative w-full overflow-hidden px-6 md:px-10 lg:px-16"
     >
-      {/* Video de la cabeza del robot — SIEMPRE lado derecho absoluto,
-          detrás del título (que va z-10 encima), igual criterio en móvil y
-          en desktop. En móvil es chico y asoma por el borde derecho; de
-          `lg` en adelante crece a su tamaño de escritorio de siempre. */}
-      <div className="pointer-events-none absolute right-[-10%] top-[38vh] h-[22vh] w-[48vw] max-w-[135px] -translate-y-1/2 sm:right-[-2%] sm:max-w-[170px] lg:right-[3%] lg:top-[42vh] lg:h-[62vh] lg:w-[36vw] lg:max-w-[480px]">
+      {/* Video de la cabeza del robot.
+          · Desktop (lg+): lado derecho absoluto, grande — EXACTO como
+            siempre (este div no cambió).
+          · Móvil/tablet: su propio div, mismo lado derecho absoluto pero
+            chico, a la altura del título y detrás de él (el título va
+            z-10). Se apila como acento, no como bloque centrado.
+          Dos divs separados a propósito: mezclarlos en uno con overrides
+          `lg:` dejó el video sin restringir y ocupaba toda la pantalla. */}
+      <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
+        <RobotHead />
+      </div>
+      <div className="pointer-events-none absolute right-[2%] top-[40vh] h-[24vh] w-[38vw] max-w-[120px] -translate-y-1/2 lg:hidden">
         <RobotHead />
       </div>
 
