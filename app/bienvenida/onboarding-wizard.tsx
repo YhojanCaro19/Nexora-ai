@@ -48,8 +48,6 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { OrbitFrame } from "@/components/landing/OrbitFrame";
-import { OrbitRing } from "@/components/landing/OrbitRing";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
@@ -362,41 +360,27 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             {...screenMotion}
             className="col-start-1 row-start-1 flex flex-col items-center text-center"
           >
-            <BrandOrb spinDuration="6s" glowClassName="nexora-breathe">
-              <Sparkles size={30} strokeWidth={1.25} style={{ color: "var(--nexora-ink)" }} />
-            </BrandOrb>
-
             <p
-              className="mt-8 mb-3 text-[11px] uppercase tracking-[0.34em]"
+              className="mb-4 text-[11px] uppercase tracking-[0.34em]"
               style={{ color: "var(--nexora-ink-dim)" }}
             >
               Bienvenido a
             </p>
-            <h1 className="aventhra-logo text-3xl tracking-[0.14em] sm:text-4xl">
+            <h1 className="aventhra-logo text-5xl tracking-[0.16em] sm:text-6xl">
               <span className="aventhra-iridescent">AVENTHRA</span>
             </h1>
             <p
-              className="aventhra-copy mx-auto mt-4 max-w-sm text-sm"
+              className="aventhra-copy mx-auto mt-5 max-w-sm text-sm sm:text-base"
               style={{ color: "var(--nexora-ink-dim)" }}
             >
               Vamos a dejar tu agente listo en un minuto.
             </p>
 
-            <div className="mt-9">
-              <OrbitRing radius={9999}>
-                <button
-                  type="button"
-                  onClick={() => setStarted(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-full px-8 text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: "var(--nexora-void)",
-                    color: "var(--nexora-ink)",
-                  }}
-                >
-                  Comenzar
-                  <ArrowRight size={15} />
-                </button>
-              </OrbitRing>
+            <div className="mt-10">
+              <GradientPill as="button" onClick={() => setStarted(true)}>
+                Comenzar
+                <ArrowRight size={15} />
+              </GradientPill>
             </div>
           </motion.div>
         )}
@@ -407,14 +391,14 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             {...screenMotion}
             className="col-start-1 row-start-1 flex flex-col items-center text-center"
           >
-            <BrandOrb spinDuration="1.6s" glowClassName="nexora-breathe">
+            <GlowMark>
               <Sparkles
-                size={28}
-                strokeWidth={1.25}
-                className="nexora-pulse rounded-full"
+                size={26}
+                strokeWidth={1.5}
+                className="nexora-pulse"
                 style={{ color: "var(--nexora-ink)" }}
               />
-            </BrandOrb>
+            </GlowMark>
 
             <h2
               className="font-nexora mt-8 text-xl sm:text-2xl"
@@ -446,9 +430,9 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             {...screenMotion}
             className="col-start-1 row-start-1 flex flex-col items-center text-center"
           >
-            <BrandOrb spinDuration="5s" glowClassName="nexora-breathe">
-              <Check size={32} strokeWidth={1.5} style={{ color: "var(--nexora-ink)" }} />
-            </BrandOrb>
+            <GlowMark>
+              <Check size={30} strokeWidth={2} style={{ color: "var(--nexora-ink)" }} />
+            </GlowMark>
 
             <h2 className="font-nexora mt-8 text-2xl sm:text-3xl">
               <span className="aventhra-iridescent">¡Listo!</span>
@@ -461,20 +445,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
               tu industria. El último paso es darle tu tono y tus reglas.
             </p>
 
-            <div className="mt-9 flex w-full max-w-xs flex-col items-center gap-3">
-              <OrbitRing radius={9999} className="w-full">
-                <Link
-                  href="/admin/mi-agente"
-                  className="flex w-full items-center justify-center gap-2 rounded-full px-6 py-3.5 text-sm font-medium transition-colors"
-                  style={{
-                    backgroundColor: "var(--nexora-void)",
-                    color: "var(--nexora-ink)",
-                  }}
-                >
-                  <Sparkles size={16} />
-                  Personaliza tu agente
-                </Link>
-              </OrbitRing>
+            <div className="mt-9 flex flex-col items-center gap-4">
+              <GradientPill as="link" href="/admin/mi-agente">
+                <Sparkles size={16} />
+                Personaliza tu agente
+              </GradientPill>
               <Link
                 href="/admin"
                 className="text-sm transition-opacity hover:opacity-80"
@@ -572,34 +547,61 @@ function Field({
   );
 }
 
-// Elemento de marca central: anillo cónico girando (OrbitFrame) alrededor
-// de un disco sólido, con un halo iridiscente difuminado detrás. El halo
-// "respira" (nexora-breathe) — se apaga bajo prefers-reduced-motion; el
-// giro del anillo también (OrbitFrame usa .nexora-navlogin-orbit, que ya
-// respeta reduced-motion).
-function BrandOrb({
-  children,
-  spinDuration,
-  glowClassName,
-}: {
-  children: ReactNode;
-  spinDuration: string;
-  glowClassName?: string;
-}) {
+// Disco de marca para "personalizando" y "listo": un círculo con borde de
+// degradado (patrón p-px, mismo que OrbitButton de la landing) y un halo
+// RADIAL (círculo de verdad, no el degradado lineal que se veía cuadrado)
+// difuminado detrás que "respira".
+function GlowMark({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex items-center justify-center">
       <span
         aria-hidden
-        className={`aventhra-iridescent-bg pointer-events-none absolute h-40 w-40 rounded-full blur-[55px] ${glowClassName ?? ""}`}
+        className="nexora-breathe pointer-events-none absolute h-56 w-56 rounded-full blur-[60px]"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(129,140,248,0.55), rgba(76,194,232,0.22) 55%, transparent 76%)",
+        }}
       />
-      <OrbitFrame
-        className="relative inline-flex shrink-0 rounded-full"
-        innerClassName="flex h-24 w-24 items-center justify-center rounded-full bg-background"
-        ringSize="h-[190px] w-[190px]"
-        spinDuration={spinDuration}
-      >
-        {children}
-      </OrbitFrame>
+      <span className="relative inline-flex rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA_55%,#4CC2E8)] p-px">
+        <span
+          className="flex h-[72px] w-[72px] items-center justify-center rounded-full"
+          style={{ backgroundColor: "var(--nexora-void)" }}
+        >
+          {children}
+        </span>
+      </span>
     </div>
+  );
+}
+
+// Píldora con borde de degradado (cian → violeta → cian), interior oscuro
+// sólido — sin anillo girando ni SVG (los intentos con OrbitRing dejaban
+// arcos sueltos alrededor del botón). Sirve como <button> o como <Link>.
+function GradientPill({
+  as,
+  href,
+  onClick,
+  children,
+}: {
+  as: "button" | "link";
+  href?: string;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const inner =
+    "flex items-center justify-center gap-2 rounded-full px-8 py-3 text-sm font-medium transition-colors";
+  const innerStyle = { backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" };
+  return (
+    <span className="group inline-block rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA_55%,#4CC2E8)] p-px transition-shadow duration-300 hover:shadow-[0_0_28px_-4px_rgba(129,140,248,0.45)]">
+      {as === "link" && href ? (
+        <Link href={href} className={inner} style={innerStyle}>
+          {children}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} className={inner} style={innerStyle}>
+          {children}
+        </button>
+      )}
+    </span>
   );
 }
