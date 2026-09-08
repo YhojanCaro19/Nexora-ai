@@ -33,18 +33,26 @@ export function ProductosHero() {
       id="productos"
       className="relative w-full overflow-hidden px-6 md:px-10 lg:px-16"
     >
-      {/* Video de la cabeza del robot.
-          · Desktop (lg+): lado derecho absoluto, grande — EXACTO como
-            siempre (este div no cambió).
-          · Móvil/tablet: su propio div, mismo lado derecho absoluto pero
-            chico, a la altura del título y detrás de él (el título va
-            z-10). Se apila como acento, no como bloque centrado.
-          Dos divs separados a propósito: mezclarlos en uno con overrides
-          `lg:` dejó el video sin restringir y ocupaba toda la pantalla. */}
-      <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
+      {/* Video de la cabeza del robot — SIEMPRE lado derecho absoluto,
+          detrás del título (que va z-10 encima). Dos divs (desktop grande /
+          móvil chico), alternados por CSS `lg:`.
+
+          Geometría por `style` inline, NO por clases Tailwind arbitrarias:
+          es a prueba de que el navegador esté sirviendo un CSS cacheado
+          viejo (los estilos inline viven en el HTML, no en el .css). El
+          bug de "robot gigante arriba en móvil" era exactamente eso — el
+          simulador servía el stylesheet de una build anterior donde estas
+          clases no existían. */}
+      <div
+        className="pointer-events-none absolute hidden lg:block"
+        style={{ right: '3%', top: '42vh', height: '62vh', width: '36vw', maxWidth: 480, transform: 'translateY(-50%)' }}
+      >
         <RobotHead />
       </div>
-      <div className="pointer-events-none absolute right-[1%] top-[37vh] h-[22vh] w-[40vw] max-w-[108px] -translate-y-1/2 sm:right-[4%] sm:max-w-[200px] lg:hidden">
+      <div
+        className="pointer-events-none absolute lg:hidden"
+        style={{ right: '2%', top: '38vh', height: '22vh', width: '42vw', maxWidth: 116, transform: 'translateY(-50%)' }}
+      >
         <RobotHead />
       </div>
 
