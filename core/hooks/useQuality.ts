@@ -66,10 +66,20 @@ function getClientSnapshot(): ViewportTier {
 }
 
 function getServerSnapshot(): ViewportTier {
-  // Pase de SSR: 'desktop' preserva el comportamiento previo a esta
-  // feature (robot 3D) si por lo que sea se llegara a pintar antes de que
-  // React resuelva la hidratación con el valor real de cliente.
-  return 'desktop';
+  // Pase de SSR: 'mobile'. El SSR no puede saber el ancho real del
+  // viewport, así que sea cual sea el valor, el tier "equivocado" se pinta
+  // por ~1 frame antes de que la hidratación resuelva el real. 'mobile' es
+  // el menos dañino de los dos flashes:
+  //   · En un teléfono (el caso que importa): 'desktop' hacía que se
+  //     pintara la Pantalla 1 completa de escritorio — wordmark "AVENTHRA"
+  //     gigante + robot 3D bajando por el cable — encima del contenido
+  //     real, un parpadeo grande y feo (reportado por el usuario: "se
+  //     alcanza a ver lo que teníamos antes"). Con 'mobile' el teléfono
+  //     pinta directo su propio layout, sin ese flash.
+  //   · En escritorio: 'mobile' solo adelanta un instante el layout de la
+  //     landing sin la cortina de Pantalla 1; la cortina aparece un frame
+  //     después. Mismo contenido, cambio mínimo.
+  return 'mobile';
 }
 
 /**
