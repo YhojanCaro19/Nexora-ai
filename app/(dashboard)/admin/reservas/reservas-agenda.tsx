@@ -225,7 +225,7 @@ export function ReservasAgenda({
                   <button
                     type="button"
                     onClick={() => setSelectedDay(iso)}
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full text-[15px] transition-colors hover:bg-white/[0.06]"
+                    className="relative flex aspect-square w-full max-w-[3rem] items-center justify-center rounded-full text-[15px] transition-colors hover:bg-white/[0.06] md:aspect-auto md:h-12 md:w-12"
                     style={{
                       color: isSelected
                         ? "var(--nexora-nova-ink)"

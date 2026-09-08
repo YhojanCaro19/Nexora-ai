@@ -135,7 +135,7 @@ export function CreditsPanel({
 
       {/* ---- Comprar más / mejorar plan ---- */}
       <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
           <ExpandingButton icon={Plus} label="Comprar más créditos" onClick={() => setShowBuy(true)} />
           <ExpandingButton icon={ArrowUpCircle} label="Mejorar plan" onClick={() => setShowBuy(true)} />
         </div>

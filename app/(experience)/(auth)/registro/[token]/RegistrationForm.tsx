@@ -49,7 +49,7 @@ export function RegistrationForm({
 
             <div className="space-y-1">
               <p className={labelClass}>Tu correo</p>
-              <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-center text-sm text-white/70">
+              <div className="rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-center text-sm break-all text-white/70">
                 {email}
               </div>
               <p className="text-center text-[11px] leading-relaxed text-white/35">

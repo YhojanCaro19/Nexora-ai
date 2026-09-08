@@ -189,14 +189,14 @@ export default function NuevaEstrategiaPage() {
 
       {/* Contenido del paso */}
       <div className="mt-10 flex-1">
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col items-center gap-3 text-center md:flex-row md:gap-4 md:text-left">
           <span
-            className="flex h-14 w-14 items-center justify-center rounded-2xl"
+            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
             style={{ background: "rgba(129,140,248,0.12)" }}
           >
             <StepIcon size={26} style={{ color: "#818CF8" }} />
           </span>
-          <h1 className="font-nexora text-3xl" style={{ color: "var(--nexora-ink)" }}>
+          <h1 className="font-nexora text-2xl md:text-3xl" style={{ color: "var(--nexora-ink)" }}>
             {STEPS[step].title}
           </h1>
         </div>
@@ -273,8 +273,8 @@ export default function NuevaEstrategiaPage() {
                 <label className="text-sm font-medium" style={{ color: "var(--nexora-ink-dim)" }}>
                   Presupuesto mensual de pauta (opcional)
                 </label>
-                <div className="flex gap-3">
-                  <div className="inline-flex rounded-lg border p-1" style={{ borderColor: "var(--nexora-line)" }}>
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <div className="inline-flex self-start rounded-lg border p-1 md:self-auto" style={{ borderColor: "var(--nexora-line)" }}>
                     {(["COP", "USD"] as const).map((c) => (
                       <button
                         key={c}
@@ -484,12 +484,12 @@ export default function NuevaEstrategiaPage() {
       )}
 
       {/* Navegación */}
-      <div className="mt-10 flex items-center justify-between">
+      <div className="mt-10 flex flex-col-reverse gap-3 md:flex-row md:items-center md:justify-between">
         <button
           type="button"
           onClick={() => setStep((s) => Math.max(0, s - 1))}
           disabled={step === 0 || loading}
-          className="inline-flex items-center gap-1 rounded-full px-5 py-3 text-base disabled:opacity-0"
+          className="inline-flex w-full items-center justify-center gap-1 rounded-full px-5 py-3 text-base disabled:opacity-0 md:w-auto"
           style={{ color: "var(--nexora-ink-dim)" }}
         >
           <ChevronLeft size={18} />
@@ -501,7 +501,7 @@ export default function NuevaEstrategiaPage() {
             type="button"
             onClick={submit}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-base font-medium text-black disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-medium text-black disabled:opacity-60 md:w-auto md:text-base"
             style={{ background: "linear-gradient(120deg,#4CC2E8,#A78BFA)" }}
           >
             <Sparkles size={18} />
@@ -512,7 +512,7 @@ export default function NuevaEstrategiaPage() {
             type="button"
             onClick={() => setStep((s) => s + 1)}
             disabled={!stepValid}
-            className="inline-flex items-center gap-1 rounded-full px-8 py-3.5 text-base font-medium disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-1 rounded-full px-8 py-3.5 text-base font-medium disabled:opacity-40 md:w-auto"
             style={{ background: "var(--nexora-nova)", color: "#0a0a0f" }}
           >
             Siguiente

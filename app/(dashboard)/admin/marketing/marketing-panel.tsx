@@ -68,7 +68,7 @@ export function MarketingPanel() {
           disabled={loading}
         />
 
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <div
             className="inline-flex rounded-full border p-1"
             style={{ borderColor: "var(--nexora-line)" }}

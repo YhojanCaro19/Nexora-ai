@@ -214,12 +214,16 @@ export function TablesMap({
         </p>
       )}
 
+      {/* En móvil el plano no se reordena: se deja a tamaño usable y se
+          desplaza en horizontal dentro de su propio contenedor. En md+ el
+          plano vuelve a ocupar el ancho completo, sin scroll, como siempre. */}
+      <div className="overflow-x-auto md:overflow-visible">
       <div
         ref={canvasRef}
         onPointerDown={(e) => {
           if (e.target === canvasRef.current) setSelectedId(null);
         }}
-        className="relative w-full overflow-hidden rounded-3xl"
+        className="relative w-full min-w-[32rem] overflow-hidden rounded-3xl md:min-w-0"
         style={{ height: "32rem", background: FLOOR_BG, boxShadow: "inset 0 0 60px rgba(0,0,0,0.55)" }}
       >
         {tables.map((t, i) => {
@@ -304,6 +308,7 @@ export function TablesMap({
             </span>
           </div>
         )}
+      </div>
       </div>
 
       <div className="flex justify-center">

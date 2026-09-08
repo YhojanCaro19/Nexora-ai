@@ -247,7 +247,7 @@ function PiecesSection({ strategyId, pieces }: { strategyId: string; pieces: Pie
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
           Piezas (imagen + copy)
         </h2>

@@ -334,14 +334,14 @@ function HoursSection({ hours }: { hours: BusinessHour[] }) {
                   type="time"
                   value={r.opensAt}
                   onChange={(e) => patch(r.weekday, { opensAt: e.target.value })}
-                  className="h-7 w-[6.5rem] px-1.5 text-xs"
+                  className="h-7 w-24 px-1.5 text-xs sm:w-[6.5rem]"
                 />
                 <span style={{ color: "var(--nexora-ink-dim)" }}>–</span>
                 <Input
                   type="time"
                   value={r.closesAt}
                   onChange={(e) => patch(r.weekday, { closesAt: e.target.value })}
-                  className="h-7 w-[6.5rem] px-1.5 text-xs"
+                  className="h-7 w-24 px-1.5 text-xs sm:w-[6.5rem]"
                 />
               </div>
             ) : (

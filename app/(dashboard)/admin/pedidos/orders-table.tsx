@@ -522,7 +522,7 @@ function OrderDetailView({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        <section className="rounded-2xl border p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <section className="rounded-2xl border p-4 md:p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex flex-col items-center gap-2">
             <Package size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
             <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
@@ -548,7 +548,7 @@ function OrderDetailView({
           </div>
         </section>
 
-        <section className="rounded-2xl border p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <section className="rounded-2xl border p-4 md:p-8 space-y-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <div className="flex flex-col items-center gap-2">
             <Receipt size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
             <h3 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--nexora-nova)' }}>
