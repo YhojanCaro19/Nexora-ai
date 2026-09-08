@@ -165,6 +165,21 @@ body {
   .nexora-pulse { animation: none; }
 }
 
+/* Halo que "respira" — el resplandor central del onboarding del primer
+   login (app/bienvenida). Escala + opacidad, sin box-shadow (va sobre un
+   blob difuminado, no un punto). Mismo criterio que .nexora-pulse: se
+   apaga del todo bajo prefers-reduced-motion. */
+@keyframes nexora-breathe {
+  0%, 100% { opacity: 0.22; transform: scale(0.9); }
+  50% { opacity: 0.42; transform: scale(1.1); }
+}
+.nexora-breathe {
+  animation: nexora-breathe 3.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nexora-breathe { animation: none; }
+}
+
 /* Panel de components/ui/accordion.tsx (fila "toca para expandir" de
    Seguridad en perfil, y cualquier otra pantalla que use Accordion). Base UI
    solo expone la altura real del contenido vía --accordion-panel-height y
