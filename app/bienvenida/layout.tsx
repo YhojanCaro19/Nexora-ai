@@ -22,14 +22,23 @@ export default async function BienvenidaLayout({ children }: { children: React.R
       <OnboardingStarfield />
 
       {/* Un solo resplandor de marca al centro: fuerte en el medio, se
-          desvanece hacia afuera dejando ver el negro + las estrellas. Por
-          `style` inline para que se aplique con CSS cacheado. */}
+          desvanece hacia afuera dejando ver el negro + las estrellas.
+          · Pocas paradas de color (3) para no marcar "cortes".
+          · `filter: blur(...)` fuerte disuelve cualquier banding restante.
+          · La capa se sale del viewport (−22% / 144%) para que el borde
+            del blur quede fuera de pantalla y no haga viñeta oscura.
+          Todo por `style` inline (a prueba de CSS cacheado). */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none fixed z-0"
         style={{
+          top: "-22%",
+          left: "-22%",
+          width: "144%",
+          height: "144%",
           background:
-            "radial-gradient(98% 82% at 50% 42%, rgba(129,140,248,0.64) 0%, rgba(129,140,248,0.32) 20%, rgba(129,140,248,0.11) 46%, rgba(76,194,232,0.035) 72%, transparent 100%)",
+            "radial-gradient(40% 36% at 50% 44%, rgba(129,140,248,0.55), rgba(129,140,248,0.13) 54%, transparent 82%)",
+          filter: "blur(72px)",
         }}
       />
 
