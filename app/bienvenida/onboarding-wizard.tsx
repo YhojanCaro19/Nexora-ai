@@ -359,43 +359,47 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
           <motion.div
             key="welcome"
             {...screenMotion}
-            className="col-start-1 row-start-1 flex flex-col items-center text-center"
+            className="col-start-1 row-start-1 mx-auto w-full max-w-md"
           >
-            <p
-              className="mb-4 text-[11px] uppercase tracking-[0.34em]"
-              style={{ color: "var(--nexora-ink-dim)" }}
-            >
-              Bienvenido a
-            </p>
-            <h1 className="aventhra-logo text-5xl tracking-[0.16em] sm:text-6xl">
-              <span className="aventhra-iridescent">AVENTHRA</span>
-            </h1>
-            <p
-              className="aventhra-copy mx-auto mt-5 max-w-sm text-sm sm:text-base"
-              style={{ color: "var(--nexora-ink-dim)" }}
-            >
-              Personalicemos tu experiencia.
-            </p>
-
-            <div className="mt-10">
-              {/* Mismo efecto de anillo girando que el login del navbar
-                  móvil (OrbitFrame / .nexora-navlogin-orbit). */}
-              <OrbitFrame
-                className="inline-block rounded-full"
-                innerClassName="rounded-full"
-                ringSize="h-[240px] w-[240px]"
-              >
-                <button
-                  type="button"
-                  onClick={() => setStarted(true)}
-                  className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
-                  style={{ backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" }}
+            <GlassCard>
+              <div className="flex flex-col items-center py-4 text-center">
+                <p
+                  className="mb-4 text-[11px] uppercase tracking-[0.34em]"
+                  style={{ color: "var(--nexora-ink-dim)" }}
                 >
-                  Comenzar
-                  <ArrowRight size={15} />
-                </button>
-              </OrbitFrame>
-            </div>
+                  Bienvenido a
+                </p>
+                <h1 className="aventhra-logo text-4xl tracking-[0.16em] sm:text-5xl">
+                  <span className="aventhra-iridescent">AVENTHRA</span>
+                </h1>
+                <p
+                  className="aventhra-copy mx-auto mt-4 max-w-xs text-sm sm:text-base"
+                  style={{ color: "var(--nexora-ink-dim)" }}
+                >
+                  Personalicemos tu experiencia.
+                </p>
+
+                <div className="mt-8">
+                  {/* Mismo efecto de anillo girando que el login del navbar
+                      móvil (OrbitFrame / .nexora-navlogin-orbit). */}
+                  <OrbitFrame
+                    className="inline-block rounded-full"
+                    innerClassName="rounded-full"
+                    ringSize="h-[240px] w-[240px]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setStarted(true)}
+                      className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors"
+                      style={{ backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" }}
+                    >
+                      Comenzar
+                      <ArrowRight size={15} />
+                    </button>
+                  </OrbitFrame>
+                </div>
+              </div>
+            </GlassCard>
           </motion.div>
         )}
 
@@ -486,9 +490,10 @@ function GlassCard({ children }: { children: ReactNode }) {
     <div
       className="rounded-[28px] border p-6 backdrop-blur-xl sm:p-8"
       style={{
-        borderColor: "var(--nexora-line)",
-        backgroundColor: "color-mix(in oklch, var(--nexora-panel) 68%, transparent)",
-        boxShadow: "0 32px 90px -24px rgba(0, 0, 0, 0.75)",
+        borderColor: "color-mix(in oklch, var(--nexora-input) 85%, transparent)",
+        backgroundColor: "color-mix(in oklch, var(--nexora-panel) 62%, transparent)",
+        boxShadow:
+          "0 30px 80px -24px rgba(0,0,0,0.7), 0 0 52px -8px rgba(76,194,232,0.16), inset 0 1px 0 rgba(255,255,255,0.05)",
       }}
     >
       {children}
