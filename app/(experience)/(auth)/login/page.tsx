@@ -77,11 +77,10 @@ export default async function LoginPage({
               </p>
             )}
 
-            {/* Tarjetica: usa el correo de la compra */}
-            <div className="flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5">
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04]">
-                <Mail size={15} className="text-[#4CC2E8]" />
-              </span>
+            {/* Nota "usa el correo de la compra" — SIN recuadro propio: es
+                una nota dentro de la card, no otra card anidada. */}
+            <div className="flex items-start gap-3">
+              <Mail size={16} className="mt-0.5 shrink-0 text-[#4CC2E8]" />
               <div>
                 <p className="text-sm font-medium text-white/85">
                   {t("purchaseTitle")}
@@ -93,7 +92,7 @@ export default async function LoginPage({
             </div>
 
             {/* Botón de Google */}
-            <form action={signInWithGoogle} className="mt-5">
+            <form action={signInWithGoogle} className="mt-6">
               <button
                 type="submit"
                 className="group flex w-full items-center justify-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-medium text-white/90 transition-colors duration-200 hover:border-white/25 hover:bg-white/[0.12] hover:text-white"

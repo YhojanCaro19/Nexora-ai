@@ -127,32 +127,37 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
       {/* ══════ MOBILE / TABLET ══════ contenedor `fixed` (no empuja layout). */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:hidden">
         <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3 px-5 py-3">
-            {logo}
+          {/* Grid 1fr/auto/1fr: el wordmark queda REALMENTE centrado en la
+              barra (columna del medio); el botón de menú cae a la derecha
+              con justify-self-end, en el mismo borde donde ya estaba. La
+              columna izquierda vacía solo balancea. */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3">
+            <span aria-hidden />
+            <span className="justify-self-center">{logo}</span>
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               aria-expanded={menuOpen}
               aria-label={menuOpen ? t('closeMenu') : t('openMenu')}
-              className="-mr-1 shrink-0 rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
+              className="-mr-1 shrink-0 justify-self-end rounded-full p-1.5 text-white/80 transition-colors hover:text-white"
             >
               {menuOpen ? <X size={20} strokeWidth={1.5} /> : <Menu size={20} strokeWidth={1.5} />}
             </button>
           </div>
 
           {menuOpen && (
-            <div className="flex flex-col gap-1 border-t border-white/10 px-3 pb-3 pt-2">
+            <div className="flex flex-col border-t border-white/10 px-3 pb-4 pt-3">
               {NAV_SECTIONS.map((section) => (
                 <button
                   key={section.key}
                   type="button"
                   onClick={() => handleSection(section.id)}
-                  className="rounded-xl px-3 py-2.5 text-left text-[15px] font-light text-white/75 transition-colors hover:bg-white/5 hover:text-white"
+                  className="rounded-xl px-3 py-3 text-center text-[15px] font-light text-white/75 transition-colors hover:bg-white/5 hover:text-white"
                 >
                   {t(section.key)}
                 </button>
               ))}
-              <div className="mt-1 flex items-center justify-between gap-3 border-t border-white/10 px-3 pt-3">
+              <div className="mt-3 flex items-center justify-center gap-4 border-t border-white/10 pt-4">
                 <LocaleToggle />
                 <OrbitFrame
                   className="inline-block shrink-0 rounded-full"
