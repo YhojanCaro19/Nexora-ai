@@ -37,7 +37,7 @@ export default async function BienvenidaLayout({ children }: { children: React.R
           width: "160%",
           height: "160%",
           background:
-            "radial-gradient(ellipse 74vw 36vh at 50% 50%, rgba(129,140,248,0.56), rgba(129,140,248,0.16) 40%, transparent 76%)",
+            "radial-gradient(ellipse 96vw 54vh at 50% 50%, rgba(129,140,248,0.58), rgba(129,140,248,0.19) 38%, transparent 82%)",
           filter: "blur(90px)",
         }}
       />
