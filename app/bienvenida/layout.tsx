@@ -20,27 +20,35 @@ export default async function BienvenidaLayout({ children }: { children: React.R
     >
       {/* Campo de estrellas — mismo tono que la Pantalla 1 de la landing. */}
       <OnboardingStarfield />
-      {/* Estela de color de marca — grande y difusa, ocupa casi todo el
-          viewport para que el fondo "respire" en cian/violeta, no un blob
-          contenido. Va ENCIMA de las estrellas (mismo z-0, después en el
-          DOM) pero con alfas bajas para no taparlas. */}
-      <div
-        aria-hidden
-        className="nexora-breathe pointer-events-none fixed left-1/2 top-[38%] z-0 h-[120vh] w-[120vw] -translate-x-1/2 -translate-y-1/2"
-        style={{
-          background:
-            "radial-gradient(45% 42% at 50% 50%, rgba(129,140,248,0.24), rgba(76,194,232,0.12) 45%, transparent 74%)",
-          filter: "blur(40px)",
-        }}
-      />
-      {/* Velo radial: hunde los bordes en el vacío y deja "flotar" el
-          contenido en el centro, igual que el wordmark de la landing. */}
+
+      {/* Estela de color de marca — GRANDE. Dos capas radiales cian/violeta
+          que ocupan casi todo el viewport. Todo por `style` inline (nada de
+          clases arbitrarias de Tailwind) para que se aplique aunque el
+          navegador sirva un CSS cacheado. */}
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(135% 90% at 50% 38%, transparent 50%, var(--nexora-void) 100%)",
+            "radial-gradient(65% 48% at 50% 40%, rgba(129,140,248,0.34), rgba(76,194,232,0.16) 45%, transparent 72%)",
+        }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(42% 34% at 50% 42%, rgba(167,139,250,0.32), rgba(76,194,232,0.10) 55%, transparent 78%)",
+        }}
+      />
+
+      {/* Velo radial: hunde SOLO los bordes lejanos en el vacío. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(150% 100% at 50% 40%, transparent 62%, var(--nexora-void) 100%)",
         }}
       />
       <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
