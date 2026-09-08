@@ -13,24 +13,13 @@
 // miembro del negocio — un colaborador no debe poder leer el historial
 // de seguridad del admin ni de otro colaborador.
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { SECURITY_EVENT_LABELS, type ProfileSecurityEventType } from "@/lib/constants/securityEventLabels";
 
-export type ProfileSecurityEventType =
-  | "password_changed"
-  | "signed_out_all_devices"
-  | "avatar_updated"
-  | "profile_updated"
-  // Acceso a datos del negocio — acciones sensibles que quedan en el
-  // historial personal de quien las hizo (auth.uid() = user_id).
-  | "collaborator_added"
-  | "collaborator_updated"
-  | "collaborator_deactivated"
-  | "collaborator_reactivated"
-  | "collaborator_removed"
-  | "report_downloaded"
-  | "account_change_requested"
-  // proxy.ts detectó que la sesión se usó desde otro navegador/equipo
-  // (huella de dispositivo distinta) y la cerró por seguridad.
-  | "session_device_mismatch";
+// Reexportados para el código de SERVIDOR que ya los importaba de acá
+// (platformLogService.ts, etc.) — un componente CLIENTE debe importar
+// directo de lib/constants/securityEventLabels (ver comentario ahí).
+export { SECURITY_EVENT_LABELS };
+export type { ProfileSecurityEventType };
 
 export interface ProfileSecurityEvent {
   id: string;
@@ -85,6 +74,51 @@ export async function getProfileSecurityEvents(
   return (data ?? []).map((row) => ({
     id: row.id,
     eventType: row.event_type as ProfileSecurityEventType,
+    createdAt: row.created_at,
+  }));
+}
+
+export interface PlatformSecurityEvent {
+  id: string;
+  eventType: ProfileSecurityEventType;
+  userId: string;
+  businessId: string;
+  businessName: string | null;
+  createdAt: string;
+}
+
+/**
+ * TODOS los eventos de seguridad de TODOS los negocios, para
+ * Superadmin → Logs (service role, no depende de la policy "cada quien
+ * ve lo suyo" — acá el que lee es la plataforma, no la persona dueña del
+ * evento).
+ */
+export async function getAllProfileSecurityEvents(limit = 300): Promise<PlatformSecurityEvent[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("profile_security_events")
+    .select("id, user_id, business_id, event_type, created_at, businesses(name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    if (error) console.error("[getAllProfileSecurityEvents] error:", error.message);
+    return [];
+  }
+
+  return (data as unknown as Array<{
+    id: string;
+    user_id: string;
+    business_id: string;
+    event_type: string;
+    created_at: string;
+    businesses: { name: string } | null;
+  }>).map((row) => ({
+    id: row.id,
+    eventType: row.event_type as ProfileSecurityEventType,
+    userId: row.user_id,
+    businessId: row.business_id,
+    businessName: row.businesses?.name ?? null,
     createdAt: row.created_at,
   }));
 }

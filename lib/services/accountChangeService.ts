@@ -14,6 +14,7 @@
 // pending_registrations (docs/sql/auto-signup.sql §4).
 import { createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
+import { logPlatformAdminAction } from "@/lib/services/auditLogService";
 import {
   sendAccountChangeRequestedEmail,
   sendAccountChangeResolvedEmail,
@@ -326,6 +327,12 @@ export async function resolveAccountChangeRequest(
       newEmail: request.requestedEmail,
       note: input.note ?? null,
     });
+    await logPlatformAdminAction(
+      superadminUserId,
+      "request_rejected",
+      request.businessId,
+      `${request.currentEmail} → ${request.requestedEmail}`
+    );
     return { error: null };
   }
 
@@ -416,6 +423,13 @@ export async function resolveAccountChangeRequest(
       note: input.note ?? null,
     }),
   ]);
+
+  await logPlatformAdminAction(
+    superadminUserId,
+    "request_approved",
+    request.businessId,
+    `${request.currentEmail} → ${request.requestedEmail}`
+  );
 
   return { error: null };
 }

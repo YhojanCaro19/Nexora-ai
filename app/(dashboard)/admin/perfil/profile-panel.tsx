@@ -38,6 +38,10 @@ import {
 } from "./actions";
 import type { ProfileDetails } from "@/lib/services/profileService";
 import type { LoginEvent } from "@/lib/services/loginEventService";
+// SECURITY_EVENT_LABELS se importa del archivo de constantes puro, NO de
+// profileSecurityLogService — ese depende de supabase/server y arrastraría
+// todo el módulo al bundle del navegador (este es un Client Component).
+import { SECURITY_EVENT_LABELS } from "@/lib/constants/securityEventLabels";
 import type { ProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 import type { AccessChangeEligibility } from "@/lib/services/accountChangeService";
 import type { BillingSummary } from "@/lib/services/creditService";
@@ -54,21 +58,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 const industryLabel = (value: string) =>
   industryTypes.find((it) => it.value === value)?.label ?? value;
-
-const SECURITY_EVENT_LABELS: Record<string, string> = {
-  password_changed: "Contraseña cambiada",
-  signed_out_all_devices: "Cerró sesión en todos los dispositivos",
-  avatar_updated: "Actualizó su foto de perfil",
-  profile_updated: "Actualizó su nombre o teléfono",
-  collaborator_added: "Agregó un colaborador",
-  collaborator_updated: "Editó los datos de un colaborador",
-  collaborator_deactivated: "Desactivó a un colaborador",
-  collaborator_reactivated: "Reactivó a un colaborador",
-  collaborator_removed: "Eliminó a un colaborador",
-  report_downloaded: "Descargó un reporte",
-  account_change_requested: "Pidió cambiar su cuenta de acceso",
-  session_device_mismatch: "Sesión cerrada: se intentó usar desde otro dispositivo",
-};
 
 type SectionKey =
   | "personal"

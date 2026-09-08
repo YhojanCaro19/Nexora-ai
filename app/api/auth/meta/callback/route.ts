@@ -40,6 +40,7 @@ import {
 } from "@/lib/services/instagramLoginService";
 import { saveConnection, setWebhookSubscribed } from "@/lib/services/channelConnectionService";
 import { saveAdAccount } from "@/lib/services/adAccountService";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 
 export const dynamic = "force-dynamic";
 
@@ -94,6 +95,7 @@ export async function GET(request: Request) {
       if (saved.error || !saved.id) {
         return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
       }
+      await logProfileSecurityEvent(parsed.userId, parsed.businessId, "channel_connected_instagram");
 
       try {
         await subscribeInstagramWebhooks(igId, long.accessToken);
@@ -166,6 +168,7 @@ export async function GET(request: Request) {
       if (saved.error || !saved.id) {
         return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
       }
+      await logProfileSecurityEvent(parsed.userId, parsed.businessId, "ad_account_connected_meta");
 
       return back(returnPath, { connected: "meta_ads", account: account.name });
     } catch (err) {
@@ -207,6 +210,7 @@ export async function GET(request: Request) {
       return back(returnPath, { error: "guardar", detail: saved.error ?? "" });
     }
     const savedIds: string[] = [saved.id];
+    await logProfileSecurityEvent(parsed.userId, parsed.businessId, "channel_connected_messenger");
 
     // Instagram: misma Página, mismo token, id de la cuenta de IG ligada.
     if (page.instagram_business_account?.id) {
@@ -222,7 +226,10 @@ export async function GET(request: Request) {
         extra: { pageId: page.id },
         connectedBy: profile.userId,
       });
-      if (ig.id) savedIds.push(ig.id);
+      if (ig.id) {
+        savedIds.push(ig.id);
+        await logProfileSecurityEvent(parsed.userId, parsed.businessId, "channel_connected_instagram");
+      }
     }
 
     // Suscribir el webhook de la Página. No es fatal: si el producto

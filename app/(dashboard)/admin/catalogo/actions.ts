@@ -6,6 +6,7 @@ import { getSessionProfile } from "@/lib/auth/get-session";
 import { createProduct, updateProduct, toggleProductActive } from "@/lib/services/productService";
 import type { ProductInput } from "@/lib/validators/productSchema";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 
 // Estas actions las usan tanto la página de admin como la de colaborador
 // (app/(dashboard)/colaborador/catalogo/page.tsx importa este mismo
@@ -39,6 +40,12 @@ export async function createProductAction(input: ProductInput, imageFile?: File 
   }
 
   const result = await createProduct(businessId, input, imageFile);
+  if (!result.error) {
+    // getSessionProfile() está cacheada por request (React cache()) — ya
+    // se resolvió dentro de requireModuleAccess, esto no repite la consulta.
+    const profile = await getSessionProfile();
+    if (profile) await logProfileSecurityEvent(profile.userId, businessId, "product_created");
+  }
   revalidateCatalogo();
   return result;
 }
@@ -106,6 +113,11 @@ export async function bulkImportProductsAction(
       lowStockThreshold: row.lowStockThreshold ?? null,
     });
     results.push({ row: i + 2, name: row.name, error: result.error }); // +2: fila 1 es encabezado
+  }
+
+  const importedCount = results.filter((r) => !r.error).length;
+  if (importedCount > 0 && profile) {
+    await logProfileSecurityEvent(profile.userId, businessId, "products_bulk_imported");
   }
 
   revalidateCatalogo();

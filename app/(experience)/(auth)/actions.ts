@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
+import { getSessionProfile } from "@/lib/auth/get-session";
+import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
 
 // AVENTHRA solo autentica con Google. No hay login con correo/contraseña,
 // ni registro público, ni recuperación de contraseña — decisión explícita
@@ -37,6 +39,16 @@ export async function signInWithGoogle() {
 }
 
 export async function logout() {
+  // Se resuelve ANTES de cerrar sesión — después de signOut() ya no hay
+  // usuario del que leer nada. Solo se registra para miembros de un
+  // negocio (profile_security_events exige business_id NOT NULL); el
+  // superadmin no tiene, así que su propio cierre de sesión no deja
+  // rastro acá — no hay mucho valor en que se audite a sí mismo.
+  const profile = await getSessionProfile();
+  if (profile?.businessId) {
+    await logProfileSecurityEvent(profile.userId, profile.businessId, "signed_out");
+  }
+
   const supabase = await createClient();
   await supabase.auth.signOut();
   revalidatePath("/", "layout");
