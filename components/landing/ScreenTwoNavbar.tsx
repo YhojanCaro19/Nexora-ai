@@ -127,13 +127,15 @@ export function ScreenTwoNavbar({ className = '' }: ScreenTwoNavbarProps) {
       {/* ══════ MOBILE / TABLET ══════ contenedor `fixed` (no empuja layout). */}
       <div className="pointer-events-none fixed inset-x-0 top-0 z-40 flex justify-center px-4 pt-4 lg:hidden">
         <nav className="pointer-events-auto w-full max-w-md overflow-hidden rounded-3xl border border-white/15 bg-black/50 shadow-2xl backdrop-blur-xl">
-          {/* Wordmark a la izquierda; a la derecha, juntos, el botón de menú
-              y un acceso compacto a login (solo ícono, mismo peso visual que
-              la hamburguesa). El login vive acá arriba y ya no dentro del
-              panel desplegable. */}
-          <div className="flex items-center justify-between gap-3 px-5 py-3">
-            {logo}
-            <div className="flex shrink-0 items-center gap-0.5">
+          {/* Grid 1fr/auto/1fr: el wordmark queda centrado en la columna del
+              medio; el clúster de la derecha (menú + login) cae en la
+              columna 1fr derecha con justify-self-end, y la columna 1fr
+              izquierda vacía lo balancea. El login vive acá arriba y ya no
+              dentro del panel desplegable. */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-5 py-3">
+            <span aria-hidden />
+            <span className="justify-self-center">{logo}</span>
+            <div className="flex shrink-0 items-center justify-self-end gap-0.5">
               <button
                 type="button"
                 onClick={() => setMenuOpen((v) => !v)}
