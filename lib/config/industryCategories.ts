@@ -10,7 +10,9 @@
 // Cobertura amplia a propósito (pedido explícito): cualquier tipo de
 // comercio que pueda vender por redes sociales/WhatsApp, no solo las
 // industrias "clásicas" del catálogo original — pero siempre organizado
-// por categoría, nunca como una lista plana de 24 industrias sueltas.
+// por categoría, nunca como una lista plana de decenas de industrias
+// sueltas. Lista en crecimiento — 2026-09-07: primera tanda de 20
+// industrias nuevas, el usuario ya avisó que va a seguir pensando en más.
 export interface IndustryCategory {
   key: string;
   label: string;
@@ -21,7 +23,7 @@ export const INDUSTRY_CATEGORIES: IndustryCategory[] = [
   {
     key: "gastronomica",
     label: "Industria gastronómica",
-    industryTypes: ["restaurant", "cafe", "bakery", "ice_cream_shop"],
+    industryTypes: ["restaurant", "cafe", "bakery", "pastry_shop", "ice_cream_shop"],
   },
   {
     key: "textil",
@@ -31,12 +33,17 @@ export const INDUSTRY_CATEGORIES: IndustryCategory[] = [
   {
     key: "tecnologia",
     label: "Tecnología",
-    industryTypes: ["phone_store", "computer_store", "appliance_store"],
+    industryTypes: ["phone_store", "computer_store", "appliance_store", "tech_store"],
   },
   {
     key: "belleza",
     label: "Belleza y cuidado personal",
-    industryTypes: ["barbershop", "makeup_store", "beauty_salon"],
+    industryTypes: ["barbershop", "hair_salon", "makeup_store", "beauty_salon"],
+  },
+  {
+    key: "salud_bienestar",
+    label: "Salud y bienestar",
+    industryTypes: ["aesthetic_center", "gym", "veterinary_clinic", "dental_clinic"],
   },
   {
     key: "talleres",
@@ -56,6 +63,35 @@ export const INDUSTRY_CATEGORIES: IndustryCategory[] = [
   {
     key: "comercial",
     label: "Industria comercial",
-    industryTypes: ["jewelry", "pet_store", "toy_store", "sporting_goods_store"],
+    industryTypes: [
+      "jewelry",
+      "pet_store",
+      "toy_store",
+      "sporting_goods_store",
+      "hardware_store",
+      "hair_supply_store",
+      "optical_store",
+      "online_store",
+    ],
+  },
+  {
+    key: "inmobiliaria_construccion",
+    label: "Inmobiliaria y construcción",
+    industryTypes: ["real_estate_agency", "vacation_rental", "construction_company"],
+  },
+  {
+    key: "automotriz",
+    label: "Automotriz",
+    industryTypes: ["car_dealership"],
+  },
+  {
+    key: "viajes",
+    label: "Viajes",
+    industryTypes: ["travel_agency"],
+  },
+  {
+    key: "eventos_creatividad",
+    label: "Eventos y creatividad",
+    industryTypes: ["event_planning", "photo_video_studio", "tattoo_studio", "personal_brand"],
   },
 ];

@@ -1,13 +1,19 @@
 // lib/services/agentTemplateService.ts
 //
 // Plantilla COMPLETA del agente por industria (industry_agent_templates):
-// no solo qué herramientas vienen activadas — también saludo, tono,
-// mensajes (escalamiento, fallback, fuera de horario, despedida), FAQs
-// base, largo de respuesta y uso de emojis. Se usa en dos momentos:
+// no solo qué herramientas vienen activadas — también saludo, tono
+// (emojis, trato al cliente), mensajes (escalamiento, fallback, fuera de
+// horario, despedida), cuándo escalar a una persona, FAQs base, largo de
+// respuesta e idioma. Se usa en dos momentos:
 // - superadmin la edita acá (Agentes → Plantillas por industria).
-// - createAccountFromRequest (adminService.ts) la copia completa a
+// - provisionBusinessAccount (registrationService.ts) la copia completa a
 //   agent_configs cuando se crea un negocio nuevo, para que el admin no
 //   empiece con el agente en blanco.
+//
+// A propósito NO incluye nada que deba ser de cada negocio (horarios,
+// descripción del negocio, ubicaciones, redes, métodos de pago,
+// instrucciones extra, modismos locales) — eso siempre arranca vacío,
+// solo el dueño real lo puede llenar.
 //
 // RLS de esa tabla no tiene ninguna policy a propósito — solo se toca con
 // el cliente admin (service role) desde acá, nunca desde el cliente normal.
@@ -22,6 +28,8 @@ import {
 import { DEFAULT_INDUSTRY_AGENT_CONTENT } from "@/lib/config/industryAgentDefaults";
 import { sanitizeFaqs, type FaqEntry } from "@/lib/services/agentConfigService";
 import { industryTypes } from "@/lib/validators/businessSchema";
+import { sanitizeEmojiMode, sanitizeAddressForm, type EmojiMode, type AddressForm } from "@/lib/config/agentPersona";
+import { sanitizeEscalationTriggers, type EscalationTriggerKey } from "@/lib/config/escalationTriggers";
 
 export interface IndustryTemplate {
   industryType: string;
@@ -35,7 +43,12 @@ export interface IndustryTemplate {
   farewellMessage: string;
   faqs: FaqEntry[];
   responseLength: string;
-  useEmojis: boolean;
+  emojiMode: EmojiMode;
+  /** Solo se usa cuando emojiMode === "personalizado". */
+  emojiSet: string;
+  addressForm: AddressForm;
+  escalationTriggers: EscalationTriggerKey[];
+  language: string;
   restrictions: string;
 }
 
@@ -49,14 +62,18 @@ export interface IndustryTemplateInput {
   farewellMessage: string;
   faqs: FaqEntry[];
   responseLength: string;
-  useEmojis: boolean;
+  emojiMode: string;
+  emojiSet: string;
+  addressForm: string;
+  escalationTriggers: string[];
+  language: string;
   restrictions: string;
 }
 
 const TEMPLATE_COLUMNS =
   "industry_type, tool_keys, personality, greeting_message, escalation_message, " +
   "fallback_message, after_hours_message, farewell_message, faqs, response_length, " +
-  "use_emojis, restrictions";
+  "emoji_mode, emoji_set, address_form, escalation_triggers, language, restrictions";
 
 interface TemplateRow {
   industry_type: string;
@@ -69,7 +86,11 @@ interface TemplateRow {
   farewell_message: string | null;
   faqs: unknown;
   response_length: string | null;
-  use_emojis: boolean | null;
+  emoji_mode: string | null;
+  emoji_set: string | null;
+  address_form: string | null;
+  escalation_triggers: unknown;
+  language: string | null;
   restrictions: string | null;
 }
 
@@ -90,7 +111,13 @@ function rowToTemplate(industryType: string, industryLabel: string, row: Templat
     farewellMessage: row?.farewell_message ?? fallback?.farewellMessage ?? "",
     faqs: row?.faqs ? sanitizeFaqs(row.faqs) : (fallback?.faqs ?? []),
     responseLength: row?.response_length ?? fallback?.responseLength ?? "media",
-    useEmojis: row?.use_emojis ?? fallback?.useEmojis ?? true,
+    emojiMode: row?.emoji_mode ? sanitizeEmojiMode(row.emoji_mode) : (fallback?.emojiMode ?? "pocos"),
+    emojiSet: row?.emoji_set ?? fallback?.emojiSet ?? "",
+    addressForm: row?.address_form ? sanitizeAddressForm(row.address_form) : (fallback?.addressForm ?? "auto"),
+    escalationTriggers: row?.escalation_triggers
+      ? sanitizeEscalationTriggers(row.escalation_triggers)
+      : (fallback?.escalationTriggers ?? []),
+    language: row?.language ?? fallback?.language ?? "Español",
     restrictions: row?.restrictions ?? fallback?.restrictions ?? "",
   };
 }
@@ -155,7 +182,11 @@ export async function updateIndustryTemplate(industryType: string, input: Indust
       farewell_message: input.farewellMessage.trim(),
       faqs: sanitizeFaqs(input.faqs),
       response_length: input.responseLength || "media",
-      use_emojis: input.useEmojis,
+      emoji_mode: sanitizeEmojiMode(input.emojiMode),
+      emoji_set: input.emojiSet.trim(),
+      address_form: sanitizeAddressForm(input.addressForm),
+      escalation_triggers: sanitizeEscalationTriggers(input.escalationTriggers),
+      language: input.language || "Español",
       restrictions: input.restrictions.trim(),
     },
     { onConflict: "industry_type" }

@@ -1,16 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Wrench,
-  LayoutTemplate,
   ChevronLeft,
   ChevronRight,
   MessageCircle,
   Sparkles,
   BookOpen,
+  LifeBuoy,
   Plus,
   Trash2,
+  UtensilsCrossed,
+  Shirt,
+  Cpu,
+  HeartPulse,
+  Home,
+  ShoppingBag,
+  Building2,
+  Car,
+  Plane,
+  PartyPopper,
   type LucideIcon,
 } from "lucide-react";
 import { updateIndustryTemplateAction } from "./actions";
@@ -22,24 +32,46 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectSearch } from "@/components/shared/MultiSelectSearch";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
+import { EMOJI_MODES, ADDRESS_FORMS } from "@/lib/config/agentPersona";
+import { ESCALATION_TRIGGERS } from "@/lib/config/escalationTriggers";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { IndustryTemplate } from "@/lib/services/agentTemplateService";
 import type { FaqEntry } from "@/lib/services/agentConfigService";
 
 type ToolCatalog = typeof AGENT_TOOLS;
-// Ya no hay un "chooser" de nivel superior (Catálogo de herramientas vs.
-// Plantillas) — el catálogo de herramientas se quitó del menú principal a
-// propósito; sigue existiendo, pero solo como una sección MÁS dentro de
-// cada plantilla (ver TemplateDetail), no como una pantalla aparte.
 type View = "categories" | "industries";
 
-// Mismas opciones que Mi Agente (admin) — el valor se inyecta tal cual en
-// el prompt, así que agregar una nueva es un cambio de código, no un dato
-// editable desde acá.
+// Un ícono propio por categoría — antes las 13 tarjetas usaban el mismo
+// ícono genérico (LayoutTemplate) y se veían idénticas entre sí. Si algún
+// día se agrega una categoría sin entrada acá, cae a Sparkles — no debe
+// tumbar la pantalla por un ícono faltante.
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  gastronomica: UtensilsCrossed,
+  textil: Shirt,
+  tecnologia: Cpu,
+  belleza: Sparkles,
+  salud_bienestar: HeartPulse,
+  talleres: Wrench,
+  hogar: Home,
+  papeleria: BookOpen,
+  comercial: ShoppingBag,
+  inmobiliaria_construccion: Building2,
+  automotriz: Car,
+  viajes: Plane,
+  eventos_creatividad: PartyPopper,
+};
+
 const RESPONSE_LENGTH_OPTIONS = [
   { value: "corta", label: "Corta y directa" },
   { value: "media", label: "Media (default)" },
   { value: "larga", label: "Larga y detallada" },
+];
+
+// Mismo valor literal que usa Mi Agente (admin) — agent_configs.language
+// guarda el nombre, no un código ISO. Ver mi-agente-panel.tsx.
+const LANGUAGE_OPTIONS = [
+  { value: "Español", label: "Español" },
+  { value: "Inglés", label: "Inglés" },
 ];
 
 export function AgentTemplatesPanel({
@@ -61,11 +93,12 @@ export function AgentTemplatesPanel({
 
   if (view === "categories") {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {INDUSTRY_CATEGORIES.map((cat) => (
           <CategoryCard
             key={cat.key}
-            label={`Plantillas de ${cat.label.charAt(0).toLowerCase()}${cat.label.slice(1)}`}
+            icon={CATEGORY_ICONS[cat.key] ?? Sparkles}
+            label={cat.label}
             count={cat.industryTypes.length}
             onClick={() => {
               setSelectedCategory(cat.key);
@@ -90,13 +123,17 @@ export function AgentTemplatesPanel({
             }
           }}
         />
-        <h2 className="font-nexora text-lg text-center" style={{ color: 'var(--nexora-ink)' }}>
+        {/* px-20 en móvil: el botón "Volver" está en position:absolute a la
+            izquierda; sin este colchón un título largo ("Plantilla agente
+            Centro estético") se desliza por debajo del botón. sm:px-0 lo
+            devuelve al centrado exacto de escritorio. */}
+        <h2 className="font-nexora text-base sm:text-lg text-center px-20 sm:px-0" style={{ color: 'var(--nexora-ink)' }}>
           {selectedTemplate ? `Plantilla agente ${selectedTemplate.industryLabel}` : category?.label}
         </h2>
       </div>
 
       {!selectedTemplate && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {industriesInCategory.map((template) => (
             <TemplateCard
               key={template.industryType}
@@ -127,23 +164,42 @@ function BackButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function CategoryCard({ label, count, onClick }: { label: string; count: number; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
+// Mismo lenguaje visual que IconStatCard (ícono en círculo + texto a la
+// izquierda) en vez del ícono suelto flotando arriba de texto centrado —
+// así esta pantalla se ve como parte del mismo panel que Inicio/Estadísticas,
+// no como una pantalla aparte con su propio estilo.
+function CategoryCard({
+  icon: Icon,
+  label,
+  count,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl border p-6 text-center transition-all duration-300 hover:scale-105"
-      style={{ borderColor: hovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)' }}
+      className="flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors duration-200 hover:border-white/20"
+      style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
-      <LayoutTemplate size={24} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-      <span className="text-sm font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>
-        {label}
-      </span>
-      <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-        {count} {count === 1 ? "industria" : "industrias"}
-      </span>
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+        style={{ background: 'rgba(238,240,247,0.08)' }}
+      >
+        <Icon size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold truncate" style={{ color: 'var(--nexora-ink)' }}>
+          {label}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {count} {count === 1 ? "industria" : "industrias"}
+        </p>
+      </div>
+      <ChevronRight size={16} strokeWidth={1.75} className="shrink-0" style={{ color: 'var(--nexora-ink-dim)' }} />
     </button>
   );
 }
@@ -168,16 +224,47 @@ function TemplateCard({ label, onClick }: { label: string; onClick: () => void }
   );
 }
 
-// Plantilla COMPLETA de una industria: no solo herramientas — también
-// mensajes, tono y FAQs base. Mismo patrón "tocar y entrar" que Mi Agente
-// (admin): un chooser de secciones, cada una con su vista dedicada, y un
-// único botón Guardar siempre visible sin importar en qué sección estés.
-type SectionKey = "mensajes" | "tono" | "conocimiento" | "herramientas";
+// Mismo bloque de sección (encabezado con ícono + línea) que
+// ConfigSection en Mi Agente (admin) — para que editar una plantilla se
+// sienta como el mismo formulario, no uno distinto inventado aparte.
+function ConfigSection({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-center justify-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
+        <Icon size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
+        <h3 className="font-nexora text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
+          {title}
+        </h3>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={htmlFor} className="block text-center">
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+// Plantilla COMPLETA de una industria: mensajes, cómo habla (personalidad,
+// emojis, trato al cliente, largo, idioma), cuándo escalar, FAQs y
+// herramientas — mismos campos que Mi Agente (admin), menos lo que debe
+// ser siempre de cada negocio (horarios, descripción, ubicaciones, redes,
+// métodos de pago, instrucciones extra, modismos locales: esos arrancan
+// vacíos siempre, ninguna plantilla los toca).
+type SectionKey = "mensajes" | "tono" | "escalar" | "conocimiento" | "herramientas";
 type DetailView = "list" | SectionKey;
 
 const SECTIONS: { key: SectionKey; label: string; icon: LucideIcon }[] = [
   { key: "mensajes", label: "Mensajes", icon: MessageCircle },
-  { key: "tono", label: "Tono y personalidad", icon: Sparkles },
+  { key: "tono", label: "Cómo habla", icon: Sparkles },
+  { key: "escalar", label: "Cuándo escalar a una persona", icon: LifeBuoy },
   { key: "conocimiento", label: "Preguntas frecuentes", icon: BookOpen },
   { key: "herramientas", label: "Herramientas activas", icon: Wrench },
 ];
@@ -201,7 +288,11 @@ function TemplateDetail({
   const [farewellMessage, setFarewellMessage] = useState(template.farewellMessage);
   const [personality, setPersonality] = useState(template.personality);
   const [responseLength, setResponseLength] = useState(template.responseLength);
-  const [useEmojis, setUseEmojis] = useState(template.useEmojis);
+  const [emojiMode, setEmojiMode] = useState(template.emojiMode);
+  const [emojiSet, setEmojiSet] = useState(template.emojiSet);
+  const [addressForm, setAddressForm] = useState(template.addressForm);
+  const [language, setLanguage] = useState(template.language);
+  const [escalationTriggers, setEscalationTriggers] = useState<string[]>(template.escalationTriggers);
   const [restrictions, setRestrictions] = useState(template.restrictions);
   const [faqs, setFaqs] = useState<FaqEntry[]>(template.faqs);
   const [toolKeys, setToolKeys] = useState<string[]>(template.toolKeys);
@@ -226,6 +317,10 @@ function TemplateDetail({
     setSaved(false);
     setToolKeys((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
   }
+  function toggleEscalationTrigger(key: string, checked: boolean) {
+    setSaved(false);
+    setEscalationTriggers((prev) => (checked ? [...prev, key] : prev.filter((k) => k !== key)));
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -240,7 +335,11 @@ function TemplateDetail({
       farewellMessage,
       faqs,
       responseLength,
-      useEmojis,
+      emojiMode,
+      emojiSet,
+      addressForm,
+      escalationTriggers,
+      language,
       restrictions,
     });
     setSaving(false);
@@ -257,7 +356,8 @@ function TemplateDetail({
         <>
           <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
             Con qué arranca el agente de un negocio nuevo de este tipo — el admin lo ajusta después
-            desde &quot;Mi Agente&quot;.
+            desde &quot;Mi Agente&quot;. Nunca incluye horarios, descripción del negocio, ubicaciones,
+            redes ni métodos de pago — eso siempre lo llena el dueño real.
           </p>
           <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
             {SECTIONS.map(({ key, label, icon: Icon }) => (
@@ -293,100 +393,155 @@ function TemplateDetail({
           </h3>
 
           {view === "mensajes" && (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="block">Mensaje de bienvenida</Label>
+            <ConfigSection icon={MessageCircle} title="Mensajes">
+              <Field label="Mensaje de bienvenida">
                 <Textarea
                   rows={2}
                   value={greetingMessage}
                   onChange={(e) => { setGreetingMessage(e.target.value); setSaved(false); }}
                   placeholder="Ej. ¡Hola! 👋 Soy el asistente virtual, ¿en qué puedo ayudarte?"
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="block">Mensaje de escalamiento a humano</Label>
-                <Textarea
-                  rows={2}
-                  value={escalationMessage}
-                  onChange={(e) => { setEscalationMessage(e.target.value); setSaved(false); }}
-                  placeholder="Ej. Ya te conecto con alguien del equipo."
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="block">Mensaje cuando no sabe algo</Label>
+              </Field>
+              <Field label="Mensaje cuando no sabe algo">
                 <Textarea
                   rows={2}
                   value={fallbackMessage}
                   onChange={(e) => { setFallbackMessage(e.target.value); setSaved(false); }}
                   placeholder="Ej. Esa información no la tengo a la mano, la confirmo con el equipo."
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="block">Mensaje fuera de horario</Label>
+              </Field>
+              <Field label="Mensaje fuera de horario">
                 <Textarea
                   rows={2}
                   value={afterHoursMessage}
                   onChange={(e) => { setAfterHoursMessage(e.target.value); setSaved(false); }}
                   placeholder="Ej. En este momento estamos cerrados, te respondemos apenas abramos."
                 />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="block">Mensaje de despedida</Label>
+              </Field>
+              <Field label="Mensaje de despedida">
                 <Textarea
                   rows={2}
                   value={farewellMessage}
                   onChange={(e) => { setFarewellMessage(e.target.value); setSaved(false); }}
                   placeholder="Ej. ¡Gracias por escribir!"
                 />
-              </div>
-            </div>
+              </Field>
+            </ConfigSection>
           )}
 
           {view === "tono" && (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label className="block">Personalidad y tono</Label>
+            <ConfigSection icon={Sparkles} title="Cómo habla">
+              <Field label="Personalidad y tono">
                 <Textarea
-                  rows={2}
+                  rows={3}
                   value={personality}
                   onChange={(e) => { setPersonality(e.target.value); setSaved(false); }}
                   placeholder="Ej. Cercano, cálido y ágil."
                 />
+              </Field>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Emojis">
+                  <Select value={emojiMode} onValueChange={(v) => { if (v) { setEmojiMode(v as typeof emojiMode); setSaved(false); } }}>
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EMOJI_MODES.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Trato al cliente">
+                  <Select value={addressForm} onValueChange={(v) => { if (v) { setAddressForm(v as typeof addressForm); setSaved(false); } }}>
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ADDRESS_FORMS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
               </div>
-              <div className="space-y-1.5">
-                <Label className="block">Largo de respuesta</Label>
-                <Select
-                  value={responseLength}
-                  onValueChange={(v) => { setResponseLength(v ?? "media"); setSaved(false); }}
-                >
-                  <SelectTrigger className="w-full h-10 text-sm">
-                    <SelectValue placeholder="Media (default)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RESPONSE_LENGTH_OPTIONS.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              {emojiMode === "personalizado" && (
+                <Field label="¿Qué emojis debería usar?" htmlFor="template-emoji-set">
+                  <Input
+                    id="template-emoji-set"
+                    value={emojiSet}
+                    onChange={(e) => { setEmojiSet(e.target.value); setSaved(false); }}
+                    placeholder="Ej. ✂️ 💈 🔥"
+                  />
+                </Field>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Largo de respuesta">
+                  <Select
+                    value={responseLength}
+                    onValueChange={(v) => { setResponseLength(v ?? "media"); setSaved(false); }}
+                  >
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue placeholder="Media (default)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RESPONSE_LENGTH_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Idioma">
+                  <Select value={language} onValueChange={(v) => { if (v) { setLanguage(v); setSaved(false); } }}>
+                    <SelectTrigger className="w-full h-10 text-sm">
+                      <SelectValue placeholder="Español" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LANGUAGE_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
               </div>
-              <Label htmlFor="template-emojis" className="font-normal">
-                <Checkbox
-                  id="template-emojis"
-                  checked={useEmojis}
-                  onCheckedChange={(checked) => { setUseEmojis(checked === true); setSaved(false); }}
-                />
-                Usar emojis en las respuestas
-              </Label>
-              <div className="space-y-1.5">
-                <Label className="block">Restricciones adicionales (opcional)</Label>
+
+              <Field label="Restricciones adicionales (opcional)">
                 <Textarea
                   rows={2}
                   value={restrictions}
                   onChange={(e) => { setRestrictions(e.target.value); setSaved(false); }}
                   placeholder="Ej. Nunca prometer descuentos."
                 />
+              </Field>
+            </ConfigSection>
+          )}
+
+          {view === "escalar" && (
+            <ConfigSection icon={LifeBuoy} title="Cuándo escalar a una persona">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {ESCALATION_TRIGGERS.map((t) => (
+                  <Label key={t.key} htmlFor={`esc-${t.key}`} className="font-normal">
+                    <Checkbox
+                      id={`esc-${t.key}`}
+                      checked={escalationTriggers.includes(t.key)}
+                      onCheckedChange={(checked) => toggleEscalationTrigger(t.key, checked === true)}
+                    />
+                    {t.label}
+                  </Label>
+                ))}
               </div>
-            </div>
+              <Field label="Mensaje de escalamiento">
+                <Textarea
+                  rows={2}
+                  value={escalationMessage}
+                  onChange={(e) => { setEscalationMessage(e.target.value); setSaved(false); }}
+                  placeholder="Ej. Ya te conecto con alguien del equipo."
+                />
+              </Field>
+            </ConfigSection>
           )}
 
           {view === "conocimiento" && (

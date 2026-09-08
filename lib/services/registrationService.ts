@@ -589,11 +589,14 @@ export async function provisionBusinessAccount(
     farewell_message: template.farewellMessage,
     faqs: template.faqs,
     response_length: template.responseLength,
-    use_emojis: template.useEmojis,
-    // Lote 1: el motor y el panel ahora leen emoji_mode; se siembra desde
-    // el use_emojis de la plantilla hasta que las plantillas tengan su
-    // propio campo. Ver docs/agente-lote1.md.
-    emoji_mode: template.useEmojis ? "pocos" : "ninguno",
+    // Ya no se adivina desde un booleano — la plantilla trae su propio
+    // emoji_mode/address_form/escalation_triggers/language (2026-09-08),
+    // igual que Mi Agente. Ver docs/sql/industry-templates-persona.sql.
+    emoji_mode: template.emojiMode,
+    emoji_set: template.emojiSet,
+    address_form: template.addressForm,
+    escalation_triggers: template.escalationTriggers,
+    language: template.language,
     restrictions: template.restrictions,
   });
 
