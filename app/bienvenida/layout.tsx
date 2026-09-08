@@ -29,7 +29,7 @@ export default async function BienvenidaLayout({ children }: { children: React.R
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            "radial-gradient(64% 54% at 50% 42%, rgba(129,140,248,0.46), rgba(129,140,248,0.16) 36%, rgba(76,194,232,0.055) 62%, transparent 92%)",
+            "radial-gradient(92% 76% at 50% 42%, rgba(129,140,248,0.52), rgba(129,140,248,0.20) 28%, rgba(129,140,248,0.07) 52%, rgba(76,194,232,0.03) 76%, transparent 100%)",
         }}
       />
 
