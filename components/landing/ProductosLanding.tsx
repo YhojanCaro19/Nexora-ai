@@ -35,12 +35,28 @@ const SECTION = 'relative w-full px-6 py-24 md:px-10 md:py-28 lg:px-16 lg:py-36'
 const TITLE =
   'nexora-headline mx-auto max-w-3xl text-center text-3xl font-normal leading-[1.15] tracking-tight text-white md:text-4xl lg:text-5xl';
 const LEAD = 'aventhra-copy mx-auto mt-5 max-w-xl text-center text-white/45';
-const CARD =
-  'rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 backdrop-blur-sm md:p-8';
+// Glow contenido de marca detrás del elemento protagonista de cada item
+// (la cifra animada en "El problema", el logo de plataforma en "Dónde
+// vender"). Le da presencia y profundidad SIN encajonar el contenido en
+// una card oscura de bajo contraste — es un halo difuminado y estático,
+// no necesita apagarse bajo prefers-reduced-motion.
+const GLOW =
+  'pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#818CF8]/10 blur-2xl';
+
+// Celda de las grillas de "El problema" y "Dónde vender": contenido
+// centrado directo sobre el fondo de estrellas (mismo criterio que la
+// sección "Los números"), sin recuadro. Los items se separan con una
+// hairline — arriba en el apilado mobile, a la izquierda en la grilla
+// de 3 columnas de desktop.
+const GRID_CELL =
+  'flex flex-col items-center px-4 py-8 text-center ' +
+  'border-t border-white/[0.08] first:border-t-0 ' +
+  'md:border-t-0 md:border-l md:border-white/[0.08] md:first:border-l-0 md:px-6 md:py-0';
 
 // Cifra grande multicolor — el mismo degradado animado que usan los
 // títulos de la landing (.aventhra-iridescent, globals.css). El tamaño se
-// pasa por uso: "US$3.000" no cabe en una card angosta a text-6xl.
+// pasa por uso: "US$3.000" (8 caracteres) necesita un escalón menos que
+// las cifras cortas de "Los números" para no desbordar en mobile.
 const STAT_NUMBER =
   'aventhra-iridescent nexora-headline font-semibold leading-none';
 
@@ -75,14 +91,16 @@ function Problema() {
       <h2 className={TITLE}>{t.rich('title', { hl })}</h2>
       <p className={LEAD}>{t('lead')}</p>
 
-      <div className="mx-auto mt-14 grid max-w-6xl gap-5 md:grid-cols-3">
+      <div className="mx-auto mt-14 grid max-w-6xl md:grid-cols-3">
         {copy.map((c, i) => (
-          <div
-            key={c.sourceLabel}
-            className={`${CARD} flex flex-col items-center text-center`}
-          >
-            <p className={`${STAT_NUMBER} text-4xl md:text-5xl`}>{stats[i]}</p>
-            <p className="mt-4 max-w-xs text-sm font-medium leading-relaxed text-white/70">
+          <div key={c.sourceLabel} className={GRID_CELL}>
+            <span className="relative">
+              <span aria-hidden className={`${GLOW} h-24 w-44`} />
+              <span className={`${STAT_NUMBER} relative block text-5xl md:text-6xl`}>
+                {stats[i]}
+              </span>
+            </span>
+            <p className="mt-5 max-w-xs text-sm font-medium leading-relaxed text-white/70">
               {c.label}
             </p>
             <h3 className="mt-6 text-lg font-medium text-white md:text-xl">
@@ -125,11 +143,14 @@ function ComoFunciona() {
       <p className={LEAD}>{t('lead')}</p>
 
       {/* Mapa de proceso: 01 → 02 → 03 → … En desktop fluye a la derecha;
-          en mobile se apila y la flecha apunta hacia abajo. */}
-      <ol className="mx-auto mt-16 flex max-w-6xl flex-col items-stretch gap-2 lg:flex-row">
+          en mobile se apila y la flecha apunta hacia abajo. Sin card por
+          paso — el badge numerado + las flechas ya dan la estructura; la
+          caja oscura de fondo solo restaba contraste (mismo criterio que
+          "El problema" y "Dónde vender"). */}
+      <ol className="mx-auto mt-16 flex max-w-6xl flex-col items-stretch gap-4 lg:flex-row lg:gap-2">
         {steps.map((s, i) => (
           <Fragment key={s.title}>
-            <li className="flex flex-1 flex-col items-center rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5 text-center backdrop-blur-sm">
+            <li className="flex flex-1 flex-col items-center px-4 py-2 text-center">
               <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.03]">
                 <span className="aventhra-iridescent nexora-headline text-sm font-semibold">
                   {String(i + 1).padStart(2, '0')}
@@ -189,21 +210,28 @@ function DondeVender() {
         ))}
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3">
-        {adsCopy.map(({ name, body }, i) => {
-          return (
-            <div
-              key={name}
-              className={`${CARD} flex flex-col items-center text-center`}
-            >
-              <Image src={adLogos[i]} alt={name} width={40} height={40} unoptimized className="object-contain" />
-              <h3 className="mt-5 text-lg font-medium text-white">{name}</h3>
-              <p className="aventhra-copy mt-3 max-w-xs text-sm leading-relaxed text-white/45">
-                {body}
-              </p>
-            </div>
-          );
-        })}
+      <div className="mx-auto mt-12 grid max-w-5xl md:grid-cols-3">
+        {adsCopy.map(({ name, body }, i) => (
+          <div key={name} className={GRID_CELL}>
+            <span className="relative">
+              <span aria-hidden className={`${GLOW} h-20 w-20`} />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03]">
+                <Image
+                  src={adLogos[i]}
+                  alt={name}
+                  width={40}
+                  height={40}
+                  unoptimized
+                  className="object-contain"
+                />
+              </span>
+            </span>
+            <h3 className="mt-5 text-lg font-medium text-white">{name}</h3>
+            <p className="aventhra-copy mt-3 max-w-xs text-sm leading-relaxed text-white/45">
+              {body}
+            </p>
+          </div>
+        ))}
       </div>
     </section>
   );

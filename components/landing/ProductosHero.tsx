@@ -33,18 +33,18 @@ export function ProductosHero() {
       id="productos"
       className="relative w-full overflow-hidden px-6 md:px-10 lg:px-16"
     >
-      {/* Video de la cabeza del robot — en desktop, lado derecho absoluto.
-          En mobile se muestra debajo del título, dentro del flujo (ver
-          Bloque 1). */}
-      <div className="pointer-events-none absolute right-[3%] top-[42vh] hidden h-[62vh] w-[36vw] max-w-[480px] -translate-y-1/2 lg:block">
+      {/* Video de la cabeza del robot — SIEMPRE lado derecho absoluto,
+          detrás del título (que va z-10 encima), igual criterio en móvil y
+          en desktop. En móvil es chico y asoma por el borde derecho; de
+          `lg` en adelante crece a su tamaño de escritorio de siempre. */}
+      <div className="pointer-events-none absolute right-[-10%] top-[38vh] h-[22vh] w-[48vw] max-w-[135px] -translate-y-1/2 sm:right-[-2%] sm:max-w-[170px] lg:right-[3%] lg:top-[42vh] lg:h-[62vh] lg:w-[36vw] lg:max-w-[480px]">
         <RobotHead />
       </div>
 
-      {/* Bloque 1: título (+ robot en mobile) — ocupa la primera pantalla.
-          "A 1 click de..." y la palabra que rota van separadas: más aire
-          vertical + la palabra sangrada como una tabulación. En desktop
-          es solo el título (el robot va absoluto arriba); en mobile el
-          robot se apila debajo, centrado. */}
+      {/* Bloque 1: título — ocupa la primera pantalla. "A 1 click de..." y
+          la palabra que rota van separadas: más aire vertical + la palabra
+          sangrada como una tabulación. El robot va absoluto a la derecha
+          (arriba), mismo criterio en móvil y desktop. */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 lg:min-h-[calc(100vh-6rem)] lg:flex-row lg:justify-start lg:gap-0">
         <h1 className={`nexora-headline w-full max-w-3xl font-normal leading-[1.15] tracking-tight text-white ${titleSize}`}>
           <span className="[word-spacing:0.22em]">{t('clickPrefix')}</span>
@@ -52,10 +52,6 @@ export function ProductosHero() {
             <RotatingWords />
           </span>
         </h1>
-
-        <div className="pointer-events-none h-[32vh] max-h-72 w-full max-w-[240px] shrink-0 sm:max-w-xs lg:hidden">
-          <RobotHead />
-        </div>
       </div>
 
       {/* Bloque 2: gancho + CTA — CENTRADO, aparece al scrollear un poco.
