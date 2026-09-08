@@ -14,9 +14,10 @@ import {
   ShoppingBag,
   Zap,
   Sparkles,
-  ShieldCheck,
+  ScrollText,
   KeyRound,
   CalendarDays,
+  BarChart3,
 } from 'lucide-react';
 import { CreditCoinIcon } from '@/components/dashboard/shared/CreditCoin';
 
@@ -33,10 +34,11 @@ export const SUPERADMIN_NAV: NavGroup[] = [
   {
     label: 'Plataforma',
     items: [
+      { label: 'Inicio', href: '/superadmin', icon: LayoutDashboard },
       { label: 'Negocios', href: '/superadmin/negocios', icon: Building2 },
+      { label: 'Estadísticas', href: '/superadmin/estadisticas', icon: BarChart3 },
       { label: 'Registros', href: '/superadmin/registros', icon: ClipboardList },
-      { label: 'Solicitudes', href: '/superadmin/solicitudes', icon: KeyRound },
-      { label: 'Reportes', href: '/superadmin/reportes', icon: FileBarChart },
+      { label: 'Cambio de correo', href: '/superadmin/solicitudes', icon: KeyRound },
     ],
   },
   {
@@ -44,7 +46,7 @@ export const SUPERADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Agentes', href: '/superadmin/agentes', icon: Bot },
       { label: 'Consumo', href: '/superadmin/consumo', icon: Zap },
-      { label: 'Auditoría', href: '/superadmin/auditoria', icon: ShieldCheck },
+      { label: 'Logs', href: '/superadmin/logs', icon: ScrollText },
       { label: 'Perfil', href: '/superadmin/perfil', icon: UserCircle },
     ],
   },

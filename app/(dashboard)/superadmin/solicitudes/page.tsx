@@ -15,11 +15,8 @@ export default async function SolicitudesPage() {
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: "var(--nexora-ink)" }}>
-        Solicitudes
+        Cambio de correo
       </h1>
-      <p className="text-sm text-center" style={{ color: "var(--nexora-ink-dim)" }}>
-        Cambios de cuenta de acceso. Verifica identidad llamando al teléfono del registro antes de aprobar.
-      </p>
 
       {requests.length > 0 && (
         <div className="mx-auto grid max-w-md grid-cols-2 gap-4">
