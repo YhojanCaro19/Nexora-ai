@@ -6,7 +6,6 @@
 // (redirige acá), esto cubre el acceso directo a /bienvenida.
 import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { OnboardingStarfield } from "./onboarding-starfield";
 
 export default async function BienvenidaLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
@@ -18,9 +17,6 @@ export default async function BienvenidaLayout({ children }: { children: React.R
       className="relative min-h-screen overflow-x-hidden"
       style={{ backgroundColor: "var(--nexora-void)", color: "var(--nexora-ink)" }}
     >
-      {/* Campo de estrellas — mismo tono que la Pantalla 1 de la landing. */}
-      <OnboardingStarfield />
-
       {/* Estela de color de marca — GRANDE. Dos capas radiales cian/violeta
           que ocupan casi todo el viewport. Todo por `style` inline (nada de
           clases arbitrarias de Tailwind) para que se aplique aunque el
