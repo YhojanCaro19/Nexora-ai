@@ -51,7 +51,7 @@ export function ProductosHero() {
       </div>
       <div
         className="pointer-events-none absolute lg:hidden"
-        style={{ right: '2%', top: '38vh', height: '22vh', width: '42vw', maxWidth: 116, transform: 'translateY(-50%)' }}
+        style={{ right: '6%', top: '45vh', height: '20vh', width: '40vw', maxWidth: 108, transform: 'translateY(-50%)' }}
       >
         <RobotHead />
       </div>
@@ -67,6 +67,12 @@ export function ProductosHero() {
             <RotatingWords />
           </span>
         </h1>
+        {/* Empuja "A 1 click de..." hacia arriba en móvil: con justify-center,
+            el flex centra [título + este spacer], así el título sube ~9vh.
+            En desktop no existe (lg:hidden). Alto por style inline para que
+            no dependa de una clase Tailwind que el navegador pueda tener
+            cacheada de una build vieja. */}
+        <div aria-hidden className="lg:hidden" style={{ height: '18vh' }} />
       </div>
 
       {/* Bloque 2: gancho + CTA — CENTRADO, aparece al scrollear un poco.
