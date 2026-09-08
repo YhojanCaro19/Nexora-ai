@@ -167,13 +167,15 @@ export interface BusinessAgentUsage {
 // formativo, agente aún sin tráfico real de producción) no lo justifica.
 // Si el volumen crece, este es el punto exacto a reemplazar por una vista
 // materializada o una función agregada en Postgres.
-export async function getAgentUsageByBusiness(): Promise<BusinessAgentUsage[]> {
+export async function getAgentUsageByBusiness(range?: { from: string; to: string }): Promise<BusinessAgentUsage[]> {
   const admin = createAdminClient();
-  const { data, error } = await admin
+  let query = admin
     .from("agent_usage_log")
     .select(
       "business_id, input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens, model, created_at, businesses(name)"
     );
+  if (range) query = query.gte("created_at", range.from).lt("created_at", range.to);
+  const { data, error } = await query;
 
   if (error) {
     console.error("[getAgentUsageByBusiness] error:", error);
