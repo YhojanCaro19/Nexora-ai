@@ -138,6 +138,25 @@ export async function computeMonthStats(monthStart: Date): Promise<PlatformMonth
 }
 
 /**
+ * Serie de `months` meses consecutivos que TERMINA en `endMonthKey`
+ * (incluido), del más viejo al más nuevo. Cada mes se calcula en vivo con
+ * `computeMonthStats`. Lo usa Superadmin → Estadísticas para la tabla de
+ * comparación mes a mes. `months` acotado (6/12) para no disparar decenas
+ * de queries — es una pantalla de superadmin, no de uso constante.
+ */
+export async function getMonthlyStatsSeries(
+  endMonthKey: string,
+  months: number,
+): Promise<PlatformMonthStats[]> {
+  const end = monthStartFromKey(endMonthKey);
+  const starts: Date[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    starts.push(new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - i, 1)));
+  }
+  return Promise.all(starts.map((s) => computeMonthStats(s)));
+}
+
+/**
  * ¿Ya existe un snapshot guardado para este mes? Solo para el gating del
  * cron (no reintentar un mes ya cerrado) — la UI de Estadísticas ya NO
  * lee `platform_monthly_stats` para mostrar nada (siempre calcula en

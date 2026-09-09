@@ -1,7 +1,8 @@
 // components/dashboard/shared/PlatformStatsGrid.tsx
 //
-// Grilla de 8 KPIs de plataforma — la usan Superadmin → Inicio (mes en
-// curso) y Superadmin → Estadísticas (con selector de mes/año alrededor).
+// Grilla de 8 KPIs de plataforma — Superadmin → Inicio, el snapshot "de un
+// vistazo" del mes en curso. La comparación mes a mes (varios meses lado a
+// lado) vive en Superadmin → Estadísticas, que ya NO usa esta grilla.
 // Reusa IconStatCard, la misma tarjeta que Inicio de admin.
 //
 // 2 filas de 4 a propósito (8 = 4×2 exacto, sin hueco al final de
