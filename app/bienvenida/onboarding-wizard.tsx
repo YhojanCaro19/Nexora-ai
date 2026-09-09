@@ -423,20 +423,32 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                           setBookingModeTouched(true);
                         }}
                         className="flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
-                        style={{
-                          borderColor: selected ? "#4CC2E8" : "var(--nexora-line)",
-                          backgroundColor: selected
-                            ? "color-mix(in oklch, #4CC2E8 8%, transparent)"
-                            : "rgba(255,255,255,0.02)",
-                        }}
+                        style={
+                          selected
+                            ? {
+                                // Borde con el degradado de marca (mismo que
+                                // la barra de "Paso X de 3" y el wordmark) —
+                                // truco padding-box/border-box.
+                                borderColor: "transparent",
+                                background:
+                                  "linear-gradient(rgba(167,139,250,0.07), rgba(167,139,250,0.07)) padding-box, linear-gradient(90deg, #4CC2E8, #A78BFA) border-box",
+                              }
+                            : {
+                                borderColor: "var(--nexora-line)",
+                                backgroundColor: "rgba(255,255,255,0.02)",
+                              }
+                        }
                       >
                         <span
                           aria-hidden
                           className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
-                          style={{ borderColor: selected ? "#4CC2E8" : "var(--nexora-line)" }}
+                          style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
                         >
                           {selected && (
-                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#4CC2E8" }} />
+                            <span
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
+                            />
                           )}
                         </span>
                         <span className="min-w-0">
