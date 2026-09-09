@@ -1,17 +1,49 @@
 "use client";
 
-// Chime de entrada del onboarding — 4 notas ascendentes (Do–Mi–Sol–Do) en
-// senoidales suaves con cola exponencial larga. Generado con Web Audio, sin
-// archivo de audio.
+// Chime de entrada del onboarding — un acorde mayor con extensión (Do–Mi–
+// Sol–Si, Cmaj7) que entra escalonado y sostiene la armonía, con timbre de
+// campana (triangular + un armónico octava, ligero detune para shimmer) y
+// una reverb generada (impulso de ruido con caída exponencial). Todo con
+// Web Audio, sin archivo.
 //
-// El navegador arranca el AudioContext SUSPENDIDO hasta que hay un gesto
-// del usuario. Se intenta al montar; si el `resume()` no lo pone en
-// `running`, NO se marca como reproducido y se arma un listener para el
-// primer toque/tecla, que sí lo desbloquea. Suena UNA vez por sesión.
+// El navegador arranca el AudioContext SUSPENDIDO hasta que hay un gesto.
+// Se intenta al montar; si no queda en `running`, se arma un listener
+// (captura, varios eventos) que lo desbloquea con el primer toque/tecla.
+// Suena UNA vez por sesión.
 import { useEffect } from "react";
 
 const SESSION_KEY = "aventhra-onboarding-chime";
-const NOTES = [523.25, 659.25, 783.99, 1046.5];
+// Cmaj7 alrededor de C5, más una quinta grave de refuerzo.
+const NOTES = [261.63, 523.25, 659.25, 783.99, 987.77];
+
+type AC = typeof AudioContext;
+
+function getAudioCtx(): AudioContext | null {
+  const Ctx: AC | undefined =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: AC }).webkitAudioContext;
+  if (!Ctx) return null;
+  try {
+    return new Ctx();
+  } catch {
+    return null;
+  }
+}
+
+// Impulso corto para el ConvolverNode: ráfaga de ruido con caída
+// exponencial → reverb suave tipo "sala pequeña brillante".
+function makeImpulse(ctx: AudioContext, seconds: number): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const len = Math.floor(rate * seconds);
+  const buf = ctx.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4);
+    }
+  }
+  return buf;
+}
 
 export function OnboardingChime() {
   useEffect(() => {
@@ -25,14 +57,8 @@ export function OnboardingChime() {
     let done = false;
 
     const playChime = async (): Promise<boolean> => {
-      const Ctx = window.AudioContext;
-      if (!Ctx) return false;
-      let ctx: AudioContext;
-      try {
-        ctx = new Ctx();
-      } catch {
-        return false;
-      }
+      const ctx = getAudioCtx();
+      if (!ctx) return false;
       if (ctx.state !== "running") {
         try {
           await ctx.resume();
@@ -45,27 +71,54 @@ export function OnboardingChime() {
         return false;
       }
 
+      const t0 = ctx.currentTime + 0.04;
+
+      // Cadena: [voces] -> dry + (wet -> convolver) -> master -> destino
       const master = ctx.createGain();
-      master.gain.value = 0.5;
+      master.gain.value = 0.9;
       master.connect(ctx.destination);
 
-      const now = ctx.currentTime + 0.03;
+      const dry = ctx.createGain();
+      dry.gain.value = 0.85;
+      dry.connect(master);
+
+      const wet = ctx.createGain();
+      wet.gain.value = 0.55;
+      const reverb = ctx.createConvolver();
+      reverb.buffer = makeImpulse(ctx, 2.6);
+      wet.connect(reverb);
+      reverb.connect(master);
+
       NOTES.forEach((freq, i) => {
-        const t = now + i * 0.085;
-        const osc = ctx.createOscillator();
-        osc.type = "sine";
-        osc.frequency.value = freq;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.exponentialRampToValueAtTime(0.14, t + 0.015);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
-        osc.connect(g);
-        g.connect(master);
-        osc.start(t);
-        osc.stop(t + 2);
+        const t = t0 + i * 0.11;
+        const voice = ctx.createGain();
+        voice.gain.setValueAtTime(0.0001, t);
+        voice.gain.exponentialRampToValueAtTime(0.16, t + 0.012);
+        voice.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+        voice.connect(dry);
+        voice.connect(wet);
+
+        // Fundamental (triangular, cálida) + armónico octava (senoidal,
+        // brillo) con un pelín de detune → shimmer.
+        const partials: { type: OscillatorType; mult: number; gain: number; detune: number }[] = [
+          { type: "triangle", mult: 1, gain: 1, detune: -3 },
+          { type: "sine", mult: 2, gain: 0.32, detune: 4 },
+        ];
+        partials.forEach((p) => {
+          const osc = ctx.createOscillator();
+          osc.type = p.type;
+          osc.frequency.value = freq * p.mult;
+          osc.detune.value = p.detune;
+          const pg = ctx.createGain();
+          pg.gain.value = p.gain;
+          osc.connect(pg);
+          pg.connect(voice);
+          osc.start(t);
+          osc.stop(t + 3);
+        });
       });
 
-      window.setTimeout(() => void ctx.close(), 2800);
+      window.setTimeout(() => void ctx.close(), 3600);
       return true;
     };
 
@@ -78,13 +131,14 @@ export function OnboardingChime() {
       }
     };
 
+    const events = ["pointerdown", "pointerup", "keydown", "touchstart", "click"] as const;
+
     const onGesture = () => {
       if (done) return;
       void playChime().then((ok) => {
         if (ok) markDone();
       });
-      window.removeEventListener("pointerdown", onGesture);
-      window.removeEventListener("keydown", onGesture);
+      events.forEach((e) => window.removeEventListener(e, onGesture, true));
     };
 
     void playChime().then((ok) => {
@@ -92,14 +146,13 @@ export function OnboardingChime() {
         markDone();
         return;
       }
-      // Bloqueado por la política de autoplay — esperar un gesto real.
-      window.addEventListener("pointerdown", onGesture);
-      window.addEventListener("keydown", onGesture);
+      events.forEach((e) =>
+        window.addEventListener(e, onGesture, { capture: true, passive: true })
+      );
     });
 
     return () => {
-      window.removeEventListener("pointerdown", onGesture);
-      window.removeEventListener("keydown", onGesture);
+      events.forEach((e) => window.removeEventListener(e, onGesture, true));
     };
   }, []);
 
