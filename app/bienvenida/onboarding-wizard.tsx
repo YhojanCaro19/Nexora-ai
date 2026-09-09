@@ -19,7 +19,7 @@
 // <form>; si el paso 1 se desmontara, el teléfono saldría del FormData.
 // Solo "welcome", "submitting" y "done" se renderizan condicionalmente
 // (no están dentro del form).
-import { useActionState, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   motion,
@@ -31,7 +31,6 @@ import {
   ArrowRight,
   Check,
   ChevronDown,
-  Search,
   Sparkles,
   UtensilsCrossed,
   Shirt,
@@ -85,14 +84,16 @@ const LOADING_MESSAGES = [
   "Dejando todo a punto",
 ];
 
-// Sin tildes + minúsculas — para que "cafe" encuentre "Cafetería".
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-}
+// Las 13 categorías con sus industrias, para el acordeón de "Tu industria".
+const INDUSTRY_GROUPS = INDUSTRY_CATEGORIES.map((cat) => ({
+  key: cat.key,
+  label: cat.label,
+  Icon: CATEGORY_ICONS[cat.key] ?? Sparkles,
+  items: cat.industryTypes.map((value) => ({
+    value,
+    label: INDUSTRY_LABELS.get(value) ?? value,
+  })),
+}));
 
 const PILL_GHOST =
   "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-medium transition-colors hover:bg-white/[0.06]";
@@ -110,7 +111,6 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const [fullName, setFullName] = useState(defaultFullName);
   const [businessName, setBusinessName] = useState("");
   const [industryType, setIndustryType] = useState("");
-  const [query, setQuery] = useState("");
   const [msgIdx, setMsgIdx] = useState(0);
 
   const screen: "welcome" | "form" | "submitting" | "done" = state?.ok
@@ -136,18 +136,6 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
     }, 1600);
     return () => window.clearInterval(id);
   }, [screen, reduce]);
-
-  const groups = useMemo(() => {
-    const q = normalize(query);
-    return INDUSTRY_CATEGORIES.map((cat) => ({
-      key: cat.key,
-      label: cat.label,
-      Icon: CATEGORY_ICONS[cat.key] ?? Sparkles,
-      items: cat.industryTypes
-        .map((value) => ({ value, label: INDUSTRY_LABELS.get(value) ?? value }))
-        .filter((it) => !q || normalize(it.label).includes(q)),
-    })).filter((g) => g.items.length > 0);
-  }, [query]);
 
   const screenMotion: MotionProps = reduce
     ? {}
@@ -247,33 +235,9 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
               {/* Selección sincronizada a un input oculto que lee la action. */}
               <input type="hidden" name="industryType" value={industryType} />
 
-              <div className="relative">
-                <Search
-                  size={15}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
-                  style={{ color: "var(--nexora-ink-dim)" }}
-                />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Busca tu tipo de negocio"
-                  aria-label="Buscar tipo de negocio"
-                  className="h-10 border-white/10 bg-white/[0.03] pl-9"
-                />
-              </div>
-
-              <div className="onboarding-scroll -mx-1 max-h-[46vh] overflow-y-auto px-1">
-                {groups.length === 0 ? (
-                  <p
-                    className="py-8 text-center text-sm"
-                    style={{ color: "var(--nexora-ink-dim)" }}
-                  >
-                    Ningún tipo de negocio coincide con «{query}».
-                  </p>
-                ) : (
-                  groups.map((g) => {
-                    // Con búsqueda activa se abre todo; si no, acordeón de a uno.
-                    const expanded = query.trim() !== "" || openCat === g.key;
+              <div className="onboarding-scroll -mx-1 max-h-[52vh] overflow-y-auto px-1">
+                {INDUSTRY_GROUPS.map((g) => {
+                    const expanded = openCat === g.key;
                     return (
                       <div
                         key={g.key}
@@ -355,8 +319,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                         )}
                       </div>
                     );
-                  })
-                )}
+                  })}
               </div>
 
               {errorText && (
