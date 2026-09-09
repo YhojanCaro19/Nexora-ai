@@ -159,7 +159,15 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
       };
 
   return (
-    <div className="grid w-full max-w-xl">
+    <motion.div
+      className="grid w-full max-w-xl"
+      // Revelado de entrada: el contenido aparece ~0.55s DESPUÉS del fondo
+      // (estrellas + estela), con una subida suave. Bajo reduced motion
+      // solo un fundido leve, sin desplazamiento.
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.55, duration: reduce ? 0.4 : 0.85, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* FORM — SIEMPRE montado. Solo visible en el paso datos/industria;
           fuera de él se oculta con `hidden` (display:none, sigue montado)
           para que PhoneField no pierda sus inputs ocultos del FormData. */}
@@ -485,7 +493,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 

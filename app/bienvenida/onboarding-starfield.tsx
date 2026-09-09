@@ -15,6 +15,7 @@
 
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   DeepSpaceStars,
   DEFAULT_STAR_COUNT,
@@ -24,10 +25,14 @@ import {
 const STAR_COUNT = Math.round(DEFAULT_STAR_COUNT * 1.15 * 0.95 * 0.9);
 
 export function OnboardingStarfield() {
+  const reduce = useReducedMotion();
   return (
-    <div
+    <motion.div
       aria-hidden
-      className="onboarding-bg-in pointer-events-none fixed inset-0 z-0 select-none"
+      className="pointer-events-none fixed inset-0 z-0 select-none"
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 1.1, ease: "easeOut" }}
     >
       <Canvas
         camera={{ position: [0, 0, 6], fov: 42 }}
@@ -38,6 +43,6 @@ export function OnboardingStarfield() {
           <DeepSpaceStars count={STAR_COUNT} />
         </Suspense>
       </Canvas>
-    </div>
+    </motion.div>
   );
 }

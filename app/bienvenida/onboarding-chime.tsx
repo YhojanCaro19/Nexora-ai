@@ -4,10 +4,10 @@
 // senoidales suaves con cola exponencial larga. Generado con Web Audio, sin
 // archivo de audio.
 //
-// El navegador bloquea el audio hasta que hay un gesto del usuario: se
-// intenta al montar y, si queda bloqueado, se dispara con el primer
-// toque/tecla. Suena UNA sola vez por sesión (sessionStorage). Se salta
-// bajo prefers-reduced-motion.
+// El navegador arranca el AudioContext SUSPENDIDO hasta que hay un gesto
+// del usuario. Se intenta al montar; si el `resume()` no lo pone en
+// `running`, NO se marca como reproducido y se arma un listener para el
+// primer toque/tecla, que sí lo desbloquea. Suena UNA vez por sesión.
 import { useEffect } from "react";
 
 const SESSION_KEY = "aventhra-onboarding-chime";
@@ -16,65 +16,87 @@ const NOTES = [523.25, 659.25, 783.99, 1046.5];
 export function OnboardingChime() {
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     try {
       if (window.sessionStorage.getItem(SESSION_KEY)) return;
     } catch {
-      return;
+      /* sessionStorage bloqueado — se intenta igual */
     }
 
-    let played = false;
+    let done = false;
 
-    const play = () => {
-      if (played) return;
+    const playChime = async (): Promise<boolean> => {
       const Ctx = window.AudioContext;
-      if (!Ctx) return;
+      if (!Ctx) return false;
+      let ctx: AudioContext;
       try {
-        const ctx = new Ctx();
-        if (ctx.state === "suspended") void ctx.resume();
-
-        const master = ctx.createGain();
-        master.gain.value = 0.5;
-        master.connect(ctx.destination);
-
-        const now = ctx.currentTime + 0.02;
-        NOTES.forEach((freq, i) => {
-          const t = now + i * 0.085;
-          const osc = ctx.createOscillator();
-          osc.type = "sine";
-          osc.frequency.value = freq;
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0.0001, t);
-          g.gain.exponentialRampToValueAtTime(0.14, t + 0.015);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
-          osc.connect(g);
-          g.connect(master);
-          osc.start(t);
-          osc.stop(t + 2);
-        });
-
-        played = true;
-        try {
-          window.sessionStorage.setItem(SESSION_KEY, "1");
-        } catch {
-          /* modo privado, etc. */
-        }
-        window.setTimeout(() => void ctx.close(), 2600);
+        ctx = new Ctx();
       } catch {
-        /* audio no disponible */
+        return false;
+      }
+      if (ctx.state !== "running") {
+        try {
+          await ctx.resume();
+        } catch {
+          /* sigue bloqueado */
+        }
+      }
+      if (ctx.state !== "running") {
+        void ctx.close();
+        return false;
+      }
+
+      const master = ctx.createGain();
+      master.gain.value = 0.5;
+      master.connect(ctx.destination);
+
+      const now = ctx.currentTime + 0.03;
+      NOTES.forEach((freq, i) => {
+        const t = now + i * 0.085;
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.14, t + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.9);
+        osc.connect(g);
+        g.connect(master);
+        osc.start(t);
+        osc.stop(t + 2);
+      });
+
+      window.setTimeout(() => void ctx.close(), 2800);
+      return true;
+    };
+
+    const markDone = () => {
+      done = true;
+      try {
+        window.sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {
+        /* modo privado */
       }
     };
 
-    play();
-    if (played) return;
-
     const onGesture = () => {
-      play();
+      if (done) return;
+      void playChime().then((ok) => {
+        if (ok) markDone();
+      });
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);
     };
-    window.addEventListener("pointerdown", onGesture, { once: true });
-    window.addEventListener("keydown", onGesture, { once: true });
+
+    void playChime().then((ok) => {
+      if (ok) {
+        markDone();
+        return;
+      }
+      // Bloqueado por la política de autoplay — esperar un gesto real.
+      window.addEventListener("pointerdown", onGesture);
+      window.addEventListener("keydown", onGesture);
+    });
+
     return () => {
       window.removeEventListener("pointerdown", onGesture);
       window.removeEventListener("keydown", onGesture);

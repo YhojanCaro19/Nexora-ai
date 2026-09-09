@@ -180,26 +180,6 @@ body {
   .nexora-breathe { animation: none; }
 }
 
-/* Revelado escalonado del onboarding (/bienvenida): primero entra el fondo
-   (estrellas + estela) con un fundido, y ~0.7s después el contenido sube
-   suave. Se aplican a los elementos `fixed` DIRECTAMENTE (no a un wrapper),
-   porque animar la opacidad de un ancestro convierte a los `fixed` hijos
-   en relativos a ese ancestro. Bajo reduced-motion aparece todo de una. */
-@keyframes onboarding-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes onboarding-rise {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.onboarding-bg-in { animation: onboarding-fade 1s ease-out both; }
-.onboarding-content-in { animation: onboarding-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both; }
-@media (prefers-reduced-motion: reduce) {
-  .onboarding-bg-in,
-  .onboarding-content-in { animation: none; }
-}
-
 /* Panel de components/ui/accordion.tsx (fila "toca para expandir" de
    Seguridad en perfil, y cualquier otra pantalla que use Accordion). Base UI
    solo expone la altura real del contenido vía --accordion-panel-height y
