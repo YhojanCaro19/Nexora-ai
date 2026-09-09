@@ -109,13 +109,79 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
               : "No hay negocios inhabilitados."}
         </p>
       ) : (
-        <div className="mx-auto max-w-2xl space-y-2">
-          {filtered.map((b) => (
-            <BusinessRow key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
-          ))}
+        <div className="mx-auto max-w-4xl overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b" style={{ borderColor: 'var(--nexora-line)' }}>
+                {["Negocio", "Dueño", "Correo", "Plan", "Vence"].map((h) => (
+                  <th
+                    key={h}
+                    className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap"
+                    style={{ color: 'var(--nexora-ink-dim)' }}
+                  >
+                    {h}
+                  </th>
+                ))}
+                <th className="w-6 px-3 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((b) => (
+                <BusinessTableRow key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
+  );
+}
+
+function BusinessTableRow({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
+  const renewal = renewalInfo(business.planRenewsAt);
+  const planLabel = business.planKey
+    ? business.planKey.charAt(0).toUpperCase() + business.planKey.slice(1)
+    : "Sin plan";
+  return (
+    <tr
+      onClick={onClick}
+      className="cursor-pointer border-b transition-colors hover:bg-white/[0.03]"
+      style={{ borderColor: 'var(--nexora-line)', opacity: business.is_active ? 1 : 0.5 }}
+    >
+      <td className="px-3 py-2.5">
+        <span className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5 shrink-0 rounded-full"
+            style={{ background: business.is_active ? 'var(--nexora-signal)' : 'var(--nexora-alert)' }}
+          />
+          <span className="font-medium" style={{ color: 'var(--nexora-ink)' }}>{business.name}</span>
+        </span>
+        <span className="block pl-3.5 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          {industryLabel(business.industry_type)}
+        </span>
+      </td>
+      <td className="px-3 py-2.5 whitespace-nowrap" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {business.ownerName ?? "—"}
+      </td>
+      <td className="px-3 py-2.5" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {business.ownerEmail ?? "—"}
+      </td>
+      <td className="px-3 py-2.5 whitespace-nowrap">
+        <span
+          className="rounded-full px-2 py-0.5 text-[11px]"
+          style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
+        >
+          {planLabel}
+        </span>
+      </td>
+      <td className="px-3 py-2.5 whitespace-nowrap text-xs" style={{ color: renewal.color }}>
+        {renewal.label}
+      </td>
+      <td className="px-3 py-2.5">
+        <ChevronRight size={15} style={{ color: 'var(--nexora-ink-dim)' }} />
+      </td>
+    </tr>
   );
 }
 
@@ -432,53 +498,3 @@ function renewalInfo(renewsAt: string | null): { label: string; color: string } 
   };
 }
 
-// Fila compacta: nombre + (industria · dueño) a la izquierda, plan y estado
-// de renovación a la derecha. Reemplaza las tarjetas cuadradas gigantes que
-// mostraban solo el nombre.
-function BusinessRow({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
-  const renewal = renewalInfo(business.planRenewsAt);
-  const planLabel = business.planKey
-    ? business.planKey.charAt(0).toUpperCase() + business.planKey.slice(1)
-    : "Sin plan";
-  const subtitle = [industryLabel(business.industry_type), business.ownerName]
-    .filter(Boolean)
-    .join(" · ");
-
-  return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:border-white/25"
-      style={{
-        borderColor: 'var(--nexora-line)',
-        background: 'rgba(255,255,255,0.02)',
-        opacity: business.is_active ? 1 : 0.5,
-      }}
-    >
-      <span
-        aria-hidden
-        className="h-2 w-2 shrink-0 rounded-full"
-        style={{ background: business.is_active ? 'var(--nexora-signal)' : 'var(--nexora-alert)' }}
-      />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold" style={{ color: 'var(--nexora-ink)' }}>
-          {business.name}
-        </span>
-        {subtitle && (
-          <span className="block truncate text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-            {subtitle}
-          </span>
-        )}
-      </span>
-      <span className="hidden shrink-0 text-right text-xs sm:block" style={{ color: renewal.color }}>
-        {renewal.label}
-      </span>
-      <span
-        className="shrink-0 rounded-full px-2.5 py-1 text-[11px]"
-        style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
-      >
-        {planLabel}
-      </span>
-      <ChevronRight size={15} className="shrink-0" style={{ color: 'var(--nexora-ink-dim)' }} />
-    </button>
-  );
-}

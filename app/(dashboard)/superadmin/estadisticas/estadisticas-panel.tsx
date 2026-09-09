@@ -81,9 +81,6 @@ export function EstadisticasPanel({
   const pathname = usePathname();
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear + 1 - i);
-  const monthKeys = series.map((s) => s.monthKey);
-  const lastLabel = monthKeys.length ? monthLabel(monthKeys[monthKeys.length - 1]) : "";
-  const prevLabel = monthKeys.length > 1 ? monthLabel(monthKeys[monthKeys.length - 2]) : "";
 
   function goTo(month: number, year: number, r: number) {
     router.push(`${pathname}?m=${month}&y=${year}&r=${r}`);
@@ -200,11 +197,6 @@ export function EstadisticasPanel({
           );
         })}
       </div>
-
-      <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-        Cada mes se calcula en vivo. El valor y la variación son de <strong style={{ color: "var(--nexora-ink)" }}>{lastLabel}</strong>
-        {prevLabel ? ` vs ${prevLabel}` : ""}. Pasa el mouse sobre una barra para ver ese mes.
-      </p>
     </div>
   );
 }
