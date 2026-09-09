@@ -50,6 +50,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { OrbitFrame } from "@/components/landing/OrbitFrame";
+import { LandingVideo } from "@/components/landing/LandingVideo";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
@@ -391,6 +392,16 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 Comenzar
                 <ArrowRight size={15} />
               </OrbitPillButton>
+            </div>
+
+            {/* Robot que señala hacia arriba, al botón "Comenzar" — el gesto
+                vive en el video. Debajo del botón, difuminado en los bordes
+                (LandingVideo, mismo tratamiento que el robot de la landing). */}
+            <div
+              className="pointer-events-none mt-4"
+              style={{ width: "clamp(190px, 32vh, 300px)", aspectRatio: "1 / 1" }}
+            >
+              <LandingVideo src="/media/onboarding-robot.mp4" />
             </div>
           </motion.div>
         )}
