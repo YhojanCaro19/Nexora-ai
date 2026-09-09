@@ -400,7 +400,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 y el astronauta queda flotando. */}
             <div
               className="pointer-events-none mt-3"
-              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "1 / 1" }}
+              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "720 / 648" }}
             >
               <LandingVideo
                 src="/media/onboarding-robot.mp4"
