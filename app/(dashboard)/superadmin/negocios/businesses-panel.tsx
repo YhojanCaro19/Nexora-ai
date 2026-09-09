@@ -324,57 +324,62 @@ function BusinessDetail({
         </span>
       </div>
 
-      {/* Control de acceso — estado a la izquierda, acción a la derecha,
-          mismo patrón que las filas de "Conectar" en Marketing → Conexiones. */}
+      {/* Control de acceso — el estado y la confirmación viven en la MISMA
+          tarjeta: al tocar "Inhabilitar" se despliega la advertencia + los
+          botones acá adentro, sin abrir otra card abajo. */}
       <div className="mx-auto max-w-sm space-y-3">
         <div
-          className="flex items-center gap-3 rounded-xl border p-4"
-          style={{ borderColor: isActive ? 'var(--nexora-line)' : 'rgba(248,113,113,0.35)' }}
+          className="rounded-xl border p-4"
+          style={{
+            borderColor: confirming || !isActive ? 'rgba(248,113,113,0.35)' : 'var(--nexora-line)',
+          }}
         >
-          {isActive ? (
-            <Power size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-signal)' }} />
-          ) : (
-            <PowerOff size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-alert)' }} />
-          )}
-          <div className="min-w-0 flex-1 text-left">
-            <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
-              {isActive ? "Negocio activo" : "Negocio inhabilitado"}
-            </p>
-            <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-              {isActive ? "Tiene acceso a la plataforma" : "No puede iniciar sesión ningún miembro"}
-            </p>
+          <div className="flex items-center gap-3">
+            {isActive ? (
+              <Power size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-signal)' }} />
+            ) : (
+              <PowerOff size={20} strokeWidth={1.5} style={{ color: 'var(--nexora-alert)' }} />
+            )}
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+                {isActive ? "Negocio activo" : "Negocio inhabilitado"}
+              </p>
+              <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                {isActive ? "Tiene acceso a la plataforma" : "No puede iniciar sesión ningún miembro"}
+              </p>
+            </div>
+            {!confirming && (
+              <Button type="button" variant={isActive ? "outline" : "default"} size="sm" onClick={() => setConfirming(true)}>
+                {isActive ? "Inhabilitar" : "Habilitar"}
+              </Button>
+            )}
           </div>
-          {!confirming && (
-            <Button type="button" variant={isActive ? "outline" : "default"} size="sm" onClick={() => setConfirming(true)}>
-              {isActive ? "Inhabilitar" : "Habilitar"}
-            </Button>
+
+          {confirming && (
+            <div className="mt-3 space-y-3 border-t pt-3 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
+              <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                {isActive
+                  ? "El admin y los colaboradores de este negocio no podrán iniciar sesión hasta que lo vuelvas a habilitar."
+                  : "El negocio recupera el acceso de inmediato."}
+              </p>
+              <div className="flex justify-center gap-2">
+                <Button
+                  type="button"
+                  variant={isActive ? "destructive" : "default"}
+                  size="sm"
+                  disabled={toggling}
+                  onClick={handleToggle}
+                >
+                  {toggling ? "Aplicando..." : isActive ? "Inhabilitar" : "Habilitar"}
+                </Button>
+                <Button type="button" variant="outline" size="sm" disabled={toggling} onClick={() => setConfirming(false)}>
+                  Cancelar
+                </Button>
+              </div>
+              {error && <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>}
+            </div>
           )}
         </div>
-
-        {confirming && (
-          <div className="rounded-xl border p-4 space-y-3 text-center" style={{ borderColor: 'var(--nexora-line)' }}>
-            <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-              {isActive
-                ? "El admin y los colaboradores de este negocio no podrán iniciar sesión hasta que lo vuelvas a habilitar."
-                : "El negocio recupera el acceso de inmediato."}
-            </p>
-            <div className="flex justify-center gap-2">
-              <Button
-                type="button"
-                variant={isActive ? "destructive" : "default"}
-                size="sm"
-                disabled={toggling}
-                onClick={handleToggle}
-              >
-                {toggling ? "Aplicando..." : isActive ? "Inhabilitar" : "Habilitar"}
-              </Button>
-              <Button type="button" variant="outline" size="sm" disabled={toggling} onClick={() => setConfirming(false)}>
-                Cancelar
-              </Button>
-            </div>
-            {error && <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>}
-          </div>
-        )}
 
         {/* ⚠️ TEMPORAL — herramienta de pruebas. Deja el negocio como recién
             provisionado (onboarding_completed=false + borra agent_configs y
