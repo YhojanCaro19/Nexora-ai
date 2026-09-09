@@ -15,24 +15,25 @@ function clampInt(value: string | undefined, min: number, max: number, fallback:
   return n;
 }
 
+// La línea de tendencia muestra siempre los 6 meses que TERMINAN en el mes
+// elegido — el usuario solo filtra por mes/año, no elige el rango.
+const TREND_MONTHS = 6;
+
 export default async function EstadisticasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string; y?: string; r?: string }>;
+  searchParams: Promise<{ m?: string; y?: string }>;
 }) {
-  const { m, y, r } = await searchParams;
+  const { m, y } = await searchParams;
   const now = new Date();
   const currentMonth = now.getUTCMonth() + 1;
   const currentYear = now.getUTCFullYear();
 
-  // El mes/año elegido es el ÚLTIMO de la serie; el rango (6 o 12) son los
-  // meses hacia atrás que se muestran junto a él.
   const selectedMonth = clampInt(m, 1, 12, currentMonth);
   const selectedYear = clampInt(y, currentYear - 3, currentYear + 1, currentYear);
-  const range = r === "12" ? 12 : 6;
   const endMonthKey = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}`;
 
-  const series = await getMonthlyStatsSeries(endMonthKey, range);
+  const series = await getMonthlyStatsSeries(endMonthKey, TREND_MONTHS);
 
   return (
     <div className="space-y-6">
@@ -44,7 +45,6 @@ export default async function EstadisticasPage({
         selectedMonth={selectedMonth}
         selectedYear={selectedYear}
         currentYear={currentYear}
-        range={range}
       />
     </div>
   );

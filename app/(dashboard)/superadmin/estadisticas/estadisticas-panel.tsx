@@ -97,13 +97,11 @@ export function EstadisticasPanel({
   selectedMonth,
   selectedYear,
   currentYear,
-  range,
 }: {
   series: PlatformMonthStats[];
   selectedMonth: number;
   selectedYear: number;
   currentYear: number;
-  range: number;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -112,8 +110,8 @@ export function EstadisticasPanel({
   const firstLabel = series.length ? monthLabel(series[0].monthKey) : "";
   const lastLabel = series.length ? monthLabel(series[series.length - 1].monthKey) : "";
 
-  function goTo(month: number, year: number, r: number) {
-    router.push(`${pathname}?m=${month}&y=${year}&r=${r}`);
+  function goTo(month: number, year: number) {
+    router.push(`${pathname}?m=${month}&y=${year}`);
   }
 
   return (
@@ -135,42 +133,22 @@ export function EstadisticasPanel({
         </defs>
       </svg>
 
-      {/* Filtros */}
+      {/* Filtro mensual */}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          Hasta
-        </span>
         <Dropdown
-          className="w-36"
+          className="w-40"
           triggerLabel={MONTH_NAMES[selectedMonth - 1]}
           activeKey={String(selectedMonth)}
           options={MONTH_NAMES.map((label, i) => ({ key: String(i + 1), label }))}
-          onSelect={(key) => goTo(Number(key), selectedYear, range)}
+          onSelect={(key) => goTo(Number(key), selectedYear)}
         />
         <Dropdown
-          className="w-24"
+          className="w-28"
           triggerLabel={String(selectedYear)}
           activeKey={String(selectedYear)}
           options={years.map((y) => ({ key: String(y), label: String(y) }))}
-          onSelect={(key) => goTo(selectedMonth, Number(key), range)}
+          onSelect={(key) => goTo(selectedMonth, Number(key))}
         />
-        <div className="flex overflow-hidden rounded-full border" style={{ borderColor: "var(--nexora-line)" }}>
-          {[6, 12].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => goTo(selectedMonth, selectedYear, n)}
-              className="px-3 py-1.5 text-xs font-medium transition-colors"
-              style={
-                range === n
-                  ? { background: "var(--nexora-nova)", color: "var(--nexora-nova-ink)" }
-                  : { background: "transparent", color: "var(--nexora-ink-dim)" }
-              }
-            >
-              {n} meses
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
