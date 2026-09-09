@@ -13,7 +13,7 @@ const industryLabel = (value: string) =>
 
 const fmtUsd = (n: number) => (n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`);
 
-type Tab = "active" | "inactive";
+type Tab = "all" | "active" | "inactive";
 
 const norm = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -36,7 +36,7 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
 
   const q = norm(query.trim());
   const filtered = businesses
-    .filter((b) => (tab === "active" ? b.is_active : !b.is_active))
+    .filter((b) => (tab === "all" ? true : tab === "active" ? b.is_active : !b.is_active))
     .filter(
       (b) =>
         !q ||
@@ -46,40 +46,16 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
     )
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
-  // Los totales de plataforma (pedidos, reservas, tokens, costo) viven en
-  // Inicio (mes en curso) y Estadísticas (historial mensual) — acá solo
-  // queda lo que es sobre el ESTADO de los negocios en sí.
+  const STATE_TABS: { key: Tab; label: string; count: number }[] = [
+    { key: "all", label: "Todos", count: businesses.length },
+    { key: "active", label: "Activos", count: activeCount },
+    { key: "inactive", label: "Inhabilitados", count: inactiveCount },
+  ];
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => setTab("active")}
-          className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-          style={
-            tab === "active"
-              ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-              : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-          }
-        >
-          Activos ({activeCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("inactive")}
-          className="rounded-full px-3 py-1.5 text-xs font-medium transition-colors"
-          style={
-            tab === "inactive"
-              ? { background: 'var(--nexora-nova)', color: 'var(--nexora-nova-ink)' }
-              : { background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }
-          }
-        >
-          Inhabilitados ({inactiveCount})
-        </button>
-      </div>
-
-      <div className="mx-auto max-w-md">
-        <div className="relative">
+      <div className="mx-auto flex max-w-2xl flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
           <Search
             size={15}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
@@ -98,15 +74,34 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
             }}
           />
         </div>
+
+        {/* Filtro de estado — segmentado discreto, en la misma fila que la
+            búsqueda (antes eran dos píldoras grandes flotando solas). */}
+        <div
+          className="flex shrink-0 self-center overflow-hidden rounded-full border text-xs"
+          style={{ borderColor: 'var(--nexora-line)' }}
+        >
+          {STATE_TABS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className="px-3 py-1.5 font-medium transition-colors"
+              style={
+                tab === t.key
+                  ? { background: 'rgba(255,255,255,0.08)', color: 'var(--nexora-ink)' }
+                  : { background: 'transparent', color: 'var(--nexora-ink-dim)' }
+              }
+            >
+              {t.label} <span style={{ color: 'var(--nexora-ink-dim)' }}>{t.count}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="text-sm text-center py-12" style={{ color: 'var(--nexora-ink-dim)' }}>
-          {query.trim()
-            ? "Ningún negocio coincide con la búsqueda."
-            : tab === "active"
-              ? "No hay negocios activos."
-              : "No hay negocios inhabilitados."}
+          {query.trim() ? "Ningún negocio coincide con la búsqueda." : "No hay negocios en este estado."}
         </p>
       ) : (
         <div className="mx-auto max-w-4xl overflow-x-auto">
@@ -331,7 +326,7 @@ function BusinessDetail({
         <div
           className="rounded-xl border p-4"
           style={{
-            borderColor: confirming || !isActive ? 'rgba(248,113,113,0.35)' : 'var(--nexora-line)',
+            borderColor: !isActive ? 'rgba(248,113,113,0.35)' : 'var(--nexora-line)',
           }}
         >
           <div className="flex items-center gap-3">
