@@ -63,7 +63,7 @@ export function Dropdown({
 
       {open && (
         <div
-          className="absolute z-10 mt-2 w-full overflow-hidden rounded-xl border py-1 shadow-lg"
+          className="absolute z-50 mt-2 max-h-72 w-full overflow-y-auto rounded-xl border py-1 shadow-xl"
           style={{ borderColor: "var(--nexora-line)", background: "var(--nexora-panel)" }}
         >
           {options.map((opt) => (
