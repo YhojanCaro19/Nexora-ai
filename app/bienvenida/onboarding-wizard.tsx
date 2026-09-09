@@ -55,7 +55,6 @@ import { LandingVideo } from "@/components/landing/LandingVideo";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
-import { getIndustryPlaceholders } from "@/lib/config/industryPlaceholders";
 import { suggestedBookingMode } from "@/lib/config/agentTools";
 import { BOOKING_MODE_OPTIONS, type BookingMode } from "@/lib/types/reservation";
 import { useOnboardingEstela } from "./onboarding-shell";
@@ -139,7 +138,6 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const step1Ready =
     fullName.trim().length >= 2 && businessName.trim().length >= 2;
   const errorText = state && !state.ok ? state.error : null;
-  const offerPlaceholder = getIndustryPlaceholders(industryType).businessDescription;
 
   // Elegir industria: además pre-selecciona el modo de reservas sugerido
   // (mesas/turnos/ninguno) mientras el dueño no lo haya cambiado a mano.
@@ -400,7 +398,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                   rows={3}
                   value={businessOffer}
                   onChange={(e) => setBusinessOffer(e.target.value)}
-                  placeholder={offerPlaceholder}
+                  placeholder="Describe a qué se dedica tu empresa."
                   className="resize-none border-white/10 bg-white/[0.03]"
                 />
               </Field>
