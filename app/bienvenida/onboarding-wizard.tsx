@@ -395,17 +395,19 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </div>
 
             {/* Robot que señala hacia arriba, al botón "Comenzar" — el gesto
-                vive en el video. `blend="screen"` elimina el fondo negro del
-                video: sobre la estela oscura, el negro se vuelve transparente
-                y el astronauta queda flotando. */}
+                vive en el video. Trae canal alfa real (fondo recortado):
+                `.webm` VP9 para Chrome/Firefox, `.mov` HEVC para Safari. */}
             <div
               className="pointer-events-none mt-3"
               style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "720 / 648" }}
             >
               <LandingVideo
-                src="/media/onboarding-robot.mp4"
+                sources={[
+                  { src: "/media/onboarding-robot.webm", type: "video/webm" },
+                  { src: "/media/onboarding-robot.mov", type: "video/quicktime" },
+                ]}
                 fit="contain"
-                blend="screen"
+                chromeless
               />
             </div>
           </motion.div>

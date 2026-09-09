@@ -18,7 +18,12 @@ import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 interface LandingVideoProps {
-  src: string;
+  /** Fuente única. Alternativa a `sources` (uno u otro). */
+  src?: string;
+  /** Varias fuentes en orden de preferencia — para video con canal alfa
+   * real: `.webm` VP9 (Chrome/Firefox) + `.mov` HEVC (Safari). El navegador
+   * elige la primera que soporta. */
+  sources?: { src: string; type: string }[];
   /** Fuerza del parallax en px (default 14). */
   parallax?: number;
   /** `cover` (default) recorta para llenar; `contain` muestra el video
@@ -28,13 +33,18 @@ interface LandingVideoProps {
    * (negro → transparente); apaga también el resplandor y la máscara.
    * Default `normal`. */
   blend?: 'normal' | 'screen' | 'lighten';
+  /** El video ya trae canal alfa (fondo recortado): sin resplandor, sin
+   * máscara radial, sin blend — se muestra tal cual, flotando. */
+  chromeless?: boolean;
 }
 
 export function LandingVideo({
   src,
+  sources,
   parallax = 14,
   fit = 'cover',
   blend = 'normal',
+  chromeless = false,
 }: LandingVideoProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -128,10 +138,11 @@ export function LandingVideo({
   }, []);
 
   const isBlend = blend !== 'normal';
+  const bare = isBlend || chromeless;
 
   return (
     <div ref={wrapRef} className="pointer-events-none relative h-full w-full will-change-transform">
-      {!isBlend && (
+      {!bare && (
         <div
           aria-hidden
           className="pointer-events-none absolute inset-[8%] -z-10 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(76,194,232,0.18),rgba(167,139,250,0.12)_45%,transparent_72%)] blur-2xl"
@@ -141,11 +152,11 @@ export function LandingVideo({
         ref={videoRef}
         style={isBlend ? { mixBlendMode: blend } : undefined}
         className={`landing-video pointer-events-none h-full w-full ${
-          isBlend
+          bare
             ? ''
             : '[mask-image:radial-gradient(ellipse_80%_80%_at_50%_48%,black_66%,transparent_95%)]'
         } ${fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'}`}
-        src={src}
+        {...(src ? { src } : {})}
         autoPlay
         muted
         loop
@@ -156,7 +167,11 @@ export function LandingVideo({
         controls={false}
         tabIndex={-1}
         aria-hidden
-      />
+      >
+        {sources?.map((s) => (
+          <source key={s.src} src={s.src} type={s.type} />
+        ))}
+      </video>
 
       {/* El botón grande de "reproducir" que Chrome/Safari dibujan encima
           del video cuando el autoplay silenciado se bloquea o el navegador
