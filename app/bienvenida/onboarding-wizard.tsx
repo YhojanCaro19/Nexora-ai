@@ -424,12 +424,13 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                         style={
                           selected
                             ? {
-                                // Borde con el degradado de marca (mismo que
-                                // la barra de "Paso X de 3" y el wordmark) —
-                                // truco padding-box/border-box.
+                                // SOLO el borde con el degradado de marca
+                                // (mismo que "Paso X de 3" y el wordmark) —
+                                // truco padding-box/border-box. El relleno
+                                // queda igual que sin seleccionar.
                                 borderColor: "transparent",
                                 background:
-                                  "linear-gradient(rgba(167,139,250,0.07), rgba(167,139,250,0.07)) padding-box, linear-gradient(90deg, #4CC2E8, #A78BFA) border-box",
+                                  "linear-gradient(rgba(255,255,255,0.02), rgba(255,255,255,0.02)) padding-box, linear-gradient(90deg, #4CC2E8, #A78BFA) border-box",
                               }
                             : {
                                 borderColor: "var(--nexora-line)",
