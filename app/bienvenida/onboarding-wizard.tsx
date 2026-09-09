@@ -54,6 +54,7 @@ import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
 import { completarOnboarding, type OnboardingState } from "./actions";
+import { playOnboardingChime } from "./onboarding-chime";
 
 // Un ícono por categoría — mismo criterio y mismo mapa que
 // superadmin/agentes/agent-templates-panel.tsx (Plantillas por industria):
@@ -409,7 +410,12 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </p>
 
             <div className="mt-10">
-              <OrbitPillButton onClick={() => setStarted(true)}>
+              <OrbitPillButton
+                onClick={() => {
+                  void playOnboardingChime();
+                  setStarted(true);
+                }}
+              >
                 Comenzar
                 <ArrowRight size={15} />
               </OrbitPillButton>
