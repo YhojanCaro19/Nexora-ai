@@ -412,62 +412,66 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                   {BOOKING_MODE_OPTIONS.map((o) => {
                     const selected = bookingMode === o.value;
                     return (
-                      // Envoltorio p-px: el borde (esta capa) lleva el
-                      // degradado de marca cuando está elegido; el interior
-                      // (el <button>) mantiene su relleno, sin teñirse.
-                      <div
+                      <button
                         key={o.value}
-                        className="rounded-xl p-px transition-colors"
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setBookingMode(o.value);
+                          setBookingModeTouched(true);
+                        }}
+                        className="relative flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
                         style={{
-                          background: selected
-                            ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
-                            : "var(--nexora-line)",
+                          borderColor: selected ? "transparent" : "var(--nexora-line)",
+                          backgroundColor: "rgba(255,255,255,0.03)",
                         }}
                       >
-                        <button
-                          type="button"
-                          aria-pressed={selected}
-                          onClick={() => {
-                            setBookingMode(o.value);
-                            setBookingModeTouched(true);
-                          }}
-                          className="flex w-full items-center gap-3 rounded-[11px] px-3.5 py-2.5 text-left transition-colors"
-                          style={{
-                            backgroundColor: selected
-                              ? "var(--nexora-panel)"
-                              : "rgba(255,255,255,0.02)",
-                          }}
-                        >
+                        {/* Borde de degradado SOLO en el anillo de 1px — el
+                            relleno del botón sigue translúcido. La máscara
+                            recorta todo menos el borde. */}
+                        {selected && (
                           <span
                             aria-hidden
-                            className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
-                            style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
-                          >
-                            {selected && (
-                              <span
-                                className="h-1.5 w-1.5 rounded-full"
-                                style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
-                              />
-                            )}
-                          </span>
-                          <span className="min-w-0">
+                            className="pointer-events-none absolute inset-0 rounded-xl"
+                            style={{
+                              padding: "1px",
+                              background: "linear-gradient(90deg, #4CC2E8, #A78BFA)",
+                              WebkitMask:
+                                "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                              WebkitMaskComposite: "xor",
+                              maskComposite: "exclude",
+                            }}
+                          />
+                        )}
+                        <span
+                          aria-hidden
+                          className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
+                          style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
+                        >
+                          {selected && (
                             <span
-                              className="block text-sm font-medium leading-tight"
-                              style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
-                            >
-                              {o.label}
-                            </span>
-                            {o.hint && (
-                              <span
-                                className="mt-0.5 block text-[11px] leading-snug"
-                                style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
-                              >
-                                {o.hint}
-                              </span>
-                            )}
+                              className="h-1.5 w-1.5 rounded-full"
+                              style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
+                            />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span
+                            className="block text-sm font-medium leading-tight"
+                            style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
+                          >
+                            {o.label}
                           </span>
-                        </button>
-                      </div>
+                          {o.hint && (
+                            <span
+                              className="mt-0.5 block text-[11px] leading-snug"
+                              style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
+                            >
+                              {o.hint}
+                            </span>
+                          )}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
