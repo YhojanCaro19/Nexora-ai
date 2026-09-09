@@ -11,7 +11,7 @@ export function OnboardingEstela() {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none fixed z-0"
+      className="pointer-events-none fixed -z-10"
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.1, ease: "easeOut" }}

@@ -395,19 +395,18 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </div>
 
             {/* Robot que señala hacia arriba, al botón "Comenzar" — el gesto
-                vive en el video. Trae canal alfa real (fondo recortado):
-                `.webm` VP9 para Chrome/Firefox, `.mov` HEVC para Safari. */}
+                vive en el video. El robot está renderizado sobre negro puro;
+                `blend="screen"` lo vuelve transparente sobre el fondo oscuro
+                del onboarding (funciona porque el fondo — estrellas + estela —
+                comparte contexto de apilamiento con el wizard, ver layout). */}
             <div
               className="pointer-events-none mt-3"
-              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "720 / 648" }}
+              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "1 / 1" }}
             >
               <LandingVideo
-                sources={[
-                  { src: "/media/onboarding-robot.webm", type: "video/webm" },
-                  { src: "/media/onboarding-robot.mov", type: "video/quicktime" },
-                ]}
+                src="/media/onboarding-robot.mp4"
                 fit="contain"
-                chromeless
+                blend="screen"
               />
             </div>
           </motion.div>

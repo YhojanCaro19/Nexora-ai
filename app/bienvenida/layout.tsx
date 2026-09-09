@@ -21,11 +21,17 @@ export default async function BienvenidaLayout({ children }: { children: React.R
     >
       {/* Fondo: estrellas + estela de color. Ambos entran con un fundido al
           montar; el contenido (el wizard) entra ~0.6s después con su propia
-          animación framer. */}
+          animación framer.
+
+          Van a `-z-10` (NO en un contexto de apilamiento aparte del wizard):
+          así el `mix-blend-mode: screen` del video del robot puede fundirse
+          contra ellos + el fondo `--nexora-void`, y el negro del video se
+          vuelve invisible. Si el contenedor del wizard tuviera su propio
+          `z-*`, el blend quedaría aislado y el negro se vería como recuadro. */}
       <OnboardingStarfield />
       <OnboardingEstela />
 
-      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
+      <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
         {children}
       </div>
     </div>
