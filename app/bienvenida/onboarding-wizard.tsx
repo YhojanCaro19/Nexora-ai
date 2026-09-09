@@ -30,6 +30,7 @@ import {
 import {
   ArrowRight,
   Check,
+  ChevronDown,
   Search,
   Sparkles,
   UtensilsCrossed,
@@ -105,6 +106,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
   const [started, setStarted] = useState(false);
   const [dataStep, setDataStep] = useState<"datos" | "industria">("datos");
+  const [openCat, setOpenCat] = useState<string | null>(null);
   const [fullName, setFullName] = useState(defaultFullName);
   const [businessName, setBusinessName] = useState("");
   const [industryType, setIndustryType] = useState("");
@@ -238,7 +240,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 />
               </div>
 
-              <div className="-mx-1 max-h-[44vh] space-y-5 overflow-y-auto px-1 py-1">
+              <div className="-mx-1 max-h-[46vh] overflow-y-auto px-1">
                 {groups.length === 0 ? (
                   <p
                     className="py-8 text-center text-sm"
@@ -247,57 +249,91 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                     Ningún tipo de negocio coincide con «{query}».
                   </p>
                 ) : (
-                  groups.map((g) => (
-                    <div key={g.key}>
-                      <div className="mb-2 flex items-center justify-center gap-1.5">
-                        <g.Icon
-                          size={13}
-                          strokeWidth={1.75}
-                          style={{ color: "var(--nexora-ink-dim)" }}
-                        />
-                        <span
-                          className="text-[11px] font-medium uppercase tracking-[0.14em]"
-                          style={{ color: "var(--nexora-ink-dim)" }}
+                  groups.map((g) => {
+                    // Con búsqueda activa se abre todo; si no, acordeón de a uno.
+                    const expanded = query.trim() !== "" || openCat === g.key;
+                    return (
+                      <div
+                        key={g.key}
+                        className="border-t first:border-t-0"
+                        style={{ borderColor: "var(--nexora-line)" }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenCat((c) => (c === g.key ? null : g.key))
+                          }
+                          aria-expanded={expanded}
+                          className="flex w-full items-center justify-center gap-2 py-3.5 transition-colors"
                         >
-                          {g.label}
-                        </span>
+                          <g.Icon
+                            size={13}
+                            strokeWidth={1.75}
+                            style={{ color: "var(--nexora-ink-dim)" }}
+                          />
+                          <span
+                            className="text-[11px] font-medium uppercase tracking-[0.16em]"
+                            style={{
+                              color: expanded
+                                ? "var(--nexora-ink)"
+                                : "var(--nexora-ink-dim)",
+                            }}
+                          >
+                            {g.label}
+                          </span>
+                          <ChevronDown
+                            size={14}
+                            className="transition-transform"
+                            style={{
+                              color: "var(--nexora-ink-dim)",
+                              transform: expanded ? "rotate(180deg)" : "none",
+                            }}
+                          />
+                        </button>
+
+                        {expanded && (
+                          <div className="grid grid-cols-2 gap-2 pb-4 sm:grid-cols-3">
+                            {g.items.map((it) => {
+                              const selected = industryType === it.value;
+                              return (
+                                <button
+                                  key={it.value}
+                                  type="button"
+                                  aria-pressed={selected}
+                                  onClick={() => setIndustryType(it.value)}
+                                  className="relative flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-center text-xs leading-tight transition-colors"
+                                  style={
+                                    selected
+                                      ? {
+                                          borderColor: "var(--nexora-ink)",
+                                          backgroundColor:
+                                            "color-mix(in oklch, var(--nexora-ink) 10%, transparent)",
+                                          color: "var(--nexora-ink)",
+                                        }
+                                      : {
+                                          borderColor: "var(--nexora-line)",
+                                          backgroundColor:
+                                            "color-mix(in oklch, var(--nexora-panel) 55%, transparent)",
+                                          color: "var(--nexora-ink-dim)",
+                                        }
+                                  }
+                                >
+                                  {selected && (
+                                    <Check
+                                      size={13}
+                                      strokeWidth={2.5}
+                                      className="shrink-0"
+                                    />
+                                  )}
+                                  {it.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                        {g.items.map((it) => {
-                          const selected = industryType === it.value;
-                          return (
-                            <button
-                              key={it.value}
-                              type="button"
-                              aria-pressed={selected}
-                              onClick={() => setIndustryType(it.value)}
-                              className="relative flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-center text-xs leading-tight transition-colors"
-                              style={
-                                selected
-                                  ? {
-                                      borderColor: "var(--nexora-ink)",
-                                      backgroundColor:
-                                        "color-mix(in oklch, var(--nexora-ink) 10%, transparent)",
-                                      color: "var(--nexora-ink)",
-                                    }
-                                  : {
-                                      borderColor: "var(--nexora-line)",
-                                      backgroundColor:
-                                        "color-mix(in oklch, var(--nexora-panel) 55%, transparent)",
-                                      color: "var(--nexora-ink-dim)",
-                                    }
-                              }
-                            >
-                              {selected && (
-                                <Check size={13} strokeWidth={2.5} className="shrink-0" />
-                              )}
-                              {it.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
