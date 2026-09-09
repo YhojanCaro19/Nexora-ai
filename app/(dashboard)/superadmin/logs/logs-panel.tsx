@@ -22,6 +22,7 @@ import {
   Link2,
   Megaphone,
   ShieldAlert,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import type { PlatformLogEntry, PlatformLogType } from "@/lib/services/platformLogService";
@@ -37,6 +38,7 @@ const TYPE_META: Record<PlatformLogType, { icon: LucideIcon; color: string }> = 
   // Negocios (superadmin)
   business_enabled: { icon: Power, color: "var(--nexora-signal)" },
   business_disabled: { icon: PowerOff, color: "var(--nexora-alert)" },
+  business_onboarding_reset: { icon: RotateCcw, color: "var(--nexora-ink-dim)" },
   // Solicitudes
   request_approved: { icon: CheckCircle2, color: "var(--nexora-signal)" },
   request_rejected: { icon: XCircle, color: "var(--nexora-alert)" },
@@ -73,7 +75,7 @@ const TYPE_META: Record<PlatformLogType, { icon: LucideIcon; color: string }> = 
 // sería imposible de escanear; 9 categorías sí.
 const FILTER_GROUPS: { key: string; label: string; types: PlatformLogType[] }[] = [
   { key: "sesion", label: "Sesión", types: ["login", "signed_out", "signed_out_all_devices", "session_device_mismatch"] },
-  { key: "negocios", label: "Negocios", types: ["business_enabled", "business_disabled"] },
+  { key: "negocios", label: "Negocios", types: ["business_enabled", "business_disabled", "business_onboarding_reset"] },
   { key: "solicitudes", label: "Solicitudes", types: ["request_approved", "request_rejected", "account_change_requested"] },
   { key: "registros", label: "Altas de cuenta", types: ["registration_completed"] },
   {

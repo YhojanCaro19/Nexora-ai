@@ -59,6 +59,40 @@ export async function toggleBusinessActive(
   return { error: null };
 }
 
+// ⚠️ HERRAMIENTA DE PRUEBAS — TEMPORAL. Deja el negocio como recién
+// provisionado: `onboarding_completed = false` y borra la config generada
+// (agent_configs + todo el módulo de Reservas). El dueño, al volver a
+// entrar, cae de nuevo en /bienvenida y recorre el onboarding. NO toca la
+// cuenta de Google, ni el catálogo, ni clientes/pedidos/conversaciones, ni
+// los créditos. Sirve para probar la experiencia de primer ingreso sin
+// crear cuentas nuevas. Quitar cuando la experiencia esté cerrada.
+export async function resetBusinessOnboarding(
+  businessId: string,
+  actingAdminUserId: string,
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+
+  const { error: bizError } = await admin
+    .from("businesses")
+    .update({ onboarding_completed: false })
+    .eq("id", businessId);
+  if (bizError) {
+    console.error("[resetBusinessOnboarding] businesses:", bizError.message);
+    return { error: translateError(bizError) };
+  }
+
+  // Best-effort: si alguna tabla del módulo de Reservas no está aplicada,
+  // se ignora el error (no es fatal para el objetivo de la herramienta).
+  const wipe = ["agent_configs", "booking_settings", "booking_resources", "business_hours", "booking_services", "business_closures"] as const;
+  for (const table of wipe) {
+    const { error } = await admin.from(table).delete().eq("business_id", businessId);
+    if (error) console.warn(`[resetBusinessOnboarding] ${table}:`, error.message);
+  }
+
+  await logPlatformAdminAction(actingAdminUserId, "business_onboarding_reset", businessId);
+  return { error: null };
+}
+
 export interface BusinessAgentSummary {
   agentName: string;
   personality: string;

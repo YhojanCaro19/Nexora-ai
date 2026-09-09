@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
-import { toggleBusinessActive, getBusinessAgentSummary } from "@/lib/services/adminService";
+import { toggleBusinessActive, getBusinessAgentSummary, resetBusinessOnboarding } from "@/lib/services/adminService";
 
 async function requireSuperadmin() {
   const profile = await getSessionProfile();
@@ -27,4 +27,15 @@ export async function getBusinessAgentSummaryAction(businessId: string) {
   const profile = await requireSuperadmin();
   if (!profile) return null;
   return getBusinessAgentSummary(businessId);
+}
+
+// ⚠️ TEMPORAL — herramienta de pruebas de la experiencia de primer ingreso.
+// Ver resetBusinessOnboarding en adminService.ts. Quitar cuando cierre.
+export async function resetBusinessOnboardingAction(businessId: string) {
+  const profile = await requireSuperadmin();
+  if (!profile) return { error: "No autorizado" };
+
+  const result = await resetBusinessOnboarding(businessId, profile.userId);
+  revalidatePath("/superadmin/negocios");
+  return result;
 }

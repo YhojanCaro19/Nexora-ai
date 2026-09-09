@@ -11,12 +11,14 @@ import { createAdminClient } from "@/lib/supabase/server";
 export type PlatformAdminAction =
   | "business_disabled"
   | "business_enabled"
+  | "business_onboarding_reset"
   | "request_approved"
   | "request_rejected";
 
 const ACTION_LABELS: Record<PlatformAdminAction, string> = {
   business_disabled: "Inhabilitó el negocio",
   business_enabled: "Habilitó el negocio",
+  business_onboarding_reset: "Reinició el onboarding del negocio",
   request_approved: "Aprobó la solicitud de",
   request_rejected: "Rechazó la solicitud de",
 };

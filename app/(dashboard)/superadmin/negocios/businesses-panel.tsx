@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronDown, Building2, UserCircle, Activity, Bot, Power, PowerOff } from "lucide-react";
-import { toggleBusinessActiveAction, getBusinessAgentSummaryAction } from "./actions";
+import { ChevronLeft, ChevronDown, Building2, UserCircle, Activity, Bot, Power, PowerOff, RotateCcw } from "lucide-react";
+import { toggleBusinessActiveAction, getBusinessAgentSummaryAction, resetBusinessOnboardingAction } from "./actions";
 import type { BusinessWithOwner, BusinessAgentSummary } from "@/lib/services/adminService";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { formatShortDateTime } from "@/lib/utils/date";
@@ -157,6 +157,23 @@ function BusinessDetail({
   const [toggling, setToggling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentSummary, setAgentSummary] = useState<BusinessAgentSummary | null | undefined>(undefined);
+  // ⚠️ TEMPORAL — botón de pruebas de la experiencia de primer ingreso.
+  const [resetConfirming, setResetConfirming] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const [resetFeed, setResetFeed] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleReset() {
+    setResetting(true);
+    setResetFeed(null);
+    const result = await resetBusinessOnboardingAction(business.id);
+    setResetting(false);
+    if (result.error) {
+      setResetFeed({ ok: false, text: result.error });
+      return;
+    }
+    setResetConfirming(false);
+    setResetFeed({ ok: true, text: "Listo. El dueño volverá a /bienvenida en su próximo ingreso." });
+  }
 
   useEffect(() => {
     getBusinessAgentSummaryAction(business.id).then(setAgentSummary);
@@ -251,6 +268,51 @@ function BusinessDetail({
             {error && <p className="text-xs" style={{ color: 'var(--nexora-alert)' }}>{error}</p>}
           </div>
         )}
+
+        {/* ⚠️ TEMPORAL — herramienta de pruebas. Deja el negocio como recién
+            provisionado (onboarding_completed=false + borra agent_configs y
+            el módulo de Reservas). No toca la cuenta de Google, el catálogo,
+            clientes ni créditos. Quitar cuando la experiencia esté cerrada. */}
+        <div
+          className="rounded-xl border border-dashed p-4 space-y-3"
+          style={{ borderColor: 'rgba(238,240,247,0.2)' }}
+        >
+          <div className="flex items-center gap-3">
+            <RotateCcw size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-sm font-medium" style={{ color: 'var(--nexora-ink)' }}>
+                Reiniciar onboarding <span style={{ color: 'var(--nexora-ink-dim)' }}>· solo pruebas</span>
+              </p>
+              <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                Vuelve a mandar al dueño a /bienvenida. Borra la config del agente y de Reservas.
+              </p>
+            </div>
+            {!resetConfirming && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setResetConfirming(true)}>
+                Reiniciar
+              </Button>
+            )}
+          </div>
+
+          {resetConfirming && (
+            <div className="flex justify-center gap-2">
+              <Button type="button" variant="destructive" size="sm" disabled={resetting} onClick={handleReset}>
+                {resetting ? "Aplicando..." : "Sí, reiniciar"}
+              </Button>
+              <Button type="button" variant="outline" size="sm" disabled={resetting} onClick={() => setResetConfirming(false)}>
+                Cancelar
+              </Button>
+            </div>
+          )}
+          {resetFeed && (
+            <p
+              className="text-center text-xs"
+              style={{ color: resetFeed.ok ? 'var(--nexora-signal)' : 'var(--nexora-alert)' }}
+            >
+              {resetFeed.text}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
