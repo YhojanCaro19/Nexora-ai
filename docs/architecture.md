@@ -85,6 +85,8 @@ No existe signup público. Las únicas puertas de entrada son:
 
 Ambas crean el usuario de Auth con el correo registrado y **sin contraseña**. La persona entra con "Continuar con Google" usando ese mismo correo (ver `decisions.md` — "Autenticación solo con Google").
 
+> Nota: la vía real de alta hoy es el **pago en Wompi** (`registrationService.ts` → webhook → cuenta mínima + correo "cuenta lista"). El dueño completa nombre/industria/teléfono en el **onboarding del primer ingreso** (`/bienvenida`, `onboardingService.ts`), que además pregunta *qué ofrece el negocio* (→ `agent_configs.business_description`) y *si agenda reservas/citas* (→ `booking_settings.mode`; la industria pre-selecciona). Solo se crea fila en `booking_settings` si el negocio agenda algo → una tienda no ve el módulo "Reservas" en el menú. Superadmin → Negocios tiene un botón **temporal** "Reiniciar onboarding" para volver a probar ese flujo. (Esta sección de arriba quedó incompleta y hay que reescribirla.)
+
 ## Motor conversacional del agente
 
 `lib/services/agentEngineService.ts` (`runAgentTurn`) — un solo agente por negocio, **sin orquestación multi-agente** (decisión explícita, ver `decisions.md`). Corre sobre Claude (`claude-sonnet-5` por defecto — balance costo/calidad, el costo por mensaje se multiplica por cada negocio cliente) vía el Tool Runner del SDK de Anthropic (`client.beta.messages.toolRunner`).
