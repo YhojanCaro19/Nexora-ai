@@ -445,16 +445,13 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                         )}
                         <span
                           aria-hidden
-                          className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
-                          style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
-                        >
-                          {selected && (
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
-                            />
-                          )}
-                        </span>
+                          className="h-2 w-2 shrink-0 rounded-full transition-colors"
+                          style={{
+                            background: selected
+                              ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
+                              : "var(--nexora-line)",
+                          }}
+                        />
                         <span className="min-w-0">
                           <span
                             className="block text-sm font-medium leading-tight"
