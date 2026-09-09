@@ -27,7 +27,7 @@ export function OnboardingStarfield() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 select-none"
+      className="onboarding-bg-in pointer-events-none fixed inset-0 z-0 select-none"
     >
       <Canvas
         camera={{ position: [0, 0, 6], fov: 42 }}

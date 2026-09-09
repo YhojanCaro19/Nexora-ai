@@ -7,6 +7,7 @@
 import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { OnboardingStarfield } from "./onboarding-starfield";
+import { OnboardingChime } from "./onboarding-chime";
 
 export default async function BienvenidaLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
@@ -20,6 +21,7 @@ export default async function BienvenidaLayout({ children }: { children: React.R
     >
       {/* Campo de estrellas sobre el vacío negro. */}
       <OnboardingStarfield />
+      <OnboardingChime />
 
       {/* Un solo resplandor de marca al centro: fuerte en el medio, se
           desvanece hacia afuera dejando ver el negro + las estrellas.
@@ -30,7 +32,7 @@ export default async function BienvenidaLayout({ children }: { children: React.R
           Todo por `style` inline (a prueba de CSS cacheado). */}
       <div
         aria-hidden
-        className="pointer-events-none fixed z-0"
+        className="onboarding-bg-in pointer-events-none fixed z-0"
         style={{
           top: "-30%",
           left: "-30%",
@@ -42,7 +44,7 @@ export default async function BienvenidaLayout({ children }: { children: React.R
         }}
       />
 
-      <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
+      <div className="onboarding-content-in relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
         {children}
       </div>
     </div>
