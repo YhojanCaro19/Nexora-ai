@@ -28,6 +28,7 @@ import {
   type MotionProps,
 } from "framer-motion";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
   ChevronDown,
@@ -95,8 +96,6 @@ const INDUSTRY_GROUPS = INDUSTRY_CATEGORIES.map((cat) => ({
   })),
 }));
 
-const PILL_GHOST =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-medium backdrop-blur-md transition-colors hover:bg-white/[0.06]";
 
 export function OnboardingWizard({ defaultFullName }: { defaultFullName: string }) {
   const [state, formAction, pending] = useActionState<OnboardingState, FormData>(
@@ -344,17 +343,13 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
               )}
 
               <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  type="button"
+                <OrbitPillButton
+                  iconOnly
+                  ariaLabel="Volver al paso anterior"
                   onClick={() => setDataStep("datos")}
-                  className={PILL_GHOST}
-                  style={{
-                    borderColor: "var(--nexora-line)",
-                    color: "var(--nexora-ink-dim)",
-                  }}
                 >
-                  Atrás
-                </button>
+                  <ArrowLeft size={16} />
+                </OrbitPillButton>
                 <OrbitPillButton
                   type="submit"
                   disabled={pending || !industryType}
@@ -492,11 +487,15 @@ function OrbitPillButton({
   children,
   type = "button",
   disabled = false,
+  iconOnly = false,
+  ariaLabel,
   onClick,
 }: {
   children: ReactNode;
   type?: "button" | "submit";
   disabled?: boolean;
+  iconOnly?: boolean;
+  ariaLabel?: string;
   onClick?: () => void;
 }) {
   return (
@@ -508,8 +507,11 @@ function OrbitPillButton({
       <button
         type={type}
         disabled={disabled}
+        aria-label={ariaLabel}
         onClick={onClick}
-        className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium backdrop-blur-md transition-colors disabled:cursor-not-allowed"
+        className={`flex items-center justify-center gap-2 rounded-full text-sm font-medium backdrop-blur-md transition-colors disabled:cursor-not-allowed ${
+          iconOnly ? "h-[46px] w-[46px]" : "px-9 py-3.5"
+        }`}
         style={{
           backgroundColor: "rgba(11, 12, 17, 0.45)",
           color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
