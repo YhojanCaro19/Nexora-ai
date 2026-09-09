@@ -54,7 +54,6 @@ import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
 import { completarOnboarding, type OnboardingState } from "./actions";
-import { playOnboardingChime } from "./onboarding-chime";
 
 // Un ícono por categoría — mismo criterio y mismo mapa que
 // superadmin/agentes/agent-templates-panel.tsx (Plantillas por industria):
@@ -301,7 +300,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                         </button>
 
                         {expanded && (
-                          <div className="grid grid-cols-2 gap-2 pb-4 sm:grid-cols-3">
+                          <div className="flex flex-wrap justify-center gap-2 pb-4">
                             {g.items.map((it) => {
                               const selected = industryType === it.value;
                               return (
@@ -310,7 +309,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                                   type="button"
                                   aria-pressed={selected}
                                   onClick={() => setIndustryType(it.value)}
-                                  className="relative flex min-h-[2.75rem] items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-center text-xs leading-tight transition-colors"
+                                  className="relative flex min-h-[2.75rem] w-36 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-center text-xs leading-tight transition-colors"
                                   style={
                                     selected
                                       ? {
@@ -410,12 +409,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </p>
 
             <div className="mt-10">
-              <OrbitPillButton
-                onClick={() => {
-                  void playOnboardingChime();
-                  setStarted(true);
-                }}
-              >
+              <OrbitPillButton onClick={() => setStarted(true)}>
                 Comenzar
                 <ArrowRight size={15} />
               </OrbitPillButton>

@@ -8,7 +8,6 @@ import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { OnboardingStarfield } from "./onboarding-starfield";
 import { OnboardingEstela } from "./onboarding-estela";
-import { OnboardingChime } from "./onboarding-chime";
 
 export default async function BienvenidaLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
@@ -25,7 +24,6 @@ export default async function BienvenidaLayout({ children }: { children: React.R
           animación framer. */}
       <OnboardingStarfield />
       <OnboardingEstela />
-      <OnboardingChime />
 
       <div className="relative z-10 flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
         {children}
