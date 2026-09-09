@@ -14,7 +14,7 @@
 // secciones de la landing lo son).
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 interface LandingVideoProps {
@@ -36,6 +36,16 @@ interface LandingVideoProps {
   /** El video ya trae canal alfa (fondo recortado): sin resplandor, sin
    * máscara radial, sin blend — se muestra tal cual, flotando. */
   chromeless?: boolean;
+  /** Arranca invisible y aparece con un fundido corto recién cuando el
+   * navegador presenta el PRIMER fotograma de verdad (requestVideoFrame
+   * callback; fallback `playing`) — así nunca se ve el primer fotograma
+   * congelado ni el recuadro negro mientras arranca el autoplay. */
+  revealOnPlay?: boolean;
+  /** Solo con `revealOnPlay` + `blend='screen'`: puerta externa para no
+   * revelar hasta que el contenedor terminó su animación de entrada. Un
+   * ancestro con `opacity < 1` AÍSLA el `mix-blend-mode`, y ahí el fondo
+   * negro del video se ve como recuadro. `undefined` = sin puerta. */
+  blendReady?: boolean;
 }
 
 export function LandingVideo({
@@ -45,13 +55,21 @@ export function LandingVideo({
   fit = 'cover',
   blend = 'normal',
   chromeless = false,
+  revealOnPlay = false,
+  blendReady,
 }: LandingVideoProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  // `sawFrame`: el navegador ya presentó un fotograma real del video.
+  const [sawFrame, setSawFrame] = useState(!revealOnPlay);
 
   const isBlend = blend !== 'normal';
   const bare = isBlend || chromeless;
+  // Visible cuando hay fotograma real Y (si hay puerta) el contenedor ya
+  // asentó su opacidad — antes de eso el blend está aislado y el negro se
+  // vería como recuadro.
+  const revealed = sawFrame && (blendReady ?? true);
 
   useEffect(() => {
     // En modo `bare` (blend/chromeless) NO se aplica parallax: cualquier
@@ -92,6 +110,8 @@ export function LandingVideo({
     if (!video) return;
 
     let raf = 0;
+    let pumpRaf = 0;
+    let isPlaying = false;
     // Re-arranca el video pase lo que pase. Se llama en `pause`, al volver
     // de un tab en background, cuando el navegador lo deja listo, en el
     // primer gesto del usuario, y periódicamente por si lo detuvo sin
@@ -102,18 +122,56 @@ export function LandingVideo({
       if (p && typeof p.catch === 'function') p.catch(() => {});
     };
 
+    // Arranque agresivo: al entrar a la ruta el hilo principal está
+    // ocupado (hidratación de Next + los <Canvas> de estrellas), así que
+    // un único `play()` inicial se "pierde" y el video se ve congelado 1-2
+    // s hasta que el watchdog de 1 s lo agarra. Reintentar en CADA frame
+    // hasta que el evento `playing` confirme que corre de verdad.
+    const pump = () => {
+      if (isPlaying) return;
+      kick();
+      pumpRaf = requestAnimationFrame(pump);
+    };
+
     const onPause = () => {
+      isPlaying = false;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(kick);
+      pump();
     };
     const onVisibility = () => {
       if (!document.hidden) kick();
     };
+    // `playing` frena el pump (ya corre) pero NO revela: puede dispararse
+    // antes de que haya un fotograma pintado. La revelación real va contra
+    // el primer fotograma presentado (abajo).
+    const onPlaying = () => {
+      isPlaying = true;
+      cancelAnimationFrame(pumpRaf);
+    };
+
+    // Primer fotograma REAL en pantalla → recién ahí se revela (fundido).
+    // `requestVideoFrameCallback` es el momento exacto; si no existe
+    // (Safari viejo), cae a `timeupdate` con currentTime > 0.
+    type RVFCVideo = HTMLVideoElement & {
+      requestVideoFrameCallback?: (cb: () => void) => number;
+    };
+    const rvfcVideo = video as RVFCVideo;
+    const onTimeUpdate = () => {
+      if (video.currentTime > 0) setSawFrame(true);
+    };
+    if (typeof rvfcVideo.requestVideoFrameCallback === 'function') {
+      rvfcVideo.requestVideoFrameCallback(() => setSawFrame(true));
+    } else {
+      video.addEventListener('timeupdate', onTimeUpdate);
+    }
 
     video.addEventListener('pause', onPause);
+    video.addEventListener('playing', onPlaying);
     video.addEventListener('ended', kick);
     video.addEventListener('canplay', kick);
     video.addEventListener('loadeddata', kick);
+    video.addEventListener('loadedmetadata', kick);
     document.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', kick);
     window.addEventListener('pageshow', kick);
@@ -128,15 +186,19 @@ export function LandingVideo({
     );
 
     const interval = window.setInterval(kick, 1000);
-    kick();
+    pump();
 
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(pumpRaf);
       window.clearInterval(interval);
       video.removeEventListener('pause', onPause);
+      video.removeEventListener('playing', onPlaying);
       video.removeEventListener('ended', kick);
       video.removeEventListener('canplay', kick);
       video.removeEventListener('loadeddata', kick);
+      video.removeEventListener('loadedmetadata', kick);
+      video.removeEventListener('timeupdate', onTimeUpdate);
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', kick);
       window.removeEventListener('pageshow', kick);
@@ -158,8 +220,21 @@ export function LandingVideo({
         />
       )}
       <video
-        ref={videoRef}
-        style={isBlend ? { mixBlendMode: blend } : undefined}
+        ref={(node) => {
+          videoRef.current = node;
+          // Primer intento de reproducción en cuanto el nodo existe —
+          // antes incluso de que corra el efecto de arriba.
+          if (node) {
+            const p = node.play();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
+          }
+        }}
+        style={{
+          ...(isBlend ? { mixBlendMode: blend } : null),
+          ...(revealOnPlay
+            ? { opacity: revealed ? 1 : 0, transition: 'opacity 220ms ease-out' }
+            : null),
+        }}
         className={`landing-video pointer-events-none h-full w-full ${
           bare
             ? ''

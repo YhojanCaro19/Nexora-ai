@@ -54,6 +54,7 @@ import { LandingVideo } from "@/components/landing/LandingVideo";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
+import { useOnboardingEstela } from "./onboarding-shell";
 import { completarOnboarding, type OnboardingState } from "./actions";
 
 // Un ícono por categoría — mismo criterio y mismo mapa que
@@ -112,6 +113,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const [businessName, setBusinessName] = useState("");
   const [industryType, setIndustryType] = useState("");
   const [msgIdx, setMsgIdx] = useState(0);
+  // El contenedor entra con un fundido (opacity 0→1). Mientras ese
+  // `opacity < 1` está activo, AÍSLA el `mix-blend-mode: screen` del robot
+  // y su fondo negro se ve como recuadro. Recién cuando la entrada termina
+  // se le da luz verde al video (LandingVideo `blendReady`).
+  const [entranceDone, setEntranceDone] = useState(false);
 
   const screen: "welcome" | "form" | "submitting" | "done" = state?.ok
     ? "done"
@@ -124,6 +130,17 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const step1Ready =
     fullName.trim().length >= 2 && businessName.trim().length >= 2;
   const errorText = state && !state.ok ? state.error : null;
+
+  // La estela de color se muestra en TODAS las pantallas menos el welcome
+  // (ahí el fondo queda limpio y el robot flota sobre las estrellas).
+  useOnboardingEstela(screen !== "welcome");
+
+  // Red de seguridad por si `onAnimationComplete` no dispara (el robot no
+  // debe quedarse invisible para siempre): la entrada dura ~1.4s.
+  useEffect(() => {
+    const id = window.setTimeout(() => setEntranceDone(true), 1800);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // Mensajes de "personalizando" rotando — avanzan hasta el último y se
   // quedan ahí. Bajo reduced motion no rotan (queda el primero fijo). El
@@ -156,6 +173,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.55, duration: reduce ? 0.4 : 0.85, ease: [0.16, 1, 0.3, 1] }}
+      onAnimationComplete={() => setEntranceDone(true)}
     >
       {/* Scrollbar oculto en la lista de industrias — sigue scrolleando,
           solo no se ve (no rompe la armonía del fondo). Inline vía
@@ -375,7 +393,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             animate={reduce ? {} : { opacity: 1 }}
             exit={reduce ? {} : { opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="relative col-start-1 row-start-1 flex flex-col items-center justify-center pb-[10vh] text-center"
+            className="relative col-start-1 row-start-1 flex flex-col items-center justify-center pt-[10vh] pb-[10vh] text-center"
           >
             <p
               className="mb-4 text-[11px] uppercase tracking-[0.34em]"
@@ -414,6 +432,8 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 src="/media/onboarding-robot.mp4"
                 fit="contain"
                 blend="screen"
+                revealOnPlay
+                blendReady={entranceDone}
               />
             </div>
           </motion.div>

@@ -8,5 +8,8 @@
 import { LandingVideo } from '@/components/landing/LandingVideo';
 
 export function RobotHead() {
-  return <LandingVideo src="/media/robot-head.mp4" />;
+  // `revealOnPlay`: arranca invisible y aparece con un fundido corto recién
+  // cuando el video ya corre de verdad — nunca se ve el primer fotograma
+  // congelado al entrar a la sección.
+  return <LandingVideo src="/media/robot-head.mp4" revealOnPlay />;
 }

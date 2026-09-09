@@ -7,7 +7,7 @@
 import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { OnboardingStarfield } from "./onboarding-starfield";
-import { OnboardingEstela } from "./onboarding-estela";
+import { OnboardingShell } from "./onboarding-shell";
 
 export default async function BienvenidaLayout({ children }: { children: React.ReactNode }) {
   const profile = await getSessionProfile();
@@ -19,21 +19,22 @@ export default async function BienvenidaLayout({ children }: { children: React.R
       className="relative min-h-screen overflow-x-hidden"
       style={{ backgroundColor: "var(--nexora-void)", color: "var(--nexora-ink)" }}
     >
-      {/* Fondo: estrellas + estela de color. Ambos entran con un fundido al
-          montar; el contenido (el wizard) entra ~0.6s después con su propia
-          animación framer.
+      {/* Fondo: campo de estrellas (siempre). La estela de color la monta el
+          OnboardingShell — solo en las pantallas de personalización, nunca
+          en el "welcome" (ver onboarding-shell / onboarding-wizard).
 
           El contenedor del wizard NO lleva `z-*` a propósito: así comparte
-          contexto de apilamiento con el fondo (estrellas + estela, en `z-0`)
-          y el `mix-blend-mode: screen` del video del robot puede fundirse
-          contra ellos — el negro del video se vuelve invisible. Con un `z-10`
-          aquí el blend quedaba aislado y el negro se veía como recuadro. */}
+          contexto de apilamiento con el fondo (estrellas en `z-0`) y el
+          `mix-blend-mode: screen` del video del robot puede fundirse contra
+          ellos — el negro del video se vuelve invisible. Con un `z-10` aquí
+          el blend quedaba aislado y el negro se veía como recuadro. */}
       <OnboardingStarfield />
-      <OnboardingEstela />
 
-      <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
-        {children}
-      </div>
+      <OnboardingShell>
+        <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
+          {children}
+        </div>
+      </OnboardingShell>
     </div>
   );
 }
