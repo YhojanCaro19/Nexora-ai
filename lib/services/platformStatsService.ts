@@ -18,22 +18,29 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { estimateCostUsd } from "@/lib/config/modelPricing";
 import { getAgentUsageByBusiness } from "@/lib/services/agentUsageService";
 
-export interface PlatformMonthStats {
-  /** "2026-09" */
-  monthKey: string;
+// Métricas de plataforma para un RANGO [from, to) — mismo set para "hoy"
+// (Superadmin → Inicio) y para un mes (Estadísticas). Los conteos "New" y
+// "completed*" son del rango; `businessesTotal` es "hasta el final del
+// rango" (acumulado, no del período).
+export interface PlatformPeriodStats {
   businessesTotal: number;
   businessesNew: number;
-  /** Negocios que el superadmin inhabilitó ESE mes (no el total inhabilitado hoy). */
+  /** Negocios que el superadmin inhabilitó EN EL RANGO (no el total inhabilitado hoy). */
   businessesDisabled: number;
-  /** Pedidos creados ese mes que llegaron a un estado final (shipped/picked_up) — no cuenta pendientes ni rechazados. */
+  /** Pedidos creados en el rango que llegaron a un estado final (shipped/picked_up) — no cuenta pendientes ni rechazados. */
   completedOrdersCount: number;
-  /** Reservas creadas ese mes con status='completed' — no cuenta pendientes, canceladas ni no-show. */
+  /** Reservas creadas en el rango con status='completed' — no cuenta pendientes, canceladas ni no-show. */
   completedReservationsCount: number;
   agentTokens: number;
   agentCostUsd: number;
-  /** Créditos gastados por TODAS las empresas ese mes, en TODO (agente, copy, imágenes, campañas...), no solo el agente. */
+  /** Créditos gastados por TODAS las empresas en el rango, en TODO (agente, copy, imágenes, campañas...), no solo el agente. */
   creditsConsumed: number;
   customersNew: number;
+}
+
+export interface PlatformMonthStats extends PlatformPeriodStats {
+  /** "2026-09" */
+  monthKey: string;
 }
 
 function monthKeyOf(monthStart: Date): string {
@@ -53,14 +60,12 @@ function monthRange(monthStart: Date): { from: string; to: string } {
 }
 
 /**
- * Calcula las estadísticas de un mes EN VIVO desde las tablas de origen —
- * no lee ni escribe `platform_monthly_stats`. Sirve tanto para el mes en
- * curso (siempre en vivo) como para recalcular un mes cerrado si hiciera
- * falta.
+ * El núcleo: cuenta las métricas de plataforma para un rango `[from, to)`
+ * EN VIVO desde las tablas de origen. Lo usan `computeMonthStats` (un mes)
+ * y `computeTodayStats` (el día de hoy en UTC).
  */
-export async function computeMonthStats(monthStart: Date): Promise<PlatformMonthStats> {
+export async function computeRangeStats(from: string, to: string): Promise<PlatformPeriodStats> {
   const admin = createAdminClient();
-  const { from, to } = monthRange(monthStart);
 
   const [
     businessesTotalRes,
@@ -124,7 +129,6 @@ export async function computeMonthStats(monthStart: Date): Promise<PlatformMonth
   const creditsConsumed = (creditLedgerRes.data ?? []).reduce((sum, r) => sum + Math.abs(r.delta ?? 0), 0);
 
   return {
-    monthKey: monthKeyOf(monthStart),
     businessesTotal: businessesTotalRes.count ?? 0,
     businessesNew: businessesNewRes.count ?? 0,
     businessesDisabled: businessesDisabledRes.count ?? 0,
@@ -138,11 +142,26 @@ export async function computeMonthStats(monthStart: Date): Promise<PlatformMonth
 }
 
 /**
+ * Estadísticas de un mes EN VIVO — no lee ni escribe `platform_monthly_stats`.
+ * Sirve para el mes en curso y para recalcular un mes cerrado.
+ */
+export async function computeMonthStats(monthStart: Date): Promise<PlatformMonthStats> {
+  const { from, to } = monthRange(monthStart);
+  return { monthKey: monthKeyOf(monthStart), ...(await computeRangeStats(from, to)) };
+}
+
+/** Estadísticas de HOY (00:00 UTC → ahora). Superadmin → Inicio. */
+export async function computeTodayStats(): Promise<PlatformPeriodStats> {
+  const now = new Date();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  return computeRangeStats(dayStart.toISOString(), now.toISOString());
+}
+
+/**
  * Serie de `months` meses consecutivos que TERMINA en `endMonthKey`
- * (incluido), del más viejo al más nuevo. Cada mes se calcula en vivo con
- * `computeMonthStats`. Lo usa Superadmin → Estadísticas para la tabla de
- * comparación mes a mes. `months` acotado (6/12) para no disparar decenas
- * de queries — es una pantalla de superadmin, no de uso constante.
+ * (incluido), del más viejo al más nuevo. Cada mes se calcula en vivo. Lo
+ * usa Superadmin → Estadísticas para las líneas de tendencia por métrica.
+ * `months` acotado (6/12) para no disparar decenas de queries.
  */
 export async function getMonthlyStatsSeries(
   endMonthKey: string,
@@ -280,10 +299,11 @@ export interface TopAgentBusiness {
   costUsd: number;
 }
 
-/** Negocios con más actividad del agente en lo que va del mes, de mayor a menor. */
+/** Negocios con más actividad del agente HOY (00:00 UTC → ahora), de mayor a menor. */
 export async function getTopBusinessesByAgentActivity(limit = 5): Promise<TopAgentBusiness[]> {
-  const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
-  const usage = await getAgentUsageByBusiness(monthRange(monthStart));
+  const now = new Date();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const usage = await getAgentUsageByBusiness({ from: dayStart.toISOString(), to: now.toISOString() });
   return usage
     .filter((u) => u.totalTokens > 0)
     .sort((a, b) => b.totalTokens - a.totalTokens)

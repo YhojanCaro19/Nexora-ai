@@ -1,13 +1,11 @@
 // app/(dashboard)/superadmin/page.tsx
 //
-// Inicio del superadmin — mismo espíritu que app/(dashboard)/admin/page.tsx
-// (KPIs arriba + una tarjeta ancha + una fila de gráfica/preview), pero
-// con datos de plataforma: negocios nuevos, mensualidades por vencer,
-// tendencia de tokens y qué negocios más usan el agente este mes. El
-// historial mes a mes completo vive en Superadmin → Estadísticas — acá
-// es solo "cómo va todo ahora mismo".
+// Inicio del superadmin — "cómo va la plataforma HOY": negocios nuevos del
+// día, pedidos/reservas del día, consumo del día, + mensualidades por
+// vencer y qué negocios más usan el agente. Todo lo mensual y la evolución
+// mes a mes vive en Superadmin → Estadísticas — acá NADA es mensual.
 import {
-  computeMonthStats,
+  computeTodayStats,
   getAgentTokenTrend,
   getTopBusinessesByAgentActivity,
   getUpcomingRenewals,
@@ -17,17 +15,16 @@ import { AgentTokenTrendChart } from "./agent-token-trend-chart";
 import { TopAgentBusinesses } from "./top-agent-businesses";
 import { UpcomingRenewalsPreview } from "./upcoming-renewals-preview";
 
-const MONTH_NAMES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
-
 export default async function SuperAdminIndexPage() {
-  const now = new Date();
-  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const today = new Date().toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 
   const [stats, tokenTrend, topBusinesses, renewals] = await Promise.all([
-    computeMonthStats(monthStart),
+    computeTodayStats(),
     getAgentTokenTrend(7),
     getTopBusinessesByAgentActivity(5),
     getUpcomingRenewals(5),
@@ -40,12 +37,12 @@ export default async function SuperAdminIndexPage() {
           Inicio
         </h1>
         <p className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-          {MONTH_NAMES[now.getUTCMonth()]} {now.getUTCFullYear()}
+          Hoy · {today}
         </p>
       </div>
 
       <div className="mx-auto max-w-5xl space-y-6">
-        <PlatformStatsGrid stats={stats} />
+        <PlatformStatsGrid stats={stats} period="hoy" />
 
         <UpcomingRenewalsPreview renewals={renewals} />
 

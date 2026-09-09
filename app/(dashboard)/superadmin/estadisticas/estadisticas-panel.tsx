@@ -82,7 +82,7 @@ function Sparkline({ values }: { values: number[] }) {
       <polyline
         points={line}
         fill="none"
-        stroke="#4CC2E8"
+        stroke="url(#spark-line)"
         strokeWidth={1.75}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -120,9 +120,17 @@ export function EstadisticasPanel({
     <div className="mx-auto max-w-5xl space-y-6">
       <svg width={0} height={0} aria-hidden>
         <defs>
+          {/* Degradado de las letras "AVENTHRA" (cian → índigo → violeta →
+              rosa), horizontal para el trazo de la línea. */}
+          <linearGradient id="spark-line" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#4CC2E8" />
+            <stop offset="33%" stopColor="#818CF8" />
+            <stop offset="66%" stopColor="#A78BFA" />
+            <stop offset="100%" stopColor="#E879C7" />
+          </linearGradient>
           <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4CC2E8" stopOpacity={0.18} />
-            <stop offset="100%" stopColor="#4CC2E8" stopOpacity={0} />
+            <stop offset="0%" stopColor="#818CF8" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="#818CF8" stopOpacity={0} />
           </linearGradient>
         </defs>
       </svg>

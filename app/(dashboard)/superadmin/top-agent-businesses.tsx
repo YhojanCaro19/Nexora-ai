@@ -1,6 +1,6 @@
 // Mismo componente que admin/pending-orders-preview.tsx (vista rápida en
 // una tarjeta que crece con su vecina) pero con el ranking de negocios
-// con más actividad del agente este mes, en vez de pedidos pendientes.
+// con más actividad del agente HOY, en vez de pedidos pendientes.
 import { Bot } from "lucide-react";
 import type { TopAgentBusiness } from "@/lib/services/platformStatsService";
 
@@ -13,13 +13,13 @@ export function TopAgentBusinesses({ businesses }: { businesses: TopAgentBusines
       style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
     >
       <p className="text-xs uppercase tracking-wide text-center mb-4" style={{ color: 'var(--nexora-ink-dim)' }}>
-        Más actividad del agente este mes
+        Más actividad del agente hoy
       </p>
 
       <div className="flex-1 flex flex-col justify-center">
         {businesses.length === 0 ? (
           <p className="text-sm text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Todavía no hay actividad del agente este mes.
+            Todavía no hay actividad del agente hoy.
           </p>
         ) : (
           <ul className="space-y-4">
