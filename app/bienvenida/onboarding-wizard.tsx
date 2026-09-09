@@ -168,6 +168,20 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.55, duration: reduce ? 0.4 : 0.85, ease: [0.16, 1, 0.3, 1] }}
     >
+      {/* Scrollbar oculto en la lista de industrias — sigue scrolleando,
+          solo no se ve (no rompe la armonía del fondo). Inline vía
+          styled-jsx para no depender del CSS cacheado. */}
+      <style jsx global>{`
+        .onboarding-scroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .onboarding-scroll::-webkit-scrollbar {
+          width: 0;
+          height: 0;
+          display: none;
+        }
+      `}</style>
       {/* FORM — SIEMPRE montado. Solo visible en el paso datos/industria;
           fuera de él se oculta con `hidden` (display:none, sigue montado)
           para que PhoneField no pierda sus inputs ocultos del FormData. */}
@@ -248,7 +262,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 />
               </div>
 
-              <div className="-mx-1 max-h-[46vh] overflow-y-auto px-1">
+              <div className="onboarding-scroll -mx-1 max-h-[46vh] overflow-y-auto px-1">
                 {groups.length === 0 ? (
                   <p
                     className="py-8 text-center text-sm"
