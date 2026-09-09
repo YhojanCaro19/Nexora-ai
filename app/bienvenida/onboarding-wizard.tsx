@@ -395,13 +395,18 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             </div>
 
             {/* Robot que señala hacia arriba, al botón "Comenzar" — el gesto
-                vive en el video. Debajo del botón, difuminado en los bordes
-                (LandingVideo, mismo tratamiento que el robot de la landing). */}
+                vive en el video. `blend="screen"` elimina el fondo negro del
+                video: sobre la estela oscura, el negro se vuelve transparente
+                y el astronauta queda flotando. */}
             <div
-              className="pointer-events-none mt-4"
-              style={{ width: "clamp(190px, 32vh, 300px)", aspectRatio: "1 / 1" }}
+              className="pointer-events-none mt-3"
+              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "1 / 1" }}
             >
-              <LandingVideo src="/media/onboarding-robot.mp4" />
+              <LandingVideo
+                src="/media/onboarding-robot.mp4"
+                fit="contain"
+                blend="screen"
+              />
             </div>
           </motion.div>
         )}

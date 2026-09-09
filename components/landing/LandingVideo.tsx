@@ -24,9 +24,18 @@ interface LandingVideoProps {
   /** `cover` (default) recorta para llenar; `contain` muestra el video
    * entero (para wordmarks/animaciones anchas que no se pueden recortar). */
   fit?: 'cover' | 'contain';
+  /** `screen` "elimina" el fondo NEGRO del video sobre fondos oscuros
+   * (negro → transparente); apaga también el resplandor y la máscara.
+   * Default `normal`. */
+  blend?: 'normal' | 'screen' | 'lighten';
 }
 
-export function LandingVideo({ src, parallax = 14, fit = 'cover' }: LandingVideoProps) {
+export function LandingVideo({
+  src,
+  parallax = 14,
+  fit = 'cover',
+  blend = 'normal',
+}: LandingVideoProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -118,17 +127,24 @@ export function LandingVideo({ src, parallax = 14, fit = 'cover' }: LandingVideo
     };
   }, []);
 
+  const isBlend = blend !== 'normal';
+
   return (
     <div ref={wrapRef} className="pointer-events-none relative h-full w-full will-change-transform">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-[8%] -z-10 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(76,194,232,0.18),rgba(167,139,250,0.12)_45%,transparent_72%)] blur-2xl"
-      />
+      {!isBlend && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-[8%] -z-10 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(76,194,232,0.18),rgba(167,139,250,0.12)_45%,transparent_72%)] blur-2xl"
+        />
+      )}
       <video
         ref={videoRef}
-        className={`landing-video pointer-events-none h-full w-full [mask-image:radial-gradient(ellipse_80%_80%_at_50%_48%,black_66%,transparent_95%)] ${
-          fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'
-        }`}
+        style={isBlend ? { mixBlendMode: blend } : undefined}
+        className={`landing-video pointer-events-none h-full w-full ${
+          isBlend
+            ? ''
+            : '[mask-image:radial-gradient(ellipse_80%_80%_at_50%_48%,black_66%,transparent_95%)]'
+        } ${fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'}`}
         src={src}
         autoPlay
         muted
