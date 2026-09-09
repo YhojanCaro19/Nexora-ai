@@ -412,61 +412,62 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                   {BOOKING_MODE_OPTIONS.map((o) => {
                     const selected = bookingMode === o.value;
                     return (
-                      <button
+                      // Envoltorio p-px: el borde (esta capa) lleva el
+                      // degradado de marca cuando está elegido; el interior
+                      // (el <button>) mantiene su relleno, sin teñirse.
+                      <div
                         key={o.value}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => {
-                          setBookingMode(o.value);
-                          setBookingModeTouched(true);
+                        className="rounded-xl p-px transition-colors"
+                        style={{
+                          background: selected
+                            ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
+                            : "var(--nexora-line)",
                         }}
-                        className="flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
-                        style={
-                          selected
-                            ? {
-                                // SOLO el borde con el degradado de marca
-                                // (mismo que "Paso X de 3" y el wordmark) —
-                                // truco padding-box/border-box. El relleno
-                                // queda igual que sin seleccionar.
-                                borderColor: "transparent",
-                                background:
-                                  "linear-gradient(rgba(255,255,255,0.02), rgba(255,255,255,0.02)) padding-box, linear-gradient(90deg, #4CC2E8, #A78BFA) border-box",
-                              }
-                            : {
-                                borderColor: "var(--nexora-line)",
-                                backgroundColor: "rgba(255,255,255,0.02)",
-                              }
-                        }
                       >
-                        <span
-                          aria-hidden
-                          className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
-                          style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
+                        <button
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => {
+                            setBookingMode(o.value);
+                            setBookingModeTouched(true);
+                          }}
+                          className="flex w-full items-center gap-3 rounded-[11px] px-3.5 py-2.5 text-left transition-colors"
+                          style={{
+                            backgroundColor: selected
+                              ? "var(--nexora-panel)"
+                              : "rgba(255,255,255,0.02)",
+                          }}
                         >
-                          {selected && (
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
-                            />
-                          )}
-                        </span>
-                        <span className="min-w-0">
                           <span
-                            className="block text-sm font-medium leading-tight"
-                            style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
+                            aria-hidden
+                            className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
+                            style={{ borderColor: selected ? "#A78BFA" : "var(--nexora-line)" }}
                           >
-                            {o.label}
+                            {selected && (
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{ background: "linear-gradient(90deg, #4CC2E8, #A78BFA)" }}
+                              />
+                            )}
                           </span>
-                          {o.hint && (
+                          <span className="min-w-0">
                             <span
-                              className="mt-0.5 block text-[11px] leading-snug"
-                              style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
+                              className="block text-sm font-medium leading-tight"
+                              style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
                             >
-                              {o.hint}
+                              {o.label}
                             </span>
-                          )}
-                        </span>
-                      </button>
+                            {o.hint && (
+                              <span
+                                className="mt-0.5 block text-[11px] leading-snug"
+                                style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
+                              >
+                                {o.hint}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
