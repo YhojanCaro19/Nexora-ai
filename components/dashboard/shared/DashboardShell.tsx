@@ -32,6 +32,9 @@ interface DashboardShellProps {
   // Solo aplica a admin — si el plan del negocio no incluye Marketing IA
   // (plan "Atención"), ese ítem del menú se oculta. Ver getAdminNav.
   hasMarketing?: boolean;
+  // Solo aplica a admin — "Reservas" se oculta si el negocio no agenda
+  // nada (booking_settings.mode === 'off'). Default true (fail-safe).
+  showReservations?: boolean;
   children: React.ReactNode;
 }
 
@@ -42,10 +45,15 @@ export const DashboardShell = ({
   avatarUrl = null,
   credits,
   hasMarketing = true,
+  showReservations = true,
   children,
 }: DashboardShellProps) => {
   const groups =
-    role === 'admin' ? getAdminNav(hasMarketing) : role === 'superadmin' ? SUPERADMIN_NAV : getColaboradorNav(permissions);
+    role === 'admin'
+      ? getAdminNav(hasMarketing, { showReservations })
+      : role === 'superadmin'
+        ? SUPERADMIN_NAV
+        : getColaboradorNav(permissions);
 
   return (
     // TabSessionGuard: "login por pestaña" — no renderiza nada del panel

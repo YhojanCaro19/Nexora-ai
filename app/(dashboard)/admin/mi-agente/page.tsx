@@ -1,8 +1,11 @@
 // app/(dashboard)/admin/mi-agente/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
+import { getBookingSettings } from "@/lib/services/bookingConfigService";
+import { getBusinessIndustryType } from "@/lib/services/businessBrandingService";
 import { getProducts } from "@/lib/services/productService";
 import { AGENT_TOOLS } from "@/lib/config/agentTools";
+import { getIndustryPlaceholders } from "@/lib/config/industryPlaceholders";
 import { MiAgentePanel } from "./mi-agente-panel";
 import { TestAgentChat } from "./test-agent-chat";
 
@@ -35,9 +38,11 @@ const DEFAULT_AGENT_CONFIG: AgentConfig = {
 
 export default async function MiAgentePage() {
   const profile = await getSessionProfile();
-  const [agentConfig, products] = await Promise.all([
+  const [agentConfig, products, bookingSettings, industryType] = await Promise.all([
     profile?.businessId ? getAgentConfig(profile.businessId) : Promise.resolve(DEFAULT_AGENT_CONFIG),
     profile?.businessId ? getProducts(profile.businessId) : Promise.resolve([]),
+    profile?.businessId ? getBookingSettings(profile.businessId) : Promise.resolve(null),
+    profile?.businessId ? getBusinessIndustryType(profile.businessId) : Promise.resolve(null),
   ]);
 
   return (
@@ -45,7 +50,13 @@ export default async function MiAgentePage() {
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Mi Agente
       </h1>
-      <MiAgentePanel agentConfig={agentConfig} catalog={AGENT_TOOLS} products={products} />
+      <MiAgentePanel
+        agentConfig={agentConfig}
+        catalog={AGENT_TOOLS}
+        products={products}
+        bookingMode={bookingSettings?.mode ?? 'off'}
+        placeholders={getIndustryPlaceholders(industryType)}
+      />
 
       <div className="border-t pt-10" style={{ borderColor: 'var(--nexora-line)' }}>
         <TestAgentChat />

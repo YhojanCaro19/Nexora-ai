@@ -95,3 +95,16 @@ export const INDUSTRY_CATEGORIES: IndustryCategory[] = [
     industryTypes: ["event_planning", "photo_video_studio", "tattoo_studio", "personal_brand"],
   },
 ];
+
+// industry_type -> key de su categoría. Mapa inverso de INDUSTRY_CATEGORIES,
+// construido una vez. Usado para resolver ejemplos/placeholders por
+// categoría (Mi Agente, onboarding) sin escribir contenido por cada una de
+// las ~45 industrias.
+const CATEGORY_BY_INDUSTRY: Record<string, string> = Object.fromEntries(
+  INDUSTRY_CATEGORIES.flatMap((cat) => cat.industryTypes.map((it) => [it, cat.key])),
+);
+
+export function categoryForIndustry(industryType: string | null | undefined): string | null {
+  if (!industryType) return null;
+  return CATEGORY_BY_INDUSTRY[industryType] ?? null;
+}

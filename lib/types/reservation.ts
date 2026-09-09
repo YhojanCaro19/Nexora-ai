@@ -149,3 +149,30 @@ export const MODE_LABELS: Record<BookingMode, string> = {
   appointments: "Turnos / citas",
   both: "Mesas y turnos",
 };
+
+// Opciones de modo con texto de ayuda — compartidas por la configuración
+// de Reservas (app/(dashboard)/admin/reservas), el interruptor de "Mi
+// Agente" y el paso 3 del onboarding (/bienvenida). Una sola fuente para
+// que las tres pantallas digan lo mismo.
+export const BOOKING_MODE_OPTIONS: { value: BookingMode; label: string; hint: string }[] = [
+  {
+    value: "off",
+    label: "No usa reservas ni turnos",
+    hint: "El negocio no agenda nada (ej. una tienda).",
+  },
+  {
+    value: "tables",
+    label: "Reserva de mesas (restaurante)",
+    hint: "El cliente reserva una mesa para X personas, de tal hora a tal hora.",
+  },
+  {
+    value: "appointments",
+    label: "Turnos y citas (con hora y empleado)",
+    hint: "El cliente agenda un turno con un empleado (ej. barbería, taller, consultorio).",
+  },
+  {
+    value: "both",
+    label: "Mesas y turnos (los dos)",
+    hint: "Solo si el negocio hace ambas cosas: reserva mesas Y agenda citas con empleados (ej. un spa con salas y esteticistas).",
+  },
+];

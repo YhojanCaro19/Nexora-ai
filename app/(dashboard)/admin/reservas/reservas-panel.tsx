@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { formatCurrency } from "@/lib/utils/currency";
 import {
   weekdayLabel,
+  BOOKING_MODE_OPTIONS,
   type BookingMode,
   type BookingResource,
   type BookingService,
@@ -43,26 +44,8 @@ import { TablesMap } from "./tables-map";
 
 type CatalogProduct = { id: string; name: string; price: number; active: boolean };
 
-const MODE_OPTIONS: { value: BookingMode; label: string; hint: string }[] = [
-  { value: "off", label: "No usa reservas ni turnos", hint: "El negocio no agenda nada (ej. una tienda)." },
-  {
-    value: "tables",
-    label: "Reserva de mesas (restaurante)",
-    hint: "El cliente reserva una mesa para X personas, de tal hora a tal hora.",
-  },
-  {
-    value: "appointments",
-    label: "Turnos y citas (con hora y empleado)",
-    hint: "",
-  },
-  {
-    value: "both",
-    label: "Mesas y turnos (los dos)",
-    hint: "Solo si el negocio hace ambas cosas: reserva mesas Y agenda citas con empleados (ej. un spa con salas y esteticistas).",
-  },
-];
-const modeLabel = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.label ?? m;
-const modeHint = (m: BookingMode) => MODE_OPTIONS.find((o) => o.value === m)?.hint ?? "";
+const modeLabel = (m: BookingMode) => BOOKING_MODE_OPTIONS.find((o) => o.value === m)?.label ?? m;
+const modeHint = (m: BookingMode) => BOOKING_MODE_OPTIONS.find((o) => o.value === m)?.hint ?? "";
 
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 0];
 
@@ -198,7 +181,7 @@ function SettingsSection({
           <Select value={mode} onValueChange={(v) => v && onModeChange(v as BookingMode)}>
             <SelectTrigger className="h-11 w-full justify-between text-sm">{modeLabel(mode)}</SelectTrigger>
             <SelectContent>
-              {MODE_OPTIONS.map((o) => (
+              {BOOKING_MODE_OPTIONS.map((o) => (
                 <SelectItem key={o.value} value={o.value}>
                   {o.label}
                 </SelectItem>

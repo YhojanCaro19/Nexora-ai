@@ -53,12 +53,20 @@ export const SUPERADMIN_NAV: NavGroup[] = [
 ];
 
 /**
- * El menú del admin es fijo salvo por "Marketing IA" — ese módulo lo
- * desbloquean los planes "Crecimiento" y "Escala" (feature `marketing` en
- * `plans.features`, ver docs/pricing-model.md §6); el plan "Atención" no lo
- * incluye. `hasMarketing` lo calcula el layout con `hasPlanFeature`.
+ * El menú del admin es fijo salvo por dos ítems que dependen del negocio:
+ *  - "Marketing IA" — lo desbloquean los planes "Crecimiento" y "Escala"
+ *    (feature `marketing` en `plans.features`, ver docs/pricing-model.md §6);
+ *    `hasMarketing` lo calcula el layout con `hasPlanFeature`.
+ *  - "Reservas" — solo si el negocio agenda algo (`booking_settings.mode !=
+ *    'off'`); `showReservations` lo calcula el layout con `getBookingSettings`.
+ *    Una tienda que no agenda no ve el módulo. Se re-activa desde el
+ *    selector de modo en "Mi Agente" → "Sobre el negocio".
  */
-export function getAdminNav(hasMarketing: boolean): NavGroup[] {
+export function getAdminNav(
+  hasMarketing: boolean,
+  opts?: { showReservations?: boolean },
+): NavGroup[] {
+  const showReservations = opts?.showReservations !== false;
   return [
     {
       label: 'Principal',
@@ -68,7 +76,9 @@ export function getAdminNav(hasMarketing: boolean): NavGroup[] {
       label: 'Operación',
       items: [
         { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
-        { label: 'Reservas', href: '/admin/reservas', icon: CalendarDays },
+        ...(showReservations
+          ? [{ label: 'Reservas', href: '/admin/reservas', icon: CalendarDays }]
+          : []),
         { label: 'Catálogo', href: '/admin/catalogo', icon: Package },
         { label: 'Clientes', href: '/admin/clientes', icon: Contact },
         { label: 'Mi Agente', href: '/admin/mi-agente', icon: Bot },

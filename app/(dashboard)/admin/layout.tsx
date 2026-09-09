@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSessionProfile } from '@/lib/auth/get-session';
 import { getAvatarUrl } from '@/lib/services/profileService';
 import { getCreditBalance, hasPlanFeature } from '@/lib/services/creditService';
+import { getBookingSettings } from '@/lib/services/bookingConfigService';
 import { DashboardShell } from '@/components/dashboard/shared/DashboardShell';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -14,11 +15,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // define ahí nombre/industria/teléfono y se genera el agente.
   if (profile.businessId && !profile.onboardingCompleted) redirect('/bienvenida');
 
-  const [avatarUrl, balance, hasMarketing] = await Promise.all([
+  const [avatarUrl, balance, hasMarketing, bookingSettings] = await Promise.all([
     getAvatarUrl(profile.userId, profile.businessId),
     profile.businessId ? getCreditBalance(profile.businessId) : Promise.resolve(null),
     profile.businessId ? hasPlanFeature(profile.businessId, 'marketing') : Promise.resolve(true),
+    profile.businessId ? getBookingSettings(profile.businessId) : Promise.resolve(null),
   ]);
+
+  // "Reservas" solo aparece si el negocio agenda algo — misma señal que usa
+  // el widget de reservas del panel (app/(dashboard)/admin/page.tsx).
+  const showReservations = (bookingSettings?.mode ?? 'off') !== 'off';
 
   return (
     <DashboardShell
@@ -27,6 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       avatarUrl={avatarUrl}
       credits={balance?.total ?? null}
       hasMarketing={hasMarketing}
+      showReservations={showReservations}
     >
       {children}
     </DashboardShell>

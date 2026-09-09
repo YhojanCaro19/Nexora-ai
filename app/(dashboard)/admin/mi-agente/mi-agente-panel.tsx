@@ -19,12 +19,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectSearch } from "@/components/shared/MultiSelectSearch";
-import { updateAgentConfigAction } from "./actions";
+import { updateAgentConfigAction, setBookingModeAction } from "./actions";
 import type { AgentConfig, FaqEntry } from "@/lib/services/agentConfigService";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { Product } from "@/lib/services/productService";
 import { EMOJI_MODES, ADDRESS_FORMS, type PaymentMethod } from "@/lib/config/agentPersona";
 import { ESCALATION_TRIGGERS } from "@/lib/config/escalationTriggers";
+import { BOOKING_MODE_OPTIONS, type BookingMode } from "@/lib/types/reservation";
+import type { IndustryPlaceholderSet } from "@/lib/config/industryPlaceholders";
 
 type ToolCatalog = typeof AGENT_TOOLS;
 
@@ -80,10 +82,14 @@ export function MiAgentePanel({
   agentConfig,
   catalog,
   products,
+  bookingMode: initialBookingMode,
+  placeholders: ph,
 }: {
   agentConfig: AgentConfig;
   catalog: ToolCatalog;
   products: Product[];
+  bookingMode: BookingMode;
+  placeholders: IndustryPlaceholderSet;
 }) {
   const [name, setName] = useState(agentConfig.name);
   const [greetingMessage, setGreetingMessage] = useState(agentConfig.greetingMessage);
@@ -112,6 +118,27 @@ export function MiAgentePanel({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Interruptor de reservas/citas — vive en booking_settings, no en
+  // agent_configs, así que se guarda solo (no con el botón "Guardar" del
+  // resto de la página).
+  const [bookingMode, setBookingMode] = useState<BookingMode>(initialBookingMode);
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  async function changeBookingMode(next: BookingMode) {
+    if (next === bookingMode) return;
+    const prev = bookingMode;
+    setBookingMode(next);
+    setBookingSaving(true);
+    setBookingError(null);
+    const res = await setBookingModeAction(next);
+    setBookingSaving(false);
+    if (res.error) {
+      setBookingMode(prev);
+      setBookingError(res.error);
+    }
+  }
 
   function touched<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -211,7 +238,7 @@ export function MiAgentePanel({
                 id="agent-greeting"
                 value={greetingMessage}
                 onChange={(e) => touched(setGreetingMessage)(e.target.value)}
-                placeholder="Ej. ¡Hola! Bienvenido a [negocio], ¿en qué te ayudo hoy?"
+                placeholder={ph.greeting}
               />
             </Field>
             <Field label="Personalidad y tono (opcional)" htmlFor="agent-personality">
@@ -220,7 +247,7 @@ export function MiAgentePanel({
                 rows={3}
                 value={personality}
                 onChange={(e) => touched(setPersonality)(e.target.value)}
-                placeholder="Ej. Cercano y cordial, siempre ofrece ayuda extra…"
+                placeholder={ph.personality}
               />
             </Field>
           </ConfigSection>
@@ -305,7 +332,7 @@ export function MiAgentePanel({
                 rows={2}
                 value={localPhrases}
                 onChange={(e) => touched(setLocalPhrases)(e.target.value)}
-                placeholder="Ej. parce, a la orden, con gusto, ¡de una!"
+                placeholder={ph.localPhrases}
               />
             </Field>
 
@@ -378,8 +405,38 @@ export function MiAgentePanel({
                 rows={3}
                 value={businessDescription}
                 onChange={(e) => touched(setBusinessDescription)(e.target.value)}
-                placeholder="Ej. Barbería especializada en cortes clásicos y arreglo de barba. 10 años en el barrio."
+                placeholder={ph.businessDescription}
               />
+            </Field>
+
+            {/* Interruptor de reservas/citas. Vive en booking_settings —
+                se guarda solo, aparte del botón "Guardar" de esta página.
+                Cambiar de/hacia "No" hace aparecer/desaparecer el módulo
+                "Reservas" en el menú. */}
+            <Field label="¿Atiendes con reservas o citas?" htmlFor="agent-booking-mode">
+              <Select
+                value={bookingMode}
+                disabled={bookingSaving}
+                onValueChange={(v) => v && changeBookingMode(v as BookingMode)}
+              >
+                <SelectTrigger id="agent-booking-mode" className="h-10 w-full text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOOKING_MODE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+                {bookingError
+                  ? bookingError
+                  : bookingMode === "off"
+                    ? "Si lo activas, aparece el módulo Reservas para configurar la agenda, los horarios y los empleados."
+                    : "La agenda, los horarios y los empleados se configuran en el módulo Reservas."}
+              </p>
             </Field>
             <Field label="Dirección / sedes (opcional)" htmlFor="agent-locations">
               <Textarea
@@ -395,7 +452,7 @@ export function MiAgentePanel({
                 id="agent-social"
                 value={socialLinks}
                 onChange={(e) => touched(setSocialLinks)(e.target.value)}
-                placeholder="Ej. Instagram @barberia_x, Facebook Barbería X"
+                placeholder={ph.socialLinks}
               />
             </Field>
             <Field label="Horario de atención (opcional)" htmlFor="agent-hours">
@@ -426,14 +483,14 @@ export function MiAgentePanel({
                       <Input
                         value={faq.question}
                         onChange={(e) => updateFaq(index, "question", e.target.value)}
-                        placeholder="Pregunta. Ej. ¿Hacen envíos?"
+                        placeholder={`Pregunta. ${ph.faqQuestion}`}
                         className="h-8 min-w-0"
                       />
                       <Textarea
                         rows={1}
                         value={faq.answer}
                         onChange={(e) => updateFaq(index, "answer", e.target.value)}
-                        placeholder="Respuesta que dará el agente"
+                        placeholder={ph.faqAnswer}
                         className="min-h-8 min-w-0 py-1"
                       />
                       <Button
