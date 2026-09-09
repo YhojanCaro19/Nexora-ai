@@ -109,6 +109,14 @@ function TableGlyph({
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
+// Alto del plano — el usuario lo agranda arrastrando el borde inferior
+// (resize: vertical). Se recuerda por navegador (localStorage); las
+// posiciones de mesa son permille del canvas, así que al agrandar solo se
+// separan, nada se pierde.
+const FLOOR_MIN_H = 384; // 24rem
+const FLOOR_MAX_H = 960; // 60rem — default 32rem va en la clase h-[32rem]
+const FLOOR_H_KEY = "av_floorplan_h";
+
 // Posición por defecto (permille) para una mesa que todavía no se colocó.
 function autoPos(index: number): { x: number; y: number } {
   return { x: 110 + (index % 4) * 230, y: 160 + Math.floor(index / 4) * 220 };
@@ -130,6 +138,38 @@ export function TablesMap({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
+
+  // Alto del plano: se maneja imperativamente (no por estado) para no pelear
+  // con el resize nativo del borde. Se restaura del localStorage al montar y
+  // se persiste cuando el usuario lo cambia.
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+
+    try {
+      const saved = Number(localStorage.getItem(FLOOR_H_KEY));
+      if (saved) el.style.height = `${clamp(saved, FLOOR_MIN_H, FLOOR_MAX_H)}px`;
+    } catch {
+      /* localStorage inaccesible — se queda con el alto por defecto (clase) */
+    }
+
+    let saveTimer: number | undefined;
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(() => {
+        try {
+          localStorage.setItem(FLOOR_H_KEY, String(Math.round(el.getBoundingClientRect().height)));
+        } catch {
+          /* no-op */
+        }
+      }, 400);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      window.clearTimeout(saveTimer);
+    };
+  }, []);
 
   // Posición local mientras se arrastra (permille). Al soltar se persiste y
   // se limpia para volver a usar el valor de la prop.
@@ -223,8 +263,14 @@ export function TablesMap({
         onPointerDown={(e) => {
           if (e.target === canvasRef.current) setSelectedId(null);
         }}
-        className="relative w-full min-w-[32rem] overflow-hidden rounded-3xl md:min-w-0"
-        style={{ height: "32rem", background: FLOOR_BG, boxShadow: "inset 0 0 60px rgba(0,0,0,0.55)" }}
+        className="relative h-[32rem] w-full min-w-[32rem] overflow-hidden rounded-3xl md:min-w-0"
+        style={{
+          minHeight: FLOOR_MIN_H,
+          maxHeight: FLOOR_MAX_H,
+          resize: "vertical",
+          background: FLOOR_BG,
+          boxShadow: "inset 0 0 60px rgba(0,0,0,0.55)",
+        }}
       >
         {tables.map((t, i) => {
           const p = posOf(t, i);
@@ -310,6 +356,10 @@ export function TablesMap({
         )}
       </div>
       </div>
+
+      <p className="text-center text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+        Arrastra el borde inferior del plano para agrandarlo.
+      </p>
 
       <div className="flex justify-center">
         <Button type="button" variant="outline" size="sm" onClick={addTable} disabled={pending}>
