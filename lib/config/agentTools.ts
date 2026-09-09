@@ -1,5 +1,9 @@
 // lib/config/agentTools.ts
 //
+// (Al final del archivo: `suggestedBookingMode` — deriva un modo de
+//  reservas por industria a partir de estos mismos defaults, para
+//  pre-seleccionar la respuesta en el onboarding.)
+//
 // Catálogo de herramientas del agente — fijo en código a propósito, igual
 // que industryTypes en businessSchema.ts. Cada una implica lógica real de
 // backend (no es un flag que "ya funciona" solo con prenderlo), así que
@@ -14,6 +18,8 @@
 // `enabled_tools` solo controla `tomar_pedido` y `recordatorios`. Estas
 // keys se mantienen acá para el seed por industria y la UI de Mi Agente.
 // "reservar_habitacion" y "verificar_comprobante" siguen sin implementarse.
+import type { BookingMode } from "@/lib/types/reservation";
+
 export const AGENT_TOOLS = [
   { key: "tomar_pedido", label: "Tomar pedidos", description: "Registra pedidos de productos directamente en la conversación." },
   { key: "catalogo_productos", label: "Mostrar catálogo de productos", description: "Responde con productos disponibles, precios y fotos." },
@@ -101,3 +107,19 @@ export const DEFAULT_INDUSTRY_TOOLS: Record<string, AgentToolKey[]> = {
   tattoo_studio: ["agendar_cita", "responder_faq"],
   personal_brand: ["responder_faq"],
 };
+
+// Modo de reservas sugerido para una industria — se usa para PRE-SELECCIONAR
+// la respuesta en el paso 3 del onboarding (/bienvenida); el dueño la
+// confirma o la cambia. Derivado de las herramientas por defecto de la
+// industria: si la plantilla trae `reservar_mesa` el negocio maneja mesas,
+// si trae `agendar_cita` maneja turnos. La mayoría de industrias (tiendas)
+// no traen ninguna → "off".
+export function suggestedBookingMode(industryType: string): BookingMode {
+  const tools = DEFAULT_INDUSTRY_TOOLS[industryType] ?? [];
+  const tables = tools.includes("reservar_mesa");
+  const appts = tools.includes("agendar_cita");
+  if (tables && appts) return "both";
+  if (tables) return "tables";
+  if (appts) return "appointments";
+  return "off";
+}

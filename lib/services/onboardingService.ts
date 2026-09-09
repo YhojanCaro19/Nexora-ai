@@ -12,6 +12,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { createAgentConfigFromTemplate } from "@/lib/services/registrationService";
+import type { BookingMode } from "@/lib/types/reservation";
 
 export interface CompleteOnboardingInput {
   businessId: string;
@@ -22,6 +23,10 @@ export interface CompleteOnboardingInput {
   /** ISO2 resuelto del teléfono — para la zona horaria de Reportes. */
   countryIso2: string | null;
   industryType: string;
+  /** "¿Qué vende u ofrece tu negocio?" → agent_configs.business_description. */
+  businessDescription: string | null;
+  /** "¿Atiende con reservas o citas?" → booking_settings.mode. */
+  bookingMode: BookingMode;
 }
 
 /**
@@ -62,10 +67,28 @@ export async function completeOnboarding(
 
   // No es fatal: la cuenta y el negocio ya son válidos; el agente se puede
   // configurar después desde "Mi Agente" — mismo criterio que el flujo de
-  // provisión anterior.
-  const agent = await createAgentConfigFromTemplate(input.businessId, input.industryType);
+  // provisión anterior. `businessDescription` viene del paso 3 del
+  // onboarding y se guarda junto con la plantilla de la industria.
+  const agent = await createAgentConfigFromTemplate(
+    input.businessId,
+    input.industryType,
+    input.businessDescription,
+  );
   if (agent.error) {
     console.error("[completeOnboarding] no se pudo crear agent_configs:", agent.error);
+  }
+
+  // Módulo de Reservas: solo se crea la fila si el negocio dijo que agenda
+  // algo. Sin fila, getBookingSettings ya devuelve mode:"off" y el ítem
+  // "Reservas" no aparece en el menú. El resto de la agenda (horarios,
+  // empleados, mesas) el dueño la completa en el módulo.
+  if (input.bookingMode !== "off") {
+    const { error: bookingError } = await admin
+      .from("booking_settings")
+      .upsert({ business_id: input.businessId, mode: input.bookingMode }, { onConflict: "business_id" });
+    if (bookingError) {
+      console.error("[completeOnboarding] no se pudo crear booking_settings:", bookingError.message);
+    }
   }
 
   const { error: doneError } = await admin

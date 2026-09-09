@@ -18,6 +18,10 @@ const onboardingSchema = z.object({
   businessName: businessSchema.shape.name,
   phone: z.string().max(20),
   industryType: businessSchema.shape.industry_type,
+  // "¿Qué vende u ofrece tu negocio?" — alimenta agent_configs.business_description.
+  businessOffer: z.string().max(600).optional().default(""),
+  // "¿Atiende con reservas o citas?" — setea booking_settings.mode.
+  bookingMode: z.enum(["off", "tables", "appointments", "both"]).default("off"),
 });
 
 export async function completarOnboarding(
@@ -42,6 +46,8 @@ export async function completarOnboarding(
     businessName: String(formData.get("businessName") ?? "").trim(),
     phone: String(formData.get("phone") ?? "").trim(),
     industryType: String(formData.get("industryType") ?? ""),
+    businessOffer: String(formData.get("businessOffer") ?? "").trim(),
+    bookingMode: String(formData.get("bookingMode") ?? "off"),
   });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Revisa los datos" };
@@ -67,6 +73,8 @@ export async function completarOnboarding(
     phone: phone || null,
     countryIso2,
     industryType: parsed.data.industryType,
+    businessDescription: parsed.data.businessOffer || null,
+    bookingMode: parsed.data.bookingMode,
   });
   if (result.error) {
     return { ok: false, error: result.error };

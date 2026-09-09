@@ -49,11 +49,15 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { OrbitFrame } from "@/components/landing/OrbitFrame";
 import { LandingVideo } from "@/components/landing/LandingVideo";
 import { PhoneField } from "@/components/shared/PhoneField";
 import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
+import { getIndustryPlaceholders } from "@/lib/config/industryPlaceholders";
+import { suggestedBookingMode } from "@/lib/config/agentTools";
+import { BOOKING_MODE_OPTIONS, type BookingMode } from "@/lib/types/reservation";
 import { useOnboardingEstela } from "./onboarding-shell";
 import { completarOnboarding, type OnboardingState } from "./actions";
 
@@ -107,11 +111,16 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const reduce = useReducedMotion();
 
   const [started, setStarted] = useState(false);
-  const [dataStep, setDataStep] = useState<"datos" | "industria">("datos");
+  const [dataStep, setDataStep] = useState<"datos" | "industria" | "negocio">("datos");
   const [openCat, setOpenCat] = useState<string | null>(null);
   const [fullName, setFullName] = useState(defaultFullName);
   const [businessName, setBusinessName] = useState("");
   const [industryType, setIndustryType] = useState("");
+  const [businessOffer, setBusinessOffer] = useState("");
+  const [bookingMode, setBookingMode] = useState<BookingMode>("off");
+  // Una vez el dueño toca el selector de reservas, la industria deja de
+  // pre-seleccionarlo (no le pisamos su elección).
+  const [bookingModeTouched, setBookingModeTouched] = useState(false);
   const [msgIdx, setMsgIdx] = useState(0);
   // El contenedor entra con un fundido (opacity 0→1). Mientras ese
   // `opacity < 1` está activo, AÍSLA el `mix-blend-mode: screen` del robot
@@ -130,6 +139,14 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const step1Ready =
     fullName.trim().length >= 2 && businessName.trim().length >= 2;
   const errorText = state && !state.ok ? state.error : null;
+  const offerPlaceholder = getIndustryPlaceholders(industryType).businessDescription;
+
+  // Elegir industria: además pre-selecciona el modo de reservas sugerido
+  // (mesas/turnos/ninguno) mientras el dueño no lo haya cambiado a mano.
+  function pickIndustry(value: string) {
+    setIndustryType(value);
+    if (!bookingModeTouched) setBookingMode(suggestedBookingMode(value));
+  }
 
   // La estela de color se muestra en TODAS las pantallas menos el welcome
   // (ahí el fondo queda limpio y el robot flota sobre las estrellas).
@@ -202,12 +219,20 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
       >
         <div className="mx-auto w-full max-w-lg">
           <StepHeader
-            index={dataStep === "datos" ? 1 : 2}
-            title={dataStep === "datos" ? "Tus datos" : "Tu industria"}
+            index={dataStep === "datos" ? 1 : dataStep === "industria" ? 2 : 3}
+            title={
+              dataStep === "datos"
+                ? "Tus datos"
+                : dataStep === "industria"
+                  ? "Tu industria"
+                  : "Sobre tu negocio"
+            }
             subtitle={
               dataStep === "datos"
                 ? "Con esto identificamos tu empresa y a ti."
-                : "Preparamos tu agente según tu tipo de negocio."
+                : dataStep === "industria"
+                  ? "Preparamos tu agente según tu tipo de negocio."
+                  : "Un par de cosas más para dejar el agente a tu medida."
             }
           />
 
@@ -311,7 +336,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                                   key={it.value}
                                   type="button"
                                   aria-pressed={selected}
-                                  onClick={() => setIndustryType(it.value)}
+                                  onClick={() => pickIndustry(it.value)}
                                   className="relative flex min-h-[2.75rem] w-36 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-center text-xs leading-tight transition-colors"
                                   style={
                                     selected
@@ -347,6 +372,93 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                   })}
               </div>
 
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <OrbitPillButton
+                  iconOnly
+                  ariaLabel="Volver al paso anterior"
+                  onClick={() => setDataStep("datos")}
+                >
+                  <ArrowLeft size={16} />
+                </OrbitPillButton>
+                <OrbitPillButton
+                  disabled={!industryType}
+                  onClick={() => setDataStep("negocio")}
+                >
+                  Continuar
+                  <ArrowRight size={15} />
+                </OrbitPillButton>
+              </div>
+            </div>
+
+            {/* PASO 3 — sobre el negocio + submit (montado siempre; oculto
+                en los pasos 1 y 2). */}
+            <div className={dataStep === "negocio" ? "space-y-5" : "hidden"}>
+              <Field label="¿Qué vende u ofrece tu negocio?" htmlFor="businessOffer">
+                <Textarea
+                  id="businessOffer"
+                  name="businessOffer"
+                  rows={3}
+                  value={businessOffer}
+                  onChange={(e) => setBusinessOffer(e.target.value)}
+                  placeholder={offerPlaceholder}
+                  className="border-white/10 bg-white/[0.03]"
+                />
+              </Field>
+
+              <input type="hidden" name="bookingMode" value={bookingMode} />
+              <div className="space-y-2">
+                <Label className="justify-center text-xs tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
+                  ¿Tu negocio atiende con reservas o citas?
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {BOOKING_MODE_OPTIONS.map((o) => {
+                    const selected = bookingMode === o.value;
+                    return (
+                      <button
+                        key={o.value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setBookingMode(o.value);
+                          setBookingModeTouched(true);
+                        }}
+                        className="flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors"
+                        style={
+                          selected
+                            ? {
+                                borderColor: "var(--nexora-ink)",
+                                backgroundColor:
+                                  "color-mix(in oklch, var(--nexora-ink) 10%, transparent)",
+                                color: "var(--nexora-ink)",
+                              }
+                            : {
+                                borderColor: "var(--nexora-line)",
+                                backgroundColor:
+                                  "color-mix(in oklch, var(--nexora-panel) 55%, transparent)",
+                                color: "var(--nexora-ink-dim)",
+                              }
+                        }
+                      >
+                        {selected && (
+                          <Check size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
+                        )}
+                        <span>
+                          <span className="font-medium">{o.label}</span>
+                          {o.hint && (
+                            <span
+                              className="mt-0.5 block text-xs"
+                              style={{ color: "var(--nexora-ink-dim)" }}
+                            >
+                              {o.hint}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {errorText && (
                 <p
                   className="rounded-xl border p-3 text-center text-sm"
@@ -366,7 +478,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 <OrbitPillButton
                   iconOnly
                   ariaLabel="Volver al paso anterior"
-                  onClick={() => setDataStep("datos")}
+                  onClick={() => setDataStep("industria")}
                 >
                   <ArrowLeft size={16} />
                 </OrbitPillButton>
@@ -562,14 +674,14 @@ function StepHeader({
   title,
   subtitle,
 }: {
-  index: 1 | 2;
+  index: 1 | 2 | 3;
   title: string;
   subtitle: string;
 }) {
   return (
     <div className="mb-6 text-center">
-      <div className="mx-auto mb-3 flex w-full max-w-[160px] gap-1.5">
-        {[1, 2].map((n) => (
+      <div className="mx-auto mb-3 flex w-full max-w-[200px] gap-1.5">
+        {[1, 2, 3].map((n) => (
           <span
             key={n}
             className="h-1 flex-1 rounded-full transition-colors"
@@ -583,7 +695,7 @@ function StepHeader({
         ))}
       </div>
       <p className="aventhra-iridescent mb-2 text-[11px] font-semibold uppercase tracking-[0.2em]">
-        Paso {index} de 2
+        Paso {index} de 3
       </p>
       <h2
         className="font-nexora text-xl sm:text-2xl"

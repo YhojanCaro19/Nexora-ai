@@ -467,13 +467,17 @@ export async function provisionMinimalAccount(input: {
  */
 export async function createAgentConfigFromTemplate(
   businessId: string,
-  industryType: string
+  industryType: string,
+  businessDescription?: string | null
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient();
   const template = await getIndustryTemplate(industryType);
   const { error } = await admin.from("agent_configs").upsert(
     {
       business_id: businessId,
+      // Lo único que NO viene de la plantilla: lo escribe el dueño en el
+      // paso 3 del onboarding ("¿Qué vende u ofrece tu negocio?").
+      business_description: businessDescription?.trim() || null,
       enabled_tools: template.toolKeys,
       personality: template.personality,
       greeting_message: template.greetingMessage,
