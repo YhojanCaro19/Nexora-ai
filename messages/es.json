@@ -211,7 +211,7 @@
   },
   "auth": {
     "login": {
-      "welcome": "Bienvenido",
+      "welcome": "¡Bienvenido!",
       "subtitle": "Entra a tu panel de AVENTHRA",
       "purchaseTitle": "Usa el correo de tu compra",
       "purchaseBody": "Inicia sesión con la misma cuenta de Google del correo con el que pagaste tu plan.",

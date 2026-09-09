@@ -14,6 +14,43 @@ import { signInWithGoogle } from "../actions";
 import { ScreenTwoNavbar } from "@/components/landing/ScreenTwoNavbar";
 import { ScreenTwoBackground } from "@/components/landing/ScreenTwoBackground";
 import { AuthStarfield } from "@/components/landing/AuthStarfield";
+import { OrbitFrame } from "@/components/landing/OrbitFrame";
+
+// Degradado iridiscente de marca (el de las letras "AVENTHRA") como
+// gradiente SVG animado, para pintar el TRAZO del ícono del buzón. Mismo
+// patrón que admin/creditos/credits-panel.tsx. Se renderiza una vez.
+const IR_GRADIENT_ID = "aventhra-login-mail";
+
+function IridescentGradientDef() {
+  return (
+    <svg width="0" height="0" className="absolute" aria-hidden focusable="false">
+      <defs>
+        <linearGradient
+          id={IR_GRADIENT_ID}
+          gradientUnits="userSpaceOnUse"
+          x1="0"
+          y1="0"
+          x2="24"
+          y2="0"
+        >
+          <stop offset="0" stopColor="#4CC2E8" />
+          <stop offset="0.25" stopColor="#818CF8" />
+          <stop offset="0.5" stopColor="#A78BFA" />
+          <stop offset="0.75" stopColor="#818CF8" />
+          <stop offset="1" stopColor="#4CC2E8" />
+          <animateTransform
+            attributeName="gradientTransform"
+            type="translate"
+            from="-24 0"
+            to="24 0"
+            dur="4s"
+            repeatCount="indefinite"
+          />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
 
 function GoogleLogo() {
   return (
@@ -51,59 +88,101 @@ export default async function LoginPage({
       <ScreenTwoBackground />
       <AuthStarfield />
       <ScreenTwoNavbar />
+      <IridescentGradientDef />
 
       {/* Centrado real: en desktop contra el alto que queda bajo el navbar
           (h-24), en mobile contra la pantalla con aire arriba para la
           barra superior mobile. */}
-      <div className="flex min-h-screen w-full items-center justify-center px-6 pt-24 pb-16 lg:min-h-[calc(100vh-6rem)] lg:pt-0 lg:pb-0">
+      <div className="relative z-10 flex min-h-screen w-full items-center justify-center px-6 pt-24 pb-[10vh] lg:min-h-[calc(100vh-6rem)] lg:pt-0 lg:pb-[10vh]">
         <div className="w-full max-w-sm">
-          {/* "Bienvenido" — FUERA de la card */}
+          {/* "Bienvenido" — encabezado centrado, sin recuadro */}
           <div className="text-center">
-            <h1 className="nexora-headline text-3xl font-normal tracking-tight text-white sm:text-4xl">
+            <h1 className="nexora-headline text-4xl font-normal tracking-tight text-white sm:text-5xl">
               <span className="aventhra-iridescent">{t("welcome")}</span>
             </h1>
-            <p className="aventhra-copy mt-3 text-sm text-white/45">
+            <p className="aventhra-copy mt-3 text-sm text-white/70">
               {t("subtitle")}
             </p>
           </div>
 
-          {/* Card */}
-          <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-[0_16px_50px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md sm:p-7">
+          {/* Sin card: las piezas flotan sobre el fondo como en los pasos
+              del onboarding (superficies de vidrio translúcido). */}
+          <div className="mt-8 space-y-5">
             {params.error && (
-              <p className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-2.5 text-center text-sm text-red-300">
+              <p
+                className="rounded-xl border p-3 text-center text-sm"
+                style={{
+                  borderColor:
+                    "color-mix(in oklch, var(--nexora-alert) 30%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklch, var(--nexora-alert) 12%, transparent)",
+                  color: "var(--nexora-alert)",
+                }}
+              >
                 {params.error}
               </p>
             )}
             {params.message && (
-              <p className="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 text-center text-sm text-emerald-300">
+              <p
+                className="rounded-xl border p-3 text-center text-sm"
+                style={{
+                  borderColor:
+                    "color-mix(in oklch, var(--nexora-signal) 30%, transparent)",
+                  backgroundColor:
+                    "color-mix(in oklch, var(--nexora-signal) 12%, transparent)",
+                  color: "var(--nexora-signal)",
+                }}
+              >
                 {params.message}
               </p>
             )}
 
-            {/* Nota "usa el correo de la compra" — SIN recuadro propio: es
-                una nota dentro de la card, no otra card anidada. */}
-            <div className="flex items-start gap-3">
-              <Mail size={16} className="mt-0.5 shrink-0 text-[#4CC2E8]" />
-              <div>
+            {/* Card de cristal SIN fondo — solo el borde: la nota + el
+                botón viven dentro de un marco translúcido, como los pasos
+                del onboarding pero sin relleno. */}
+            <div className="rounded-2xl border border-white/10 p-6 sm:p-7">
+              {/* Nota "usa el correo de la compra" — centrada. */}
+              <div className="flex flex-col items-center gap-2 text-center">
+                <Mail
+                  size={18}
+                  strokeWidth={2}
+                  className="shrink-0"
+                  stroke={`url(#${IR_GRADIENT_ID})`}
+                />
                 <p className="text-sm font-medium text-white/85">
                   {t("purchaseTitle")}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">
+                <p className="mx-auto max-w-xs text-xs leading-relaxed text-white/70">
                   {t("purchaseBody")}
                 </p>
               </div>
-            </div>
 
-            {/* Botón de Google */}
-            <form action={signInWithGoogle} className="mt-6">
-              <button
-                type="submit"
-                className="group flex w-full items-center justify-center gap-2.5 rounded-full border border-white/15 bg-white/[0.06] px-5 py-3 text-sm font-medium text-white/90 transition-colors duration-200 hover:border-white/25 hover:bg-white/[0.12] hover:text-white"
+              {/* Botón de Google — píldora de vidrio con el anillo de
+                  degradado girando, mismo tratamiento que OrbitPillButton
+                  del onboarding. */}
+              <form
+                action={signInWithGoogle}
+                className="mt-6 flex justify-center"
               >
-                <GoogleLogo />
-                {t("google")}
-              </button>
-            </form>
+                <OrbitFrame
+                  className="inline-block rounded-full"
+                  innerClassName="rounded-full"
+                  ringSize="h-[240px] w-[240px]"
+                >
+                  <button
+                    type="submit"
+                    className="flex items-center justify-center gap-2.5 rounded-full px-8 py-3.5 text-sm font-medium backdrop-blur-md transition-colors"
+                    style={{
+                      backgroundColor: "rgba(11, 12, 17, 0.45)",
+                      color: "var(--nexora-ink)",
+                    }}
+                  >
+                    <GoogleLogo />
+                    {t("google")}
+                  </button>
+                </OrbitFrame>
+              </form>
+            </div>
           </div>
         </div>
       </div>
