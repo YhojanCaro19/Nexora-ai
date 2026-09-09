@@ -445,17 +445,8 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             {...screenMotion}
             className="col-start-1 row-start-1 flex flex-col items-center text-center"
           >
-            <GlowMark>
-              <Sparkles
-                size={26}
-                strokeWidth={1.5}
-                className="nexora-pulse"
-                style={{ color: "var(--nexora-ink)" }}
-              />
-            </GlowMark>
-
             <h2
-              className="font-nexora mt-8 text-xl sm:text-2xl"
+              className="font-nexora text-xl sm:text-2xl"
               style={{ color: "var(--nexora-ink)" }}
             >
               Personalizando tu cuenta
@@ -501,7 +492,6 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
             <div className="mt-9 flex flex-col items-center gap-4">
               <GradientPill as="link" href="/admin/mi-agente">
-                <Sparkles size={16} />
                 Personaliza tu agente
               </GradientPill>
               <Link
@@ -631,10 +621,9 @@ function Field({
   );
 }
 
-// Disco de marca para "personalizando" y "listo": un círculo con borde de
-// degradado (patrón p-px, mismo que OrbitButton de la landing) y un halo
-// RADIAL (círculo de verdad, no el degradado lineal que se veía cuadrado)
-// difuminado detrás que "respira".
+// Marca de "listo": el ícono en un disco de VIDRIO (borde de degradado +
+// interior translúcido con blur, NO negro sólido) sobre un halo RADIAL
+// difuminado que "respira".
 function GlowMark({ children }: { children: ReactNode }) {
   return (
     <div className="relative flex items-center justify-center">
@@ -647,10 +636,7 @@ function GlowMark({ children }: { children: ReactNode }) {
         }}
       />
       <span className="relative inline-flex rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA_55%,#4CC2E8)] p-px">
-        <span
-          className="flex h-[72px] w-[72px] items-center justify-center rounded-full"
-          style={{ backgroundColor: "var(--nexora-void)" }}
-        >
+        <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-md">
           {children}
         </span>
       </span>

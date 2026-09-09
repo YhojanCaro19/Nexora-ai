@@ -4,8 +4,15 @@
 // DashboardShell. Solo el admin de un negocio que todavía no completó el
 // onboarding puede verlo — el gate real también vive en admin/layout.tsx
 // (redirige acá), esto cubre el acceso directo a /bienvenida.
+//
+// TabSessionGuard también acá: admin/layout.tsx redirige a /bienvenida
+// ANTES de montar el DashboardShell (donde vive el guard), así que si el
+// onboarding no canjeara el grant de pestaña, éste caducaría (2 min) antes
+// de que el dueño llegue al panel — y "Personaliza tu agente" lo mandaría
+// a /login. Canjeándolo acá, la pestaña queda marcada para todo el flujo.
 import { redirect } from "next/navigation";
 import { getSessionProfile } from "@/lib/auth/get-session";
+import { TabSessionGuard } from "@/components/dashboard/shared/TabSessionGuard";
 import { OnboardingStarfield } from "./onboarding-starfield";
 import { OnboardingShell } from "./onboarding-shell";
 
@@ -30,11 +37,13 @@ export default async function BienvenidaLayout({ children }: { children: React.R
           el blend quedaba aislado y el negro se veía como recuadro. */}
       <OnboardingStarfield />
 
-      <OnboardingShell>
-        <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
-          {children}
-        </div>
-      </OnboardingShell>
+      <TabSessionGuard>
+        <OnboardingShell>
+          <div className="relative flex min-h-screen w-full flex-col items-center justify-center px-5 py-12 sm:px-6 sm:py-16">
+            {children}
+          </div>
+        </OnboardingShell>
+      </TabSessionGuard>
     </div>
   );
 }
