@@ -96,7 +96,7 @@ const INDUSTRY_GROUPS = INDUSTRY_CATEGORIES.map((cat) => ({
 }));
 
 const PILL_GHOST =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-medium transition-colors hover:bg-white/[0.06]";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full border px-6 text-sm font-medium backdrop-blur-md transition-colors hover:bg-white/[0.06]";
 
 export function OnboardingWizard({ defaultFullName }: { defaultFullName: string }) {
   const [state, formAction, pending] = useActionState<OnboardingState, FormData>(
@@ -235,7 +235,13 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
               {/* Selección sincronizada a un input oculto que lee la action. */}
               <input type="hidden" name="industryType" value={industryType} />
 
-              <div className="onboarding-scroll -mx-1 max-h-[52vh] overflow-y-auto px-1">
+              {/* Scroll INTERNO: son las industrias las que se mueven, no la
+                  página. Alto tope por `style` inline (a prueba del CSS
+                  cacheado); el scrollbar va oculto (clase onboarding-scroll). */}
+              <div
+                className="onboarding-scroll -mx-1 px-1"
+                style={{ maxHeight: "52vh", overflowY: "auto" }}
+              >
                 {INDUSTRY_GROUPS.map((g) => {
                     const expanded = openCat === g.key;
                     return (
@@ -476,10 +482,12 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
 /* --- piezas internas --- */
 
-// Píldora oscura con el anillo de degradado girando (OrbitFrame /
+// Píldora con el anillo de degradado girando (OrbitFrame /
 // .nexora-navlogin-orbit) — el mismo botón del welcome ("Comenzar"). El
-// anillo gira SIEMPRE, también deshabilitado (pedido del usuario); el
-// estado deshabilitado se nota por el texto tenue y `cursor-not-allowed`.
+// interior es VIDRIO semitransparente + blur (no negro sólido) para que la
+// estela del fondo se vea a través; el blur atenúa lo suficiente el anillo
+// cónico de atrás como para que no "inunde" el botón. El anillo gira
+// siempre, también deshabilitado.
 function OrbitPillButton({
   children,
   type = "button",
@@ -501,9 +509,9 @@ function OrbitPillButton({
         type={type}
         disabled={disabled}
         onClick={onClick}
-        className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed"
+        className="flex items-center gap-2 rounded-full px-9 py-3.5 text-sm font-medium backdrop-blur-md transition-colors disabled:cursor-not-allowed"
         style={{
-          backgroundColor: "#0b0b0f",
+          backgroundColor: "rgba(11, 12, 17, 0.45)",
           color: disabled ? "var(--nexora-ink-dim)" : "var(--nexora-ink)",
         }}
       >
@@ -619,8 +627,11 @@ function GradientPill({
   children: ReactNode;
 }) {
   const inner =
-    "flex items-center justify-center gap-2 rounded-full px-8 py-3 text-sm font-medium transition-colors";
-  const innerStyle = { backgroundColor: "#0b0b0f", color: "var(--nexora-ink)" };
+    "flex items-center justify-center gap-2 rounded-full px-8 py-3 text-sm font-medium backdrop-blur-md transition-colors";
+  const innerStyle = {
+    backgroundColor: "rgba(11, 12, 17, 0.45)",
+    color: "var(--nexora-ink)",
+  };
   return (
     <span className="group inline-block rounded-full bg-[linear-gradient(120deg,#4CC2E8,#A78BFA_55%,#4CC2E8)] p-px transition-shadow duration-300 hover:shadow-[0_0_28px_-4px_rgba(129,140,248,0.45)]">
       {as === "link" && href ? (
