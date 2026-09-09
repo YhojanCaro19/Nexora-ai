@@ -50,8 +50,15 @@ export function LandingVideo({
   const videoRef = useRef<HTMLVideoElement>(null);
   const prefersReducedMotion = useReducedMotion();
 
+  const isBlend = blend !== 'normal';
+  const bare = isBlend || chromeless;
+
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    // En modo `bare` (blend/chromeless) NO se aplica parallax: cualquier
+    // `transform` o `will-change` en el contenedor crea un contexto de
+    // apilamiento que aislaría el `mix-blend-mode` del video (el negro se
+    // quedaría negro). El robot flotante no necesita parallax.
+    if (prefersReducedMotion || bare) return;
     const el = wrapRef.current;
     if (!el) return;
 
@@ -78,7 +85,7 @@ export function LandingVideo({
       window.removeEventListener('mousemove', onMove);
       cancelAnimationFrame(raf);
     };
-  }, [prefersReducedMotion, parallax]);
+  }, [prefersReducedMotion, parallax, bare]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -137,11 +144,13 @@ export function LandingVideo({
     };
   }, []);
 
-  const isBlend = blend !== 'normal';
-  const bare = isBlend || chromeless;
-
   return (
-    <div ref={wrapRef} className="pointer-events-none relative h-full w-full will-change-transform">
+    <div
+      ref={wrapRef}
+      className={`pointer-events-none relative h-full w-full ${
+        bare ? '' : 'will-change-transform'
+      }`}
+    >
       {!bare && (
         <div
           aria-hidden

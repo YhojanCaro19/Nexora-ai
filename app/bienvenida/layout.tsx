@@ -23,11 +23,11 @@ export default async function BienvenidaLayout({ children }: { children: React.R
           montar; el contenido (el wizard) entra ~0.6s después con su propia
           animación framer.
 
-          Van a `-z-10` (NO en un contexto de apilamiento aparte del wizard):
-          así el `mix-blend-mode: screen` del video del robot puede fundirse
-          contra ellos + el fondo `--nexora-void`, y el negro del video se
-          vuelve invisible. Si el contenedor del wizard tuviera su propio
-          `z-*`, el blend quedaría aislado y el negro se vería como recuadro. */}
+          El contenedor del wizard NO lleva `z-*` a propósito: así comparte
+          contexto de apilamiento con el fondo (estrellas + estela, en `z-0`)
+          y el `mix-blend-mode: screen` del video del robot puede fundirse
+          contra ellos — el negro del video se vuelve invisible. Con un `z-10`
+          aquí el blend quedaba aislado y el negro se veía como recuadro. */}
       <OnboardingStarfield />
       <OnboardingEstela />
 

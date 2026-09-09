@@ -29,7 +29,7 @@ export function OnboardingStarfield() {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none fixed inset-0 -z-10 select-none"
+      className="pointer-events-none fixed inset-0 z-0 select-none"
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.1, ease: "easeOut" }}

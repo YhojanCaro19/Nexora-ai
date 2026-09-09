@@ -11,7 +11,7 @@ export function OnboardingEstela() {
   return (
     <motion.div
       aria-hidden
-      className="pointer-events-none fixed -z-10"
+      className="pointer-events-none fixed z-0"
       initial={reduce ? false : { opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 1.1, ease: "easeOut" }}
@@ -21,7 +21,7 @@ export function OnboardingEstela() {
         width: "160%",
         height: "160%",
         background:
-          "radial-gradient(ellipse 96vw 54vh at 50% 50%, rgba(129,140,248,0.58), rgba(129,140,248,0.19) 38%, transparent 82%)",
+          "radial-gradient(ellipse 96vw 50vh at 50% 41%, rgba(129,140,248,0.58), rgba(129,140,248,0.19) 38%, transparent 80%)",
         filter: "blur(90px)",
       }}
     />

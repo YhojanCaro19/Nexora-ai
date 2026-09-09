@@ -150,10 +150,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
     <motion.div
       className="grid w-full max-w-xl"
       // Revelado de entrada: el contenido aparece ~0.55s DESPUÉS del fondo
-      // (estrellas + estela), con una subida suave. Bajo reduced motion
-      // solo un fundido leve, sin desplazamiento.
-      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
+      // (estrellas + estela) con un fundido. Sin desplazamiento (`y`): un
+      // `transform` persistente en este contenedor crearía un contexto de
+      // apilamiento que aislaría el `mix-blend-mode: screen` del robot.
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ delay: 0.55, duration: reduce ? 0.4 : 0.85, ease: [0.16, 1, 0.3, 1] }}
     >
       {/* Scrollbar oculto en la lista de industrias — sigue scrolleando,
@@ -368,8 +369,13 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
         {screen === "welcome" && (
           <motion.div
             key="welcome"
-            {...screenMotion}
-            className="col-start-1 row-start-1 flex flex-col items-center text-center"
+            // Solo fundido, sin `y`: el robot de abajo usa mix-blend-mode y un
+            // `transform` persistente en este contenedor lo aislaría.
+            initial={reduce ? {} : { opacity: 0 }}
+            animate={reduce ? {} : { opacity: 1 }}
+            exit={reduce ? {} : { opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative col-start-1 row-start-1 flex flex-col items-center justify-center pb-[10vh] text-center"
           >
             <p
               className="mb-4 text-[11px] uppercase tracking-[0.34em]"
@@ -398,10 +404,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 vive en el video. El robot está renderizado sobre negro puro;
                 `blend="screen"` lo vuelve transparente sobre el fondo oscuro
                 del onboarding (funciona porque el fondo — estrellas + estela —
-                comparte contexto de apilamiento con el wizard, ver layout). */}
+                comparte contexto de apilamiento con el wizard, ver layout).
+                Nada de `transform` en su contenedor (aislaría el blend). */}
             <div
               className="pointer-events-none mt-3"
-              style={{ width: "clamp(200px, 34vh, 320px)", aspectRatio: "1 / 1" }}
+              style={{ width: "clamp(190px, 32vh, 300px)", aspectRatio: "1 / 1" }}
             >
               <LandingVideo
                 src="/media/onboarding-robot.mp4"
