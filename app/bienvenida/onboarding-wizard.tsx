@@ -392,7 +392,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
 
             {/* PASO 3 — sobre el negocio + submit (montado siempre; oculto
                 en los pasos 1 y 2). */}
-            <div className={dataStep === "negocio" ? "space-y-5" : "hidden"}>
+            <div className={dataStep === "negocio" ? "mx-auto w-full max-w-md space-y-6" : "hidden"}>
               <Field label="¿Qué vende u ofrece tu negocio?" htmlFor="businessOffer">
                 <Textarea
                   id="businessOffer"
@@ -401,16 +401,16 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                   value={businessOffer}
                   onChange={(e) => setBusinessOffer(e.target.value)}
                   placeholder={offerPlaceholder}
-                  className="border-white/10 bg-white/[0.03]"
+                  className="resize-none border-white/10 bg-white/[0.03]"
                 />
               </Field>
 
               <input type="hidden" name="bookingMode" value={bookingMode} />
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <Label className="justify-center text-xs tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
                   ¿Tu negocio atiende con reservas o citas?
                 </Label>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-1.5">
                   {BOOKING_MODE_OPTIONS.map((o) => {
                     const selected = bookingMode === o.value;
                     return (
@@ -422,32 +422,34 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                           setBookingMode(o.value);
                           setBookingModeTouched(true);
                         }}
-                        className="flex items-start gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm transition-colors"
-                        style={
-                          selected
-                            ? {
-                                borderColor: "var(--nexora-ink)",
-                                backgroundColor:
-                                  "color-mix(in oklch, var(--nexora-ink) 10%, transparent)",
-                                color: "var(--nexora-ink)",
-                              }
-                            : {
-                                borderColor: "var(--nexora-line)",
-                                backgroundColor:
-                                  "color-mix(in oklch, var(--nexora-panel) 55%, transparent)",
-                                color: "var(--nexora-ink-dim)",
-                              }
-                        }
+                        className="flex items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
+                        style={{
+                          borderColor: selected ? "#4CC2E8" : "var(--nexora-line)",
+                          backgroundColor: selected
+                            ? "color-mix(in oklch, #4CC2E8 8%, transparent)"
+                            : "rgba(255,255,255,0.02)",
+                        }}
                       >
-                        {selected && (
-                          <Check size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
-                        )}
-                        <span>
-                          <span className="font-medium">{o.label}</span>
+                        <span
+                          aria-hidden
+                          className="grid h-4 w-4 shrink-0 place-items-center rounded-full border transition-colors"
+                          style={{ borderColor: selected ? "#4CC2E8" : "var(--nexora-line)" }}
+                        >
+                          {selected && (
+                            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#4CC2E8" }} />
+                          )}
+                        </span>
+                        <span className="min-w-0">
+                          <span
+                            className="block text-sm font-medium leading-tight"
+                            style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
+                          >
+                            {o.label}
+                          </span>
                           {o.hint && (
                             <span
-                              className="mt-0.5 block text-xs"
-                              style={{ color: "var(--nexora-ink-dim)" }}
+                              className="mt-0.5 block text-[11px] leading-snug"
+                              style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
                             >
                               {o.hint}
                             </span>
