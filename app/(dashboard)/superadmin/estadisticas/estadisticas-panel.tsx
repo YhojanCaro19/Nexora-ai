@@ -28,7 +28,6 @@ const MONTH_ABBR = [
 const fmt = (n: number) => n.toLocaleString("en-US");
 const fmtUsd = (n: number) => (n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`);
 
-// "2026-04" -> "Abr 26"
 function monthLabel(monthKey: string): string {
   const [y, m] = monthKey.split("-").map(Number);
   return `${MONTH_ABBR[m - 1]} ${String(y).slice(-2)}`;
@@ -54,14 +53,43 @@ const METRICS: Metric[] = [
 ];
 
 // Variación vs el mes anterior. Neutra (no verde/rojo): "más" o "menos" no
-// siempre es bueno o malo — más tokens es más uso, más inhabilitados es
-// malo. Solo la dirección y la magnitud.
+// siempre es bueno o malo — solo dirección y magnitud.
 function deltaText(cur: number, prev: number | undefined): string | null {
   if (prev === undefined) return null;
   if (prev === 0) return cur === 0 ? null : "nuevo";
   const pct = Math.round(((cur - prev) / prev) * 100);
   if (pct === 0) return "sin cambio";
   return `${pct > 0 ? "▲" : "▼"} ${Math.abs(pct)}%`;
+}
+
+// Línea de tendencia — SVG de 100×32 (unidades), se estira al ancho del
+// contenedor; el trazo no se deforma (vectorEffect non-scaling-stroke).
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * 100;
+    const y = 30 - ((v - min) / span) * 28;
+    return [x, y] as const;
+  });
+  const line = pts.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(" ");
+  const area = `0,32 ${line} 100,32`;
+  return (
+    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="h-12 w-full" aria-hidden>
+      <polygon points={area} fill="url(#spark-fill)" />
+      <polyline
+        points={line}
+        fill="none"
+        stroke="#4CC2E8"
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
 }
 
 export function EstadisticasPanel({
@@ -81,13 +109,24 @@ export function EstadisticasPanel({
   const pathname = usePathname();
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear + 1 - i);
+  const firstLabel = series.length ? monthLabel(series[0].monthKey) : "";
+  const lastLabel = series.length ? monthLabel(series[series.length - 1].monthKey) : "";
 
   function goTo(month: number, year: number, r: number) {
     router.push(`${pathname}?m=${month}&y=${year}&r=${r}`);
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <svg width={0} height={0} aria-hidden>
+        <defs>
+          <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#4CC2E8" stopOpacity={0.18} />
+            <stop offset="100%" stopColor="#4CC2E8" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+      </svg>
+
       {/* Filtros */}
       <div className="flex flex-wrap items-center justify-center gap-3">
         <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
@@ -126,73 +165,41 @@ export function EstadisticasPanel({
         </div>
       </div>
 
-      {/* Eje de meses (una sola vez, alineado con las barras de abajo) */}
-      <div className="flex items-center gap-3 px-4 sm:gap-4">
-        <span className="hidden w-40 shrink-0 sm:block" />
-        <div className="flex flex-1 gap-1">
-          {series.map((s) => (
-            <span
-              key={s.monthKey}
-              className="flex-1 truncate text-center text-[10px] uppercase tracking-wide"
-              style={{ color: "var(--nexora-ink-dim)" }}
-            >
-              {MONTH_ABBR[Number(s.monthKey.split("-")[1]) - 1]}
-            </span>
-          ))}
-        </div>
-        <span className="w-24 shrink-0" />
-      </div>
-
-      {/* Una fila por métrica: etiqueta · mini-barras por mes · valor del
-          último mes + variación vs el anterior. */}
-      <div className="space-y-1.5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {METRICS.map((m) => {
           const values = series.map(m.get);
-          const max = Math.max(...values, 1);
           const last = values[values.length - 1] ?? 0;
           const prev = values.length > 1 ? values[values.length - 2] : undefined;
           const d = deltaText(last, prev);
           return (
             <div
               key={m.label}
-              className="flex items-center gap-3 rounded-xl border px-4 py-3 sm:gap-4"
+              className="rounded-2xl border p-4"
               style={{ borderColor: "var(--nexora-line)", background: "rgba(255,255,255,0.02)" }}
             >
-              <span className="flex w-40 shrink-0 items-center gap-2">
+              <div className="mb-2 flex items-center gap-2">
                 <m.icon size={14} strokeWidth={1.75} style={{ color: "var(--nexora-ink-dim)" }} />
-                <span className="truncate text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+                <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
                   {m.label}
                 </span>
-              </span>
-
-              <div className="flex h-9 flex-1 items-end gap-1">
-                {values.map((v, i) => {
-                  const isLast = i === values.length - 1;
-                  return (
-                    <div
-                      key={series[i].monthKey}
-                      title={`${monthLabel(series[i].monthKey)}: ${m.format(v)}`}
-                      className="flex-1 rounded-t-[3px]"
-                      style={{
-                        height: `${Math.max((v / max) * 100, v > 0 ? 6 : 3)}%`,
-                        minHeight: 2,
-                        background: isLast ? "#4CC2E8" : "rgba(76,194,232,0.3)",
-                      }}
-                    />
-                  );
-                })}
               </div>
-
-              <span className="w-24 shrink-0 text-right">
-                <span className="block text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-semibold" style={{ color: "var(--nexora-ink)" }}>
                   {m.format(last)}
                 </span>
                 {d && (
-                  <span className="block text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+                  <span className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
                     {d}
                   </span>
                 )}
-              </span>
+              </div>
+              <div className="mt-2">
+                <Sparkline values={values} />
+              </div>
+              <div className="mt-1 flex justify-between text-[10px]" style={{ color: "var(--nexora-ink-dim)" }}>
+                <span>{firstLabel}</span>
+                <span>{lastLabel}</span>
+              </div>
             </div>
           );
         })}
