@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { COUNTRIES, DEFAULT_COUNTRY_ISO2, type Country } from "@/lib/data/countries";
-import { flagEmoji } from "@/lib/utils/phone";
+import { flagEmoji, isValidPhone } from "@/lib/utils/phone";
 
 // Campo de teléfono compartido: código de país + número local.
 //
@@ -26,6 +26,7 @@ export function PhoneField({
   required = false,
   defaultValue,
   onChange,
+  onValidityChange,
 }: {
   id?: string;
   name?: string;
@@ -33,6 +34,9 @@ export function PhoneField({
   required?: boolean;
   defaultValue?: string;
   onChange?: (fullPhone: string) => void;
+  /** `true` cuando el campo está vacío (opcional) o cuando el número es
+   *  válido para su país; `false` mientras esté incompleto/inválido. */
+  onValidityChange?: (valid: boolean) => void;
 }) {
   const initial = useMemo(() => parseInitial(defaultValue), [defaultValue]);
   const [codeText, setCodeText] = useState(initial.dialCode);
@@ -47,11 +51,20 @@ export function PhoneField({
   const normalizedCode = useMemo(() => normalizeCode(codeText), [codeText]);
   const digits = localNumber.replace(/\D/g, "");
   const fullPhone = digits ? `${normalizedCode}${digits}` : "";
+  // Vacío = válido (el campo es opcional salvo que `required`); con algo
+  // escrito, se exige un número real para su país.
+  const phoneValid = fullPhone ? isValidPhone(fullPhone) : !required;
+  const showInvalid = digits.length > 0 && !phoneValid;
 
   useEffect(() => {
     onChange?.(fullPhone);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullPhone]);
+
+  useEffect(() => {
+    onValidityChange?.(phoneValid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phoneValid]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -129,12 +142,19 @@ export function PhoneField({
           type="tel"
           inputMode="numeric"
           required={required}
+          aria-invalid={showInvalid}
           placeholder="Número"
           value={localNumber}
           onChange={(e) => handleLocalNumberChange(e.target.value)}
-          className="border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40"
+          className="border-white/10 bg-white/[0.03] text-white placeholder:text-white/25 focus-visible:ring-[#4CC2E8]/40 aria-[invalid=true]:border-red-500/40"
         />
       </div>
+
+      {showInvalid && (
+        <p className="text-center text-xs text-red-300/90">
+          Número incompleto o inválido para {matchedCountry?.name ?? "ese código de país"}.
+        </p>
+      )}
 
       <input type="hidden" name={name} value={fullPhone} />
       {/* País resuelto (ISO2) aparte del número completo — es lo que

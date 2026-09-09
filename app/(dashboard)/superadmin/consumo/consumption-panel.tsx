@@ -54,7 +54,6 @@ export function ConsumptionPanel({ usage }: { usage: BusinessAgentUsage[] }) {
       </div>
 
       <p className="text-xs text-center" style={{ color: "var(--nexora-ink-dim)" }}>
-        Costo a precio de lista de Anthropic — no incluye descuentos ni Batch API.{" "}
         {totals.savingsUsd > 0 ? (
           <>
             Caché de prompt: <strong style={{ color: "var(--nexora-signal)" }}>ahorrando {fmtUsd(totals.savingsUsd)}</strong>{" "}

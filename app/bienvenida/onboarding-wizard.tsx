@@ -120,6 +120,10 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   // Una vez el dueño toca el selector de reservas, la industria deja de
   // pre-seleccionarlo (no le pisamos su elección).
   const [bookingModeTouched, setBookingModeTouched] = useState(false);
+  // El teléfono es opcional, pero si escriben uno tiene que ser válido para
+  // su país (PhoneField lo valida con libphonenumber). Empieza en true
+  // porque vacío = válido.
+  const [phoneValid, setPhoneValid] = useState(true);
   const [msgIdx, setMsgIdx] = useState(0);
   // El contenedor entra con un fundido (opacity 0→1). Mientras ese
   // `opacity < 1` está activo, AÍSLA el `mix-blend-mode: screen` del robot
@@ -136,7 +140,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
         : "welcome";
 
   const step1Ready =
-    fullName.trim().length >= 2 && businessName.trim().length >= 2;
+    fullName.trim().length >= 2 && businessName.trim().length >= 2 && phoneValid;
   const errorText = state && !state.ok ? state.error : null;
 
   // Elegir industria: además pre-selecciona el modo de reservas sugerido
@@ -259,7 +263,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 />
               </Field>
 
-              <PhoneField />
+              <PhoneField onValidityChange={setPhoneValid} />
 
               <div className="flex justify-center pt-2">
                 <OrbitPillButton

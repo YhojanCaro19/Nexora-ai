@@ -19,8 +19,16 @@ export function flagEmoji(iso2: string): string {
 // sin ambigüedad.
 const E164_PATTERN = /^\+[1-9]\d{6,14}$/;
 
+// Valida DOS cosas:
+//  1. La forma E.164 (barato, corta basura obvia).
+//  2. Que el número tenga la cantidad de dígitos y el prefijo correctos
+//     para SU país, según el plan de numeración real de libphonenumber-js
+//     (`isValid()`) — así no pasa un "+57 300" con dígitos de menos ni un
+//     código de área inexistente. Es la barrera contra números falsos o
+//     incompletos que se guardaban antes con solo el chequeo de forma.
 export function isValidPhone(value: string): boolean {
-  return E164_PATTERN.test(value);
+  if (!E164_PATTERN.test(value)) return false;
+  return parsePhoneNumberFromString(value)?.isValid() ?? false;
 }
 
 // Todo lo que guardamos viene en E.164 sin espacios ("+573054072356") —
