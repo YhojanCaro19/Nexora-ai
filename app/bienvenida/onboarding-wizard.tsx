@@ -150,9 +150,9 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
     if (!bookingModeTouched) setBookingMode(suggestedBookingMode(value));
   }
 
-  // La estela de color se muestra en TODAS las pantallas, incluido el
-  // welcome (decisión del usuario).
-  useOnboardingEstela(true);
+  // La estela de color se muestra en TODAS las pantallas menos el welcome
+  // (ahí el fondo queda limpio y el robot flota sobre las estrellas).
+  useOnboardingEstela(screen !== "welcome");
 
   // Red de seguridad por si `onAnimationComplete` no dispara (el robot no
   // debe quedarse invisible para siempre): la entrada dura ~1.4s.
