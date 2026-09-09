@@ -43,7 +43,6 @@ export interface PlanEntitlements {
   agentConversations: number;
   campaigns: number;
   images: number;
-  maxBusinesses: number;
   maxCollaborators: number | null;
   /** Módulos que este plan desbloquea además del agente (hoy solo
    *  'marketing' — ver docs/pricing-model.md §6). El agente conversacional
@@ -77,7 +76,7 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
     const { data: plan } = await supabase
       .from("plans")
       .select(
-        "name, monthly_credits, included_agent_conversations, included_campaigns, included_images, max_businesses, max_collaborators, features"
+        "name, monthly_credits, included_agent_conversations, included_campaigns, included_images, max_collaborators, features"
       )
       .eq("key", data.plan_key)
       .maybeSingle();
@@ -88,7 +87,6 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
           included_agent_conversations: number | null;
           included_campaigns: number | null;
           included_images: number | null;
-          max_businesses: number | null;
           max_collaborators: number | null;
           features: string[] | null;
         }
@@ -100,7 +98,6 @@ export async function getBillingSummary(businessId: string): Promise<BillingSumm
         agentConversations: p.included_agent_conversations ?? 0,
         campaigns: p.included_campaigns ?? 0,
         images: p.included_images ?? 0,
-        maxBusinesses: p.max_businesses ?? 1,
         maxCollaborators: p.max_collaborators ?? null,
         features: p.features ?? [],
       };

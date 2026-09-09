@@ -144,7 +144,7 @@ alter table public.agent_usage_log
 
 | Objeto | Para qué |
 |---|---|
-| `plans` | catálogo (precio COP, créditos/mes, máx. negocios) |
+| `plans` | catálogo (precio COP, créditos/mes, máx. colaboradores) |
 | `credit_prices` | costo en créditos de cada acción — config editable |
 | `credit_wallets` | saldo por negocio (`plan_balance` vence, `topup_balance` no) |
 | `credit_ledger` | historial append-only, auditoría |

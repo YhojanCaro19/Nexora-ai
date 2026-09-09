@@ -442,10 +442,6 @@ function BillingSection({
                 value={ent.monthlyCredits.toLocaleString("es-CO")}
               />
             )}
-            <Row
-              label="Negocios"
-              value={ent.maxBusinesses <= 1 ? "1" : `Hasta ${ent.maxBusinesses}`}
-            />
             {ent.maxCollaborators != null && (
               <Row label="Colaboradores" value={`Hasta ${ent.maxCollaborators}`} />
             )}

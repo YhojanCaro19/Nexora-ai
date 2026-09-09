@@ -40,7 +40,6 @@ export interface PublicPlan {
   priceMonthlyCop: number;
   priceAnnualCop: number;
   monthlyCredits: number;
-  maxBusinesses: number;
   includedAgentConversations: number;
   includedCampaigns: number;
   includedImages: number;
@@ -53,7 +52,6 @@ interface PlanRow {
   price_monthly_cop: number;
   price_annual_cop: number;
   monthly_credits: number;
-  max_businesses: number;
   included_agent_conversations: number | null;
   included_campaigns: number | null;
   included_images: number | null;
@@ -69,7 +67,6 @@ function rowToPlan(r: PlanRow): PublicPlan {
     priceMonthlyCop: r.price_monthly_cop,
     priceAnnualCop: r.price_annual_cop,
     monthlyCredits: r.monthly_credits,
-    maxBusinesses: r.max_businesses,
     includedAgentConversations: r.included_agent_conversations ?? 0,
     includedCampaigns: r.included_campaigns ?? 0,
     includedImages: r.included_images ?? 0,
@@ -77,7 +74,7 @@ function rowToPlan(r: PlanRow): PublicPlan {
 }
 
 const PLAN_COLUMNS =
-  "id, key, name, price_monthly_cop, price_annual_cop, monthly_credits, max_businesses, " +
+  "id, key, name, price_monthly_cop, price_annual_cop, monthly_credits, " +
   "included_agent_conversations, included_campaigns, included_images, is_active, sort_order";
 
 /** Planes activos para mostrar en /precios. Lectura pública (RLS: plans_read). */

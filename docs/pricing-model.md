@@ -175,13 +175,12 @@ Campaña completa ≈ estrategia (8) + 5 copies (10) + 3 imágenes (45) + public
 
 | | **Atención** | **Crecimiento** ★ | **Escala** |
 |---|---|---|---|
-| Para quién | Negocio chico, solo agente | Negocio que quiere vender más | Varios negocios / agencia chica |
+| Para quién | Negocio chico, solo agente | Negocio que quiere vender más | Negocio que quiere el embudo completo con anuncios |
 | **Mensual** | **US$39** | **US$99** | **US$249** |
 | **Anual** (×10 meses) | US$390 | US$990 | US$2.490 |
 | Créditos incluidos/mes | **7.000** | **20.000** | **55.000** |
 | ≈ Respuestas de agente | ~1.750 | ~5.000 | ~13.750 |
 | ≈ Conversaciones (~25 msg) | **~140** | **~400** | **~1.100** |
-| Negocios vinculados | 1 | 1 | 3 |
 | Campañas/mes (guía) | ~5 | ~20 | ~60 |
 | Cola de IA | normal | normal | prioritaria |
 
@@ -307,7 +306,6 @@ volumen, el cliente es sensible a que baje "solo por conversar").
 | ≈ Estrategias completas | ~12 | ~40 | ~120 |
 | ≈ Piezas | ~15 | ~50 | ~150 |
 | ≈ Conversaciones agente (25 msg, con lo que sobre) | ~40 | ~130 | ~400 |
-| Negocios vinculados | 1 | 1 | 3 |
 
 Un cliente elige cómo repartir su saldo. 3.000 créditos = 12 estrategias **o**
 1.000 respuestas del agente **o** una mezcla.
