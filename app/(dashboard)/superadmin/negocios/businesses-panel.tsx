@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronDown, Building2, UserCircle, Activity, Bot, Power, PowerOff, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Building2, UserCircle, Activity, Bot, Power, PowerOff, RotateCcw, Search } from "lucide-react";
 import { toggleBusinessActiveAction, getBusinessAgentSummaryAction, resetBusinessOnboardingAction } from "./actions";
 import type { BusinessWithOwner, BusinessAgentSummary } from "@/lib/services/adminService";
 import { industryTypes } from "@/lib/validators/businessSchema";
@@ -15,8 +15,12 @@ const fmtUsd = (n: number) => (n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`);
 
 type Tab = "active" | "inactive";
 
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
 export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[] }) {
   const [tab, setTab] = useState<Tab>("active");
+  const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = businesses.find((b) => b.id === selectedId) ?? null;
 
@@ -27,9 +31,20 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
     return <BusinessDetail business={selected} onBack={() => setSelectedId(null)} />;
   }
 
-  const filtered = businesses.filter((b) => (tab === "active" ? b.is_active : !b.is_active));
   const activeCount = businesses.filter((b) => b.is_active).length;
   const inactiveCount = businesses.length - activeCount;
+
+  const q = norm(query.trim());
+  const filtered = businesses
+    .filter((b) => (tab === "active" ? b.is_active : !b.is_active))
+    .filter(
+      (b) =>
+        !q ||
+        norm(b.name).includes(q) ||
+        norm(b.ownerName ?? "").includes(q) ||
+        norm(b.ownerEmail ?? "").includes(q),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
   // Los totales de plataforma (pedidos, reservas, tokens, costo) viven en
   // Inicio (mes en curso) y Estadísticas (historial mensual) — acá solo
@@ -63,14 +78,40 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
         </button>
       </div>
 
+      <div className="mx-auto max-w-md">
+        <div className="relative">
+          <Search
+            size={15}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--nexora-ink-dim)' }}
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por negocio, dueño o correo…"
+            className="w-full rounded-full border py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-white/25"
+            style={{
+              borderColor: 'var(--nexora-line)',
+              background: 'rgba(255,255,255,0.03)',
+              color: 'var(--nexora-ink)',
+            }}
+          />
+        </div>
+      </div>
+
       {filtered.length === 0 ? (
         <p className="text-sm text-center py-12" style={{ color: 'var(--nexora-ink-dim)' }}>
-          {tab === "active" ? "No hay negocios activos." : "No hay negocios inhabilitados."}
+          {query.trim()
+            ? "Ningún negocio coincide con la búsqueda."
+            : tab === "active"
+              ? "No hay negocios activos."
+              : "No hay negocios inhabilitados."}
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="mx-auto max-w-2xl space-y-2">
           {filtered.map((b) => (
-            <BusinessCard key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
+            <BusinessRow key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
           ))}
         </div>
       )}
@@ -391,25 +432,53 @@ function renewalInfo(renewsAt: string | null): { label: string; color: string } 
   };
 }
 
-function BusinessCard({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
+// Fila compacta: nombre + (industria · dueño) a la izquierda, plan y estado
+// de renovación a la derecha. Reemplaza las tarjetas cuadradas gigantes que
+// mostraban solo el nombre.
+function BusinessRow({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
+  const renewal = renewalInfo(business.planRenewsAt);
+  const planLabel = business.planKey
+    ? business.planKey.charAt(0).toUpperCase() + business.planKey.slice(1)
+    : "Sin plan";
+  const subtitle = [industryLabel(business.industry_type), business.ownerName]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="aspect-square flex flex-col items-center justify-center rounded-2xl border p-4 text-center transition-all duration-300 hover:scale-105"
+      className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:border-white/25"
       style={{
-        borderColor: hovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)',
-        opacity: business.is_active ? 1 : 0.55,
+        borderColor: 'var(--nexora-line)',
+        background: 'rgba(255,255,255,0.02)',
+        opacity: business.is_active ? 1 : 0.5,
       }}
     >
-      <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
-        {business.is_active ? "Negocio" : "Inhabilitado"}
+      <span
+        aria-hidden
+        className="h-2 w-2 shrink-0 rounded-full"
+        style={{ background: business.is_active ? 'var(--nexora-signal)' : 'var(--nexora-alert)' }}
+      />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+          {business.name}
+        </span>
+        {subtitle && (
+          <span className="block truncate text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+            {subtitle}
+          </span>
+        )}
       </span>
-      <span className="text-lg font-semibold line-clamp-2 px-1 mt-2 text-center" style={{ color: 'var(--nexora-ink)' }}>
-        {business.name}
+      <span className="hidden shrink-0 text-right text-xs sm:block" style={{ color: renewal.color }}>
+        {renewal.label}
       </span>
+      <span
+        className="shrink-0 rounded-full px-2.5 py-1 text-[11px]"
+        style={{ background: 'rgba(238,240,247,0.08)', color: 'var(--nexora-ink-dim)' }}
+      >
+        {planLabel}
+      </span>
+      <ChevronRight size={15} className="shrink-0" style={{ color: 'var(--nexora-ink-dim)' }} />
     </button>
   );
 }
