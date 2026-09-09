@@ -509,8 +509,8 @@ function OrbitPillButton({
         disabled={disabled}
         aria-label={ariaLabel}
         onClick={onClick}
-        className={`flex items-center justify-center gap-2 rounded-full text-sm font-medium backdrop-blur-md transition-colors disabled:cursor-not-allowed ${
-          iconOnly ? "h-[46px] w-[46px]" : "px-9 py-3.5"
+        className={`flex items-center justify-center gap-2 rounded-full py-3.5 text-sm font-medium backdrop-blur-md transition-colors disabled:cursor-not-allowed ${
+          iconOnly ? "px-6" : "px-9"
         }`}
         style={{
           backgroundColor: "rgba(11, 12, 17, 0.45)",
