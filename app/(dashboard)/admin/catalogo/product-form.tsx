@@ -410,7 +410,7 @@ export function ProductForm({
                 </div>
               ) : (
                 <Select
-                  value={categorySelect || undefined}
+                  value={categorySelect}
                   onValueChange={(v) => {
                     if (v === NEW_CATEGORY_OPTION) {
                       setCreatingCategory(true);
