@@ -13,6 +13,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { translateError } from "@/lib/errors/translate";
 import { createAgentConfigFromTemplate } from "@/lib/services/registrationService";
 import type { BookingMode } from "@/lib/types/reservation";
+import { sanitizeCatalogKind, type CatalogKind } from "@/lib/config/catalogKind";
 
 export interface CompleteOnboardingInput {
   businessId: string;
@@ -25,6 +26,8 @@ export interface CompleteOnboardingInput {
   industryType: string;
   /** "¿Qué vende u ofrece tu negocio?" → agent_configs.business_description. */
   businessDescription: string | null;
+  /** "¿Qué vende tu negocio?" → businesses.catalog_kind. */
+  catalogKind: CatalogKind;
   /** "¿Atiende con reservas o citas?" → booking_settings.mode. */
   bookingMode: BookingMode;
 }
@@ -47,6 +50,7 @@ export async function completeOnboarding(
     .update({
       name: input.businessName,
       industry_type: input.industryType,
+      catalog_kind: sanitizeCatalogKind(input.catalogKind),
       ...(input.countryIso2 ? { country_iso2: input.countryIso2 } : {}),
     })
     .eq("id", input.businessId);

@@ -2,7 +2,7 @@
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getAgentConfig, type AgentConfig } from "@/lib/services/agentConfigService";
 import { getBookingSettings } from "@/lib/services/bookingConfigService";
-import { getBusinessIndustryType } from "@/lib/services/businessBrandingService";
+import { getBusinessIndustryType, getBusinessCatalogKind } from "@/lib/services/businessBrandingService";
 import { getProducts } from "@/lib/services/productService";
 import { AGENT_TOOLS } from "@/lib/config/agentTools";
 import { getIndustryPlaceholders } from "@/lib/config/industryPlaceholders";
@@ -38,11 +38,12 @@ const DEFAULT_AGENT_CONFIG: AgentConfig = {
 
 export default async function MiAgentePage() {
   const profile = await getSessionProfile();
-  const [agentConfig, products, bookingSettings, industryType] = await Promise.all([
+  const [agentConfig, products, bookingSettings, industryType, catalogKind] = await Promise.all([
     profile?.businessId ? getAgentConfig(profile.businessId) : Promise.resolve(DEFAULT_AGENT_CONFIG),
     profile?.businessId ? getProducts(profile.businessId) : Promise.resolve([]),
     profile?.businessId ? getBookingSettings(profile.businessId) : Promise.resolve(null),
     profile?.businessId ? getBusinessIndustryType(profile.businessId) : Promise.resolve(null),
+    profile?.businessId ? getBusinessCatalogKind(profile.businessId) : Promise.resolve("ambos" as const),
   ]);
 
   return (
@@ -55,6 +56,7 @@ export default async function MiAgentePage() {
         catalog={AGENT_TOOLS}
         products={products}
         bookingMode={bookingSettings?.mode ?? 'off'}
+        catalogKind={catalogKind}
         placeholders={getIndustryPlaceholders(industryType)}
       />
 

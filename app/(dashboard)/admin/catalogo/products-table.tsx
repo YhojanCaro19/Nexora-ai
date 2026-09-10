@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/u
 import { toggleProductActiveAction } from "./actions";
 import { ProductForm } from "./product-form";
 import type { Product } from "@/lib/services/productService";
+import type { CatalogKind } from "@/lib/config/catalogKind";
 import { formatCurrency } from "@/lib/utils/currency";
 import { DEFAULT_LOW_STOCK_THRESHOLD } from "@/lib/validators/productSchema";
 import { toCsv, downloadCsv } from "@/lib/utils/csv";
@@ -23,10 +24,12 @@ export function ProductsTable({
   products,
   countryIso2,
   industryType,
+  catalogKind,
 }: {
   products: Product[];
   countryIso2: string | null;
   industryType: string | null;
+  catalogKind: CatalogKind;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -81,7 +84,14 @@ export function ProductsTable({
   }
 
   if (editing) {
-    return <ProductForm editingProduct={editing} onDone={() => setEditingId(null)} industryType={industryType} />;
+    return (
+      <ProductForm
+        editingProduct={editing}
+        onDone={() => setEditingId(null)}
+        industryType={industryType}
+        catalogKind={catalogKind}
+      />
+    );
   }
 
   return (
@@ -180,8 +190,12 @@ export function ProductsTable({
                       <AlertTriangle size={14} strokeWidth={1.75} />
                       {p.stock}
                     </span>
+                  ) : p.stock !== null ? (
+                    <span style={{ color: 'var(--nexora-ink-dim)' }}>{p.stock}</span>
                   ) : (
-                    <span style={{ color: 'var(--nexora-ink-dim)' }}>{p.stock ?? "—"}</span>
+                    <span className="text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                      Sin inventario
+                    </span>
                   )}
                 </TableCell>
                 <TableCell>

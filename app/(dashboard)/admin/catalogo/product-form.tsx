@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
 import { getCategoryOptions, OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
+import type { CatalogKind } from "@/lib/config/catalogKind";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
 
@@ -29,12 +30,18 @@ export function ProductForm({
   editingProduct,
   onDone,
   industryType,
+  catalogKind,
 }: {
   editingProduct?: Product | null;
   onDone?: () => void;
   industryType: string | null;
+  catalogKind: CatalogKind;
 }) {
   const isEditing = !!editingProduct;
+  // Negocio de solo servicios: nunca hay stock (un servicio no tiene
+  // inventario). Productos / ambos: el stock es obligatorio salvo que el
+  // dueño apague "Llevar inventario de este" (escape para hechos a pedido).
+  const stockApplies = catalogKind !== "servicios";
   const [form, setForm] = useState(
     editingProduct
       ? {
@@ -46,6 +53,11 @@ export function ProductForm({
             editingProduct.low_stock_threshold === null ? "" : String(editingProduct.low_stock_threshold),
         }
       : EMPTY_FORM
+  );
+  // Al editar: si ya tenía un stock guardado, el inventario está activo.
+  // Nuevo producto: activo por defecto (para negocios con productos).
+  const [trackInventory, setTrackInventory] = useState(
+    editingProduct ? editingProduct.stock !== null : stockApplies
   );
 
   // Categoría: lista sugerida por industria + "Otra" como escape hatch a
@@ -91,17 +103,26 @@ export function ProductForm({
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  const tracking = stockApplies && trackInventory;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (tracking && form.stock.trim() === "") {
+      setError("El stock es obligatorio. Si este producto no lleva inventario, apaga «Llevar inventario».");
+      return;
+    }
+
     setLoading(true);
 
     const input = {
       name: form.name,
       description: form.description || undefined,
       price: Number(form.price.replace(/,/g, "")),
-      stock: form.stock === "" ? null : Number(form.stock),
-      lowStockThreshold: form.lowStockThreshold === "" ? null : Number(form.lowStockThreshold),
+      stock: tracking && form.stock !== "" ? Number(form.stock) : null,
+      lowStockThreshold:
+        tracking && form.lowStockThreshold !== "" ? Number(form.lowStockThreshold) : null,
       category: categorySelect === OTHER_CATEGORY_OPTION ? categoryOther.trim() || undefined : categorySelect || undefined,
     };
 
@@ -244,22 +265,6 @@ export function ProductForm({
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="stock" className="block text-center">Stock (opcional)</Label>
-            <Input
-              id="stock"
-              type="number"
-              min="0"
-              step="1"
-              value={form.stock}
-              onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-              placeholder="—"
-              className="text-center"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
             <Label className="block text-center">Categoría (opcional)</Label>
             <Select value={categorySelect} onValueChange={(v) => setCategorySelect(v ?? "")}>
               <SelectTrigger className="w-full h-10 text-sm justify-center">
@@ -281,22 +286,60 @@ export function ProductForm({
               />
             )}
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="low-stock-threshold" className="block text-center">
-              Aviso de stock bajo (opcional)
-            </Label>
-            <Input
-              id="low-stock-threshold"
-              type="number"
-              min="1"
-              step="1"
-              placeholder="5"
-              value={form.lowStockThreshold}
-              onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-              className="text-center"
-            />
-          </div>
         </div>
+
+        {/* Inventario — solo para negocios que venden productos. El toggle
+            es el escape para productos sin stock (hechos a pedido). */}
+        {stockApplies && (
+          <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--nexora-line)' }}>
+            <label className="flex items-center justify-center gap-2 text-sm" style={{ color: 'var(--nexora-ink)' }}>
+              <input
+                type="checkbox"
+                checked={trackInventory}
+                onChange={(e) => setTrackInventory(e.target.checked)}
+                className="h-4 w-4 accent-[#4CC2E8]"
+              />
+              Llevar inventario de este producto
+            </label>
+            {trackInventory ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stock" className="block text-center">Stock</Label>
+                  <Input
+                    id="stock"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.stock}
+                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                    placeholder="0"
+                    required
+                    className="text-center"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="low-stock-threshold" className="block text-center">
+                    Aviso de stock bajo (opcional)
+                  </Label>
+                  <Input
+                    id="low-stock-threshold"
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="5"
+                    value={form.lowStockThreshold}
+                    onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
+                    className="text-center"
+            />
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                Este producto no lleva inventario — no se descuenta por venta ni avisa por stock bajo.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-center gap-3 pt-2">
           <Button type="submit" disabled={loading}>

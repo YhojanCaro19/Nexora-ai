@@ -19,7 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectSearch } from "@/components/shared/MultiSelectSearch";
-import { updateAgentConfigAction, setBookingModeAction } from "./actions";
+import { updateAgentConfigAction, setBookingModeAction, setCatalogKindAction } from "./actions";
+import { CATALOG_KIND_OPTIONS, type CatalogKind } from "@/lib/config/catalogKind";
 import type { AgentConfig, FaqEntry } from "@/lib/services/agentConfigService";
 import type { AGENT_TOOLS } from "@/lib/config/agentTools";
 import type { Product } from "@/lib/services/productService";
@@ -83,12 +84,14 @@ export function MiAgentePanel({
   catalog,
   products,
   bookingMode: initialBookingMode,
+  catalogKind: initialCatalogKind,
   placeholders: ph,
 }: {
   agentConfig: AgentConfig;
   catalog: ToolCatalog;
   products: Product[];
   bookingMode: BookingMode;
+  catalogKind: CatalogKind;
   placeholders: IndustryPlaceholderSet;
 }) {
   const [name, setName] = useState(agentConfig.name);
@@ -137,6 +140,26 @@ export function MiAgentePanel({
     if (res.error) {
       setBookingMode(prev);
       setBookingError(res.error);
+    }
+  }
+
+  // "¿Qué vende el negocio?" — vive en businesses.catalog_kind; decide si el
+  // stock del Catálogo es obligatorio. Se guarda solo, igual que reservas.
+  const [catalogKind, setCatalogKind] = useState<CatalogKind>(initialCatalogKind);
+  const [catalogKindSaving, setCatalogKindSaving] = useState(false);
+  const [catalogKindError, setCatalogKindError] = useState<string | null>(null);
+
+  async function changeCatalogKind(next: CatalogKind) {
+    if (next === catalogKind) return;
+    const prev = catalogKind;
+    setCatalogKind(next);
+    setCatalogKindSaving(true);
+    setCatalogKindError(null);
+    const res = await setCatalogKindAction(next);
+    setCatalogKindSaving(false);
+    if (res.error) {
+      setCatalogKind(prev);
+      setCatalogKindError(res.error);
     }
   }
 
@@ -407,6 +430,34 @@ export function MiAgentePanel({
                 onChange={(e) => touched(setBusinessDescription)(e.target.value)}
                 placeholder={ph.businessDescription}
               />
+            </Field>
+
+            {/* ¿Qué vende el negocio? Vive en businesses.catalog_kind — se
+                guarda solo. Decide si el stock del Catálogo es obligatorio. */}
+            <Field label="¿Qué vende tu negocio?" htmlFor="agent-catalog-kind">
+              <Select
+                value={catalogKind}
+                disabled={catalogKindSaving}
+                onValueChange={(v) => v && changeCatalogKind(v as CatalogKind)}
+              >
+                <SelectTrigger id="agent-catalog-kind" className="h-10 w-full text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATALOG_KIND_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+                {catalogKindError
+                  ? catalogKindError
+                  : catalogKind === "servicios"
+                    ? "En el Catálogo no se pide stock (un servicio no tiene inventario)."
+                    : "En el Catálogo el stock es obligatorio por producto (con un escape para hechos a pedido)."}
+              </p>
             </Field>
 
             {/* Interruptor de reservas/citas. Vive en booking_settings —

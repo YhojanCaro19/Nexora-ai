@@ -19,6 +19,7 @@
 import { createAdminClient, createClient, type SupabaseServerClient } from "@/lib/supabase/server";
 import { sanitizeImageUpload } from "@/lib/services/imageSecurityService";
 import { translateError } from "@/lib/errors/translate";
+import { sanitizeCatalogKind, type CatalogKind } from "@/lib/config/catalogKind";
 
 export interface BusinessBranding {
   logoUrl: string | null;
@@ -60,6 +61,36 @@ export async function getBusinessIndustryType(businessId: string): Promise<strin
     .eq("id", businessId)
     .maybeSingle();
   return data?.industry_type ?? null;
+}
+
+// ¿El negocio vende productos, ofrece servicios, o ambos? Decide si el
+// campo de stock del Catálogo es obligatorio. Degrada suave: si la columna
+// todavía no está aplicada, devuelve "ambos" (stock opcional, como antes).
+export async function getBusinessCatalogKind(
+  businessId: string,
+  db?: SupabaseServerClient
+): Promise<CatalogKind> {
+  const supabase = db ?? (await createClient());
+  const { data } = await supabase
+    .from("businesses")
+    .select("catalog_kind")
+    .eq("id", businessId)
+    .maybeSingle();
+  return sanitizeCatalogKind(data?.catalog_kind);
+}
+
+// Solo service role, acotado a esta columna — mismo criterio que el resto
+// de este archivo (no hay policy de UPDATE general sobre `businesses`).
+export async function setBusinessCatalogKind(
+  businessId: string,
+  kind: CatalogKind
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("businesses")
+    .update({ catalog_kind: sanitizeCatalogKind(kind) })
+    .eq("id", businessId);
+  return { error: error ? translateError(error) : null };
 }
 
 export async function getBusinessBranding(businessId: string): Promise<BusinessBranding> {

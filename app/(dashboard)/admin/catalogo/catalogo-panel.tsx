@@ -6,6 +6,7 @@ import { ProductForm } from "./product-form";
 import { ProductsTable } from "./products-table";
 import { BulkImport } from "./bulk-import";
 import type { Product } from "@/lib/services/productService";
+import type { CatalogKind } from "@/lib/config/catalogKind";
 
 type View = "chooser" | "new" | "list" | "import";
 
@@ -13,10 +14,12 @@ export function CatalogoPanel({
   products,
   countryIso2,
   industryType,
+  catalogKind,
 }: {
   products: Product[];
   countryIso2: string | null;
   industryType: string | null;
+  catalogKind: CatalogKind;
 }) {
   const [view, setView] = useState<View>("chooser");
 
@@ -57,9 +60,16 @@ export function CatalogoPanel({
         Volver
       </button>
 
-      {view === "new" && <ProductForm onDone={() => setView("list")} industryType={industryType} />}
+      {view === "new" && (
+        <ProductForm onDone={() => setView("list")} industryType={industryType} catalogKind={catalogKind} />
+      )}
       {view === "list" && (
-        <ProductsTable products={products} countryIso2={countryIso2} industryType={industryType} />
+        <ProductsTable
+          products={products}
+          countryIso2={countryIso2}
+          industryType={industryType}
+          catalogKind={catalogKind}
+        />
       )}
       {view === "import" && <BulkImport onDone={() => setView("list")} />}
     </div>

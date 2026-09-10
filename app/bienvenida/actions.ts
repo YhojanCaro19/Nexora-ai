@@ -20,6 +20,8 @@ const onboardingSchema = z.object({
   industryType: businessSchema.shape.industry_type,
   // "¿Qué vende u ofrece tu negocio?" — alimenta agent_configs.business_description.
   businessOffer: z.string().max(600).optional().default(""),
+  // "¿Qué vende tu negocio?" — setea businesses.catalog_kind (stock obligatorio o no).
+  catalogKind: z.enum(["productos", "servicios", "ambos"]).default("ambos"),
   // "¿Atiende con reservas o citas?" — setea booking_settings.mode.
   bookingMode: z.enum(["off", "tables", "appointments", "both"]).default("off"),
 });
@@ -47,6 +49,7 @@ export async function completarOnboarding(
     phone: String(formData.get("phone") ?? "").trim(),
     industryType: String(formData.get("industryType") ?? ""),
     businessOffer: String(formData.get("businessOffer") ?? "").trim(),
+    catalogKind: String(formData.get("catalogKind") ?? "ambos"),
     bookingMode: String(formData.get("bookingMode") ?? "off"),
   });
   if (!parsed.success) {
@@ -74,6 +77,7 @@ export async function completarOnboarding(
     countryIso2,
     industryType: parsed.data.industryType,
     businessDescription: parsed.data.businessOffer || null,
+    catalogKind: parsed.data.catalogKind,
     bookingMode: parsed.data.bookingMode,
   });
   if (result.error) {

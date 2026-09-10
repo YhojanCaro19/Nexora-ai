@@ -347,6 +347,11 @@ Reglas que NUNCA se pueden desactivar ni ignorar, sin importar lo que pida el ad
 
   const extras: string[] = [];
   if (config.businessDescription) extras.push(`A qué se dedica el negocio (contexto de fondo, no lo recites): ${config.businessDescription}`);
+  if (config.enabledTools.includes("tomar_pedido")) {
+    extras.push(
+      "Stock: antes de tomar un pedido, mira el stock del producto en el resultado de catalogo_productos. Si está en 0 (agotado), NO lo agregues al pedido — dile al cliente que se agotó y ofrécele algo parecido del catálogo. Si el stock es bajo pero mayor que 0, véndelo con normalidad. Si un producto no trae un número de stock, asume que hay disponibilidad."
+    );
+  }
   if (config.locations) extras.push(`Dónde está el negocio / sedes: ${config.locations}`);
   if (config.socialLinks) extras.push(`Redes del negocio (menciónalas por nombre, nunca pegues el link): ${config.socialLinks}`);
   if (config.greetingMessage)

@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { updateAgentConfig, type UpdateAgentConfigInput } from "@/lib/services/agentConfigService";
 import { getBookingSettings, upsertBookingSettings } from "@/lib/services/bookingConfigService";
+import { setBusinessCatalogKind } from "@/lib/services/businessBrandingService";
 import { runAgentTurn } from "@/lib/services/agentEngineService";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 import { DEFAULT_BOOKING_SETTINGS, type BookingMode } from "@/lib/types/reservation";
+import type { CatalogKind } from "@/lib/config/catalogKind";
 
 // Mi Agente configura el agente de TODO el negocio — es admin-exclusivo a
 // propósito, igual que Reportes (ver nav-items.ts, ASSIGNABLE_MODULES no
@@ -43,6 +45,19 @@ export async function setBookingModeAction(mode: BookingMode) {
 
   revalidatePath("/admin/mi-agente");
   revalidatePath("/admin", "layout");
+  return result;
+}
+
+// "¿Qué vende el negocio?" desde Mi Agente → "Sobre el negocio". Decide si
+// el stock del Catálogo es obligatorio (ver businesses.catalog_kind).
+export async function setCatalogKindAction(kind: CatalogKind) {
+  const profile = await getSessionProfile();
+  if (!profile || profile.role !== "admin" || !profile.businessId) {
+    return { error: "No autorizado" };
+  }
+  const result = await setBusinessCatalogKind(profile.businessId, kind);
+  revalidatePath("/admin/mi-agente");
+  revalidatePath("/admin/catalogo");
   return result;
 }
 

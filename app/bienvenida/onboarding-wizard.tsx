@@ -57,6 +57,11 @@ import { industryTypes } from "@/lib/validators/businessSchema";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
 import { suggestedBookingMode } from "@/lib/config/agentTools";
 import { BOOKING_MODE_OPTIONS, type BookingMode } from "@/lib/types/reservation";
+import {
+  CATALOG_KIND_OPTIONS,
+  suggestedCatalogKind,
+  type CatalogKind,
+} from "@/lib/config/catalogKind";
 import { useOnboardingEstela } from "./onboarding-shell";
 import { completarOnboarding, type OnboardingState } from "./actions";
 
@@ -116,9 +121,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
   const [businessName, setBusinessName] = useState("");
   const [industryType, setIndustryType] = useState("");
   const [businessOffer, setBusinessOffer] = useState("");
+  const [catalogKind, setCatalogKind] = useState<CatalogKind>("ambos");
   const [bookingMode, setBookingMode] = useState<BookingMode>("off");
-  // Una vez el dueño toca el selector de reservas, la industria deja de
+  // Una vez el dueño toca un selector, la industria deja de
   // pre-seleccionarlo (no le pisamos su elección).
+  const [catalogKindTouched, setCatalogKindTouched] = useState(false);
   const [bookingModeTouched, setBookingModeTouched] = useState(false);
   // El teléfono es opcional, pero si escriben uno tiene que ser válido para
   // su país (PhoneField lo valida con libphonenumber). Empieza en true
@@ -143,10 +150,11 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
     fullName.trim().length >= 2 && businessName.trim().length >= 2 && phoneValid;
   const errorText = state && !state.ok ? state.error : null;
 
-  // Elegir industria: además pre-selecciona el modo de reservas sugerido
-  // (mesas/turnos/ninguno) mientras el dueño no lo haya cambiado a mano.
+  // Elegir industria: además pre-selecciona qué vende y el modo de reservas
+  // sugeridos, mientras el dueño no los haya cambiado a mano.
   function pickIndustry(value: string) {
     setIndustryType(value);
+    if (!catalogKindTouched) setCatalogKind(suggestedCatalogKind(value));
     if (!bookingModeTouched) setBookingMode(suggestedBookingMode(value));
   }
 
@@ -407,76 +415,27 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
                 />
               </Field>
 
+              <input type="hidden" name="catalogKind" value={catalogKind} />
+              <OnboardingRadioGroup
+                label="¿Qué vende tu negocio?"
+                value={catalogKind}
+                options={CATALOG_KIND_OPTIONS}
+                onSelect={(v) => {
+                  setCatalogKind(v);
+                  setCatalogKindTouched(true);
+                }}
+              />
+
               <input type="hidden" name="bookingMode" value={bookingMode} />
-              <div className="space-y-2.5">
-                <Label className="justify-center text-xs tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
-                  ¿Tu negocio atiende con reservas o citas?
-                </Label>
-                <div className="flex flex-col gap-1.5">
-                  {BOOKING_MODE_OPTIONS.map((o) => {
-                    const selected = bookingMode === o.value;
-                    return (
-                      <button
-                        key={o.value}
-                        type="button"
-                        aria-pressed={selected}
-                        onClick={() => {
-                          setBookingMode(o.value);
-                          setBookingModeTouched(true);
-                        }}
-                        className="relative flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
-                        style={{
-                          borderColor: selected ? "transparent" : "var(--nexora-line)",
-                          backgroundColor: "rgba(255,255,255,0.03)",
-                        }}
-                      >
-                        {/* Borde de degradado SOLO en el anillo de 1px — el
-                            relleno del botón sigue translúcido. La máscara
-                            recorta todo menos el borde. */}
-                        {selected && (
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute inset-0 rounded-xl"
-                            style={{
-                              padding: "1px",
-                              background: "linear-gradient(90deg, #4CC2E8, #A78BFA)",
-                              WebkitMask:
-                                "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                              WebkitMaskComposite: "xor",
-                              maskComposite: "exclude",
-                            }}
-                          />
-                        )}
-                        <span
-                          aria-hidden
-                          className="h-2 w-2 shrink-0 rounded-full transition-colors"
-                          style={{
-                            background: selected
-                              ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
-                              : "var(--nexora-line)",
-                          }}
-                        />
-                        <span className="min-w-0">
-                          <span
-                            className="block text-sm font-medium leading-tight"
-                            style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
-                          >
-                            {o.label}
-                          </span>
-                          {o.hint && (
-                            <span
-                              className="mt-0.5 block text-[11px] leading-snug"
-                              style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
-                            >
-                              {o.hint}
-                            </span>
-                          )}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <OnboardingRadioGroup
+                label="¿Tu negocio atiende con reservas o citas?"
+                value={bookingMode}
+                options={BOOKING_MODE_OPTIONS}
+                onSelect={(v) => {
+                  setBookingMode(v);
+                  setBookingModeTouched(true);
+                }}
+              />
 
               {errorText && (
                 <p
@@ -748,6 +707,86 @@ function Field({
         {label}
       </Label>
       {children}
+    </div>
+  );
+}
+
+// Grupo de opciones tipo radio del paso 3 (qué vende / reservas). Cada
+// opción: relleno translúcido siempre; la elegida solo pinta el borde con
+// el degradado de marca (máscara) + el punto en degradado.
+function OnboardingRadioGroup<T extends string>({
+  label,
+  value,
+  options,
+  onSelect,
+}: {
+  label: string;
+  value: T;
+  options: readonly { value: T; label: string; hint?: string }[];
+  onSelect: (value: T) => void;
+}) {
+  return (
+    <div className="space-y-2.5">
+      <Label className="justify-center text-xs tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
+        {label}
+      </Label>
+      <div className="flex flex-col gap-1.5">
+        {options.map((o) => {
+          const selected = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onSelect(o.value)}
+              className="relative flex w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors"
+              style={{
+                borderColor: selected ? "transparent" : "var(--nexora-line)",
+                backgroundColor: "rgba(255,255,255,0.03)",
+              }}
+            >
+              {selected && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-xl"
+                  style={{
+                    padding: "1px",
+                    background: "linear-gradient(90deg, #4CC2E8, #A78BFA)",
+                    WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+                    WebkitMaskComposite: "xor",
+                    maskComposite: "exclude",
+                  }}
+                />
+              )}
+              <span
+                aria-hidden
+                className="h-2 w-2 shrink-0 rounded-full transition-colors"
+                style={{
+                  background: selected
+                    ? "linear-gradient(90deg, #4CC2E8, #A78BFA)"
+                    : "var(--nexora-line)",
+                }}
+              />
+              <span className="min-w-0">
+                <span
+                  className="block text-sm font-medium leading-tight"
+                  style={{ color: selected ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
+                >
+                  {o.label}
+                </span>
+                {o.hint && (
+                  <span
+                    className="mt-0.5 block text-[11px] leading-snug"
+                    style={{ color: "var(--nexora-ink-dim)", opacity: 0.75 }}
+                  >
+                    {o.hint}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
