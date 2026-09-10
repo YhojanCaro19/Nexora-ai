@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
@@ -292,15 +293,18 @@ export function ProductForm({
             es el escape para productos sin stock (hechos a pedido). */}
         {stockApplies && (
           <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--nexora-line)' }}>
-            <label className="flex items-center justify-center gap-2 text-sm" style={{ color: 'var(--nexora-ink)' }}>
-              <input
-                type="checkbox"
+            <Label
+              htmlFor="track-inventory"
+              className="flex items-center justify-center gap-2 font-normal"
+              style={{ color: 'var(--nexora-ink)' }}
+            >
+              <Checkbox
+                id="track-inventory"
                 checked={trackInventory}
-                onChange={(e) => setTrackInventory(e.target.checked)}
-                className="h-4 w-4 accent-[#4CC2E8]"
+                onCheckedChange={(checked) => setTrackInventory(checked === true)}
               />
               Llevar inventario de este producto
-            </label>
+            </Label>
             {trackInventory ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
