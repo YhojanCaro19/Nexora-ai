@@ -171,7 +171,7 @@ Para negocios con catálogos grandes o búsqueda en lenguaje natural — **no es
 
 ## Estado de las políticas RLS
 
-Ya cubierto correctamente: aislamiento entre negocios (un negocio nunca ve datos de otro). **Pendiente, no lo des por hecho:** ninguna política de `orders`, `reservations`, `customers`, `conversations` filtra todavía por `permissions` — hoy cualquier `is_business_member` (admin o colaborador) puede operar esas tablas sin importar su array de `permissions`. Antes de dar por segura la última milla de multi-tenant, revisar si ya se implementó el patrón:
+Ya cubierto correctamente: aislamiento entre negocios (un negocio nunca ve datos de otro). **Pendiente, no lo des por hecho:** ninguna política de `orders`, `products`, `reservations`, `booking_*`, `customers`, `conversations` filtra todavía por `permissions` — hoy cualquier `is_business_member` (admin o colaborador) puede operar esas tablas sin importar su array de `permissions`. El gating de módulos de colaborador (`ASSIGNABLE_MODULES` = `pedidos`, `catalogo`, `reservas`, `clientes`) es hoy **capa de aplicación**: nav filtrado + `requireModuleAccess(moduleKey)` en las server actions + guard en cada page. Aplica igual a los cuatro módulos, incluidos Pedidos y Catálogo que ya están en producción. Antes de dar por segura la última milla de multi-tenant, revisar si ya se implementó el patrón:
 
 ```sql
 -- patrón objetivo, verificar si ya existe antes de asumir

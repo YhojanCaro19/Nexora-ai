@@ -69,7 +69,7 @@ Resuelve el rol así: primero busca en `platform_admins` (→ superadmin), si no
 
 ## Regla de oro sobre permisos de colaborador
 
-`permissions` (array de strings, ej. `["pedidos", "catalogo"]`) define qué módulos puede ver/usar un colaborador. **Nunca confiar solo en ocultar el sidebar.** El enforcement real vive en RLS (ver database.md) y se refuerza con checks explícitos en cada server action que toque datos de negocio.
+`permissions` (array de strings, ej. `["pedidos", "catalogo", "reservas", "clientes"]` — la lista completa de módulos asignables vive en `ASSIGNABLE_MODULES` de `lib/constants/nav-items.ts`) define qué módulos puede ver/usar un colaborador. **Nunca confiar solo en ocultar el sidebar.** Hoy el enforcement es capa de aplicación: nav filtrado + `requireModuleAccess(moduleKey)` en cada server action que toque datos de negocio + guard en cada page del colaborador. RLS todavía NO filtra por `permissions` (pendiente documentado en database.md, aplica igual a los cuatro módulos).
 
 ## Cuándo usar service role vs cliente normal
 

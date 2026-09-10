@@ -118,6 +118,12 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
   if (permissions.includes('catalogo')) {
     items.push({ label: 'Catálogo', href: '/colaborador/catalogo', icon: Package });
   }
+  if (permissions.includes('reservas')) {
+    items.push({ label: 'Reservas', href: '/colaborador/reservas', icon: CalendarDays });
+  }
+  if (permissions.includes('clientes')) {
+    items.push({ label: 'Clientes', href: '/colaborador/clientes', icon: Contact });
+  }
 
   items.push({ label: 'Perfil', href: '/colaborador/perfil', icon: UserCircle });
 
@@ -130,20 +136,29 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
  * `key` coincide con el segmento final del href del módulo en getAdminNav, por la regla de
  * coding-standards.md de que las rutas coincidan con nav-items.ts.
  *
+ * Incluye los módulos operativos del día a día: "Pedidos", "Catálogo", "Reservas" y
+ * "Clientes". Los cuatro ya existen para el admin y son tareas que un dueño delega a su
+ * equipo. El gating hoy es capa de aplicación (nav + `requireModuleAccess` en las server
+ * actions + guard en cada page), NO RLS — las policies de `orders`/`products`/`reservations`/
+ * `booking_*`/`customers` son `is_business_member(business_id)` y no filtran por `permissions`
+ * (pendiente pre-existente documentado en docs/database.md, aplica igual a los cuatro).
+ *
  * Se excluyen a propósito "Inicio" (siempre visible), "Mi Agente" (configura el agente de
  * todo el negocio, no es dato operativo del día a día) y "Colaboradores"/"Perfil" (gestión
  * exclusiva del admin / dato personal).
  *
- * "Reportes" también se excluye a propósito (decisión explícita, no descuido): expone datos
- * agregados de ventas/ingresos del negocio, un nivel de confianza distinto al operativo del
- * día a día de un colaborador. Además la página de Reportes para colaborador todavía no
- * existe. Si más adelante se construye Reportes de verdad y el negocio quiere delegarlo a
- * colaboradores de confianza, agregarlo aquí es una decisión aparte, no algo que se dé por
+ * "Reportes" y "Comparativa" también se excluyen a propósito (decisión explícita, no
+ * descuido): exponen datos agregados de ventas/ingresos del negocio, un nivel de confianza
+ * distinto al operativo del día a día de un colaborador. Además esas páginas para colaborador
+ * todavía no existen. Si más adelante se construyen de verdad y el negocio quiere delegarlas
+ * a colaboradores de confianza, agregarlas aquí es una decisión aparte, no algo que se dé por
  * incluido solo porque ya existe la infraestructura de permisos.
  */
 export const ASSIGNABLE_MODULES = [
   { key: 'pedidos', label: 'Pedidos', icon: ShoppingBag },
   { key: 'catalogo', label: 'Catálogo', icon: Package },
+  { key: 'reservas', label: 'Reservas', icon: CalendarDays },
+  { key: 'clientes', label: 'Clientes', icon: Contact },
 ] as const;
 
 export type ModuleKey = (typeof ASSIGNABLE_MODULES)[number]['key'];

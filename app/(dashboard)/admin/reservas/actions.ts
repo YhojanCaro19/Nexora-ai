@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSessionProfile } from "@/lib/auth/get-session";
+import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import {
   upsertBookingSettings,
   replaceBusinessHours,
@@ -32,20 +33,26 @@ import {
 } from "@/lib/validators/reservationSchema";
 import { isValidReservationStatus, type Reservation, type ReservationStatus } from "@/lib/types/reservation";
 
-// La configuración de reservas la maneja el admin (número de mesas,
-// horario, empleados, servicios) — no un colaborador.
-async function requireAdmin() {
-  const profile = await getSessionProfile();
-  if (!profile || profile.role !== "admin" || !profile.businessId) return null;
-  return profile;
+// "reservas" es un módulo asignable a colaboradores vía business_members.permissions
+// (ver ASSIGNABLE_MODULES en nav-items.ts) — estas actions las usan tanto
+// admin/reservas como colaborador/reservas (que importa reservas-panel de esta
+// carpeta), por eso el guard es requireModuleAccess("reservas"): acepta admin O
+// colaborador-con-permiso y devuelve el mismo error claro a quien no lo tiene.
+// Se sigue devolviendo el profile para acceder a userId (auditoría de cambios de
+// estado); getSessionProfile() está cacheada por request, no repite la consulta.
+async function requireReservasAccess() {
+  const businessId = await requireModuleAccess("reservas");
+  if (!businessId) return null;
+  return getSessionProfile();
 }
 
 function done() {
   revalidatePath("/admin/reservas");
+  revalidatePath("/colaborador/reservas");
 }
 
 export async function saveBookingSettingsAction(input: BookingSettingsInput) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const parsed = bookingSettingsSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -55,7 +62,7 @@ export async function saveBookingSettingsAction(input: BookingSettingsInput) {
 }
 
 export async function saveBusinessHoursAction(input: BusinessHoursInput) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const parsed = businessHoursSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -65,7 +72,7 @@ export async function saveBusinessHoursAction(input: BusinessHoursInput) {
 }
 
 export async function createResourceAction(input: BookingResourceInput) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado", data: null };
   const parsed = bookingResourceSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
@@ -75,7 +82,7 @@ export async function createResourceAction(input: BookingResourceInput) {
 }
 
 export async function updateResourceAction(resourceId: string, input: Partial<BookingResourceInput>) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const result = await updateResource(resourceId, profile.businessId!, input);
   done();
@@ -86,7 +93,7 @@ export async function updateResourceLayoutAction(
   resourceId: string,
   layout: { posX?: number | null; posY?: number | null; rotation?: number }
 ) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const result = await updateResourceLayout(resourceId, profile.businessId!, layout);
   // sin done() — el plano se guarda seguido, no hace falta revalidar la ruta
@@ -94,7 +101,7 @@ export async function updateResourceLayoutAction(
 }
 
 export async function deleteResourceAction(resourceId: string) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const result = await deleteResource(resourceId, profile.businessId!);
   done();
@@ -102,7 +109,7 @@ export async function deleteResourceAction(resourceId: string) {
 }
 
 export async function createBookingServiceAction(input: BookingServiceInput) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado", data: null };
   const parsed = bookingServiceSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message, data: null };
@@ -112,7 +119,7 @@ export async function createBookingServiceAction(input: BookingServiceInput) {
 }
 
 export async function updateBookingServiceDurationAction(serviceId: string, durationMinutes: number) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   if (!Number.isInteger(durationMinutes) || durationMinutes < 5 || durationMinutes > 600) {
     return { error: "Duración inválida" };
@@ -125,14 +132,14 @@ export async function updateBookingServiceDurationAction(serviceId: string, dura
 // Catálogo para elegir servicios — se relee acá porque el usuario puede
 // agregar productos en Catálogo y volver a Reservas sin recargar la página.
 export async function getServiceCatalogAction() {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return [] as { id: string; name: string; price: number; active: boolean }[];
   const products = await getProducts(profile.businessId!);
   return products.map((p) => ({ id: p.id, name: p.name, price: p.price, active: p.active }));
 }
 
 export async function deleteBookingServiceAction(serviceId: string) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   const result = await deleteBookingService(serviceId, profile.businessId!);
   done();
@@ -142,7 +149,7 @@ export async function deleteBookingServiceAction(serviceId: string) {
 // ---------- Agenda ----------
 
 export async function listReservationsForRangeAction(fromIso: string, toIso: string) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado", data: [] as Reservation[] };
   const data = await getReservations(profile.businessId!, {
     fromIso,
@@ -153,7 +160,7 @@ export async function listReservationsForRangeAction(fromIso: string, toIso: str
 }
 
 export async function checkAvailabilityAction(query: AvailabilityQuery) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado", slots: [] };
   const result = await computeAvailability(profile.businessId!, query);
   return { error: result.error, slots: result.slots };
@@ -163,7 +170,7 @@ export async function checkAvailabilityAction(query: AvailabilityQuery) {
 // agentEngineService, tool `reservar`). No hay alta manual desde la agenda.
 
 export async function setReservationStatusAction(reservationId: string, status: string) {
-  const profile = await requireAdmin();
+  const profile = await requireReservasAccess();
   if (!profile) return { error: "No autorizado" };
   if (!isValidReservationStatus(status)) return { error: "Estado inválido" };
   const result = await updateReservationStatus(
