@@ -147,8 +147,10 @@ export function ProductForm({
     }
   }
 
+  const inputCls = "border-white/10 bg-white/[0.03] text-center";
+
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <div className="text-center space-y-1">
         <h2 className="font-nexora text-lg" style={{ color: 'var(--nexora-ink)' }}>
           {isEditing ? "Editar producto" : "Nuevo producto"}
@@ -168,90 +170,90 @@ export function ProductForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Foto — grande y centrada, lo primero que se ve. */}
-        <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="group relative w-40 h-40 rounded-2xl border border-dashed overflow-hidden flex flex-col items-center justify-center gap-2 transition-colors"
-            style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.02)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
-            onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
-          >
-            {imagePreview ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
-                <img src={imagePreview} alt="Vista previa" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-xs font-medium text-white">Cambiar foto</span>
-                </div>
-              </>
-            ) : (
-              <>
-                <ImagePlus size={26} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
-                <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  Subir foto
-                </span>
-              </>
-            )}
-          </button>
+        {/* Foto + nombre/descripción, lado a lado en desktop. */}
+        <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
+            <div className="flex shrink-0 flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="group relative h-36 w-36 overflow-hidden rounded-2xl border border-dashed transition-colors"
+                style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.02)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
+              >
+                {imagePreview ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
+                    <img src={imagePreview} alt="Vista previa" className="absolute inset-0 h-full w-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="text-xs font-medium text-white">Cambiar</span>
+                    </div>
+                  </>
+                ) : (
+                  <span className="flex h-full flex-col items-center justify-center gap-1.5">
+                    <ImagePlus size={24} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
+                    <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Subir foto</span>
+                  </span>
+                )}
+              </button>
+              {imagePreview ? (
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="inline-flex items-center gap-1 text-xs transition-colors"
+                  style={{ color: 'var(--nexora-ink-dim)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
+                >
+                  <X size={12} /> Quitar
+                </button>
+              ) : (
+                <p className="max-w-36 text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  JPG o PNG, máx. 5MB. Opcional.
+                </p>
+              )}
+              <input
+                ref={fileInputRef}
+                id="image"
+                type="file"
+                accept="image/jpeg,image/png"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </div>
 
-          {imagePreview && (
-            <button
-              type="button"
-              onClick={clearImage}
-              className="inline-flex items-center gap-1 text-xs transition-colors"
-              style={{ color: 'var(--nexora-ink-dim)' }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
-            >
-              <X size={12} />
-              Quitar foto
-            </button>
-          )}
+            <div className="flex-1 space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="name" className="block text-center">Nombre</Label>
+                <Input
+                  id="name"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="Nombre del producto"
+                  required
+                  className={inputCls}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="description" className="block text-center">Descripción</Label>
+                <Textarea
+                  id="description"
+                  rows={3}
+                  maxLength={DESCRIPTION_MAX_LENGTH}
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
+                  placeholder="Descripción del producto"
+                  className="resize-none border-white/10 bg-white/[0.03]"
+                />
+                <p className="text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {form.description.length} / {DESCRIPTION_MAX_LENGTH}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          <p className="text-xs text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-            Foto del producto (opcional). JPG o PNG, máximo 5MB.
-          </p>
-
-          <input
-            ref={fileInputRef}
-            id="image"
-            type="file"
-            accept="image/jpeg,image/png"
-            onChange={handleImageChange}
-            className="hidden"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="name" className="block text-center">Nombre</Label>
-          <Input
-            id="name"
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Ej. Corte con barba"
-            required
-            className="text-center"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="description" className="block text-center">Descripción</Label>
-          <Textarea
-            id="description"
-            rows={3}
-            maxLength={DESCRIPTION_MAX_LENGTH}
-            value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
-            placeholder="Lo que el agente usa para responder — cuanto más claro, mejor."
-          />
-          <p className="text-[11px] text-center" style={{ color: 'var(--nexora-ink-dim)' }}>
-            {form.description.length} / {DESCRIPTION_MAX_LENGTH}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Precio + categoría. */}
+        <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="price" className="block text-center">Precio</Label>
             <Input
@@ -262,13 +264,13 @@ export function ProductForm({
               onChange={(e) => setForm((f) => ({ ...f, price: formatThousands(e.target.value) }))}
               placeholder="20,000"
               required
-              className="text-center"
+              className={inputCls}
             />
           </div>
           <div className="space-y-1.5">
             <Label className="block text-center">Categoría (opcional)</Label>
             <Select value={categorySelect} onValueChange={(v) => setCategorySelect(v ?? "")}>
-              <SelectTrigger className="w-full h-10 text-sm justify-center">
+              <SelectTrigger className="h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm">
                 <SelectValue placeholder="Sin categoría" />
               </SelectTrigger>
               <SelectContent>
@@ -283,19 +285,22 @@ export function ProductForm({
                 onChange={(e) => setCategoryOther(e.target.value)}
                 placeholder="Escribe la categoría"
                 maxLength={60}
-                className="mt-1.5 text-center"
+                className={`mt-1.5 ${inputCls}`}
               />
             )}
           </div>
         </div>
 
-        {/* Inventario — solo para negocios que venden productos. El toggle
-            es el escape para productos sin stock (hechos a pedido). */}
+        {/* Inventario — solo negocios que venden productos. El toggle es el
+            escape para productos sin stock (hechos a pedido). */}
         {stockApplies && (
-          <div className="rounded-xl border p-4 space-y-3" style={{ borderColor: 'var(--nexora-line)' }}>
+          <div className="space-y-4 border-t pt-6" style={{ borderColor: 'var(--nexora-line)' }}>
+            <p className="text-center text-[11px] uppercase tracking-[0.14em]" style={{ color: 'var(--nexora-ink-dim)' }}>
+              Inventario
+            </p>
             <Label
               htmlFor="track-inventory"
-              className="flex items-center justify-center gap-2 font-normal"
+              className="mx-auto flex w-fit items-center gap-2 font-normal"
               style={{ color: 'var(--nexora-ink)' }}
             >
               <Checkbox
@@ -306,7 +311,7 @@ export function ProductForm({
               Llevar inventario de este producto
             </Label>
             {trackInventory ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="stock" className="block text-center">Stock</Label>
                   <Input
@@ -318,7 +323,7 @@ export function ProductForm({
                     onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
                     placeholder="0"
                     required
-                    className="text-center"
+                    className={inputCls}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -333,8 +338,8 @@ export function ProductForm({
                     placeholder="5"
                     value={form.lowStockThreshold}
                     onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-                    className="text-center"
-            />
+                    className={inputCls}
+                  />
                 </div>
               </div>
             ) : (
