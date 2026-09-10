@@ -14,13 +14,15 @@ import { PlatformStatsGrid } from "@/components/dashboard/shared/PlatformStatsGr
 import { AgentTokenTrendChart } from "./agent-token-trend-chart";
 import { TopAgentBusinesses } from "./top-agent-businesses";
 import { UpcomingRenewalsPreview } from "./upcoming-renewals-preview";
+import { LocalNow } from "./local-now";
 
 export default async function SuperAdminIndexPage() {
-  const today = new Date().toLocaleDateString("es-CO", {
+  // Fallback para el primer render (antes de que <LocalNow> monte y use la
+  // zona del navegador): fecha en Colombia, donde está el superadmin hoy.
+  const fallbackDate = new Date().toLocaleDateString("es-CO", {
     day: "numeric",
     month: "long",
-    year: "numeric",
-    timeZone: "UTC",
+    timeZone: "America/Bogota",
   });
 
   const [stats, tokenTrend, topBusinesses, renewals] = await Promise.all([
@@ -36,9 +38,7 @@ export default async function SuperAdminIndexPage() {
         <h1 className="font-nexora text-xl" style={{ color: "var(--nexora-ink)" }}>
           Inicio
         </h1>
-        <p className="text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-          Hoy · {today}
-        </p>
+        <LocalNow fallback={fallbackDate} />
       </div>
 
       <div className="mx-auto max-w-5xl space-y-6">

@@ -14,9 +14,46 @@
 //
 // Todo con service role — es agregado de plataforma, no depende de RLS
 // por negocio.
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/server";
 import { estimateCostUsd } from "@/lib/config/modelPricing";
 import { getAgentUsageByBusiness } from "@/lib/services/agentUsageService";
+
+// ── Ventana "hoy" en la zona de quien mira ─────────────────────────────
+//
+// En Superadmin → Inicio "hoy" es el día del reloj del superadmin, no el
+// de UTC (a las 10 p. m. en Colombia, en UTC ya es mañana y los KPIs del
+// día salían casi vacíos). El componente cliente <LocalNow> escribe la
+// cookie `av_tzoffset` con `Date.getTimezoneOffset()` — minutos, con el
+// signo de esa API: UTC = hora local + offset (Colombia UTC-5 => 300).
+// Mientras la cookie no exista (primer render tras el deploy) caemos a
+// Colombia (UTC-5, sin horario de verano) porque el superadmin hoy está
+// allí; en la siguiente carga la cookie ya está y el borde del día es
+// exacto.
+const DEFAULT_TZ_OFFSET_MINUTES = 300; // America/Bogota, sin DST
+
+async function clientTzOffsetMinutes(): Promise<number> {
+  const raw = (await cookies()).get("av_tzoffset")?.value;
+  const n = raw ? Number(raw) : NaN;
+  if (Number.isInteger(n) && Math.abs(n) <= 24 * 60) return n;
+  return DEFAULT_TZ_OFFSET_MINUTES;
+}
+
+/**
+ * `[medianoche local, ahora)` para un offset de zona en minutos (el que
+ * devuelve `Date.prototype.getTimezoneOffset`: UTC = hora local + offset).
+ * Con offset fijo el borde del día es correcto en zonas sin horario de
+ * verano (Colombia); en zonas con DST puede desviarse una hora los dos
+ * días del año en que hay cambio — aceptable para un KPI de "hoy" y sin
+ * meter una librería de zonas horarias.
+ */
+export function todayRange(offsetMinutes: number): { from: string; to: string } {
+  const now = new Date();
+  const local = new Date(now.getTime() - offsetMinutes * 60000);
+  const midnightUtcMs =
+    Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate()) + offsetMinutes * 60000;
+  return { from: new Date(midnightUtcMs).toISOString(), to: now.toISOString() };
+}
 
 // Métricas de plataforma para un RANGO [from, to) — mismo set para "hoy"
 // (Superadmin → Inicio) y para un mes (Estadísticas). Los conteos "New" y
@@ -62,7 +99,7 @@ function monthRange(monthStart: Date): { from: string; to: string } {
 /**
  * El núcleo: cuenta las métricas de plataforma para un rango `[from, to)`
  * EN VIVO desde las tablas de origen. Lo usan `computeMonthStats` (un mes)
- * y `computeTodayStats` (el día de hoy en UTC).
+ * y `computeTodayStats` (el día de hoy en la zona del superadmin).
  */
 export async function computeRangeStats(from: string, to: string): Promise<PlatformPeriodStats> {
   const admin = createAdminClient();
@@ -150,11 +187,10 @@ export async function computeMonthStats(monthStart: Date): Promise<PlatformMonth
   return { monthKey: monthKeyOf(monthStart), ...(await computeRangeStats(from, to)) };
 }
 
-/** Estadísticas de HOY (00:00 UTC → ahora). Superadmin → Inicio. */
+/** Estadísticas de HOY (medianoche local del superadmin → ahora). Superadmin → Inicio. */
 export async function computeTodayStats(): Promise<PlatformPeriodStats> {
-  const now = new Date();
-  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  return computeRangeStats(dayStart.toISOString(), now.toISOString());
+  const { from, to } = todayRange(await clientTzOffsetMinutes());
+  return computeRangeStats(from, to);
 }
 
 /**
@@ -243,13 +279,14 @@ export interface DailyTokenPoint {
 /**
  * Tokens del agente por día, últimos `days` días (hoy incluido, al final)
  * — mismo espíritu que `getSalesTrend` de admin (reportService.ts), pero
- * de TODA la plataforma y en UTC (no hay un solo país al que ajustar el
- * "día" acá). Un query trae todo el rango, se agrupa en memoria por día.
+ * de TODA la plataforma. Los días se recortan en la zona del superadmin
+ * (misma ventana que el resto de Inicio) para que el último punto coincida
+ * con "hoy". Un query trae todo el rango, se agrupa en memoria por día.
  */
 export async function getAgentTokenTrend(days = 7): Promise<DailyTokenPoint[]> {
   const admin = createAdminClient();
-  const now = new Date();
-  const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const { from: todayFrom } = todayRange(await clientTzOffsetMinutes());
+  const todayStart = new Date(todayFrom);
   const rangeStart = new Date(todayStart.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
 
   const { data, error } = await admin
@@ -299,11 +336,10 @@ export interface TopAgentBusiness {
   costUsd: number;
 }
 
-/** Negocios con más actividad del agente HOY (00:00 UTC → ahora), de mayor a menor. */
+/** Negocios con más actividad del agente HOY (medianoche local del superadmin → ahora), de mayor a menor. */
 export async function getTopBusinessesByAgentActivity(limit = 5): Promise<TopAgentBusiness[]> {
-  const now = new Date();
-  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const usage = await getAgentUsageByBusiness({ from: dayStart.toISOString(), to: now.toISOString() });
+  const { from, to } = todayRange(await clientTzOffsetMinutes());
+  const usage = await getAgentUsageByBusiness({ from, to });
   return usage
     .filter((u) => u.totalTokens > 0)
     .sort((a, b) => b.totalTokens - a.totalTokens)
