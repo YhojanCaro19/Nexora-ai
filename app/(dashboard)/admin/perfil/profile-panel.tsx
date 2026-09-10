@@ -775,7 +775,18 @@ export function ProfilePanel({
     (c) => c.status === "error" || c.status === "expired"
   );
 
-  const rows: { key: SectionKey; label: string; icon: LucideIcon; hint?: string }[] = [
+  // El colaborador solo ve estas secciones de su Perfil — nada de gestión
+  // del negocio (facturación, redes) ni herramientas de sesión avanzadas.
+  const COLLABORATOR_SECTIONS: SectionKey[] = [
+    "personal",
+    "account",
+    "access-change",
+    "security-history",
+    "preferences",
+  ];
+  const isColaborador = details.role === "colaborador";
+
+  const allRows: { key: SectionKey; label: string; icon: LucideIcon; hint?: string }[] = [
     { key: "personal", label: "Datos personales", icon: User },
     { key: "account", label: "Información de la cuenta", icon: IdCard },
     {
@@ -810,6 +821,10 @@ export function ProfilePanel({
     { key: "security-history", label: "Historial de seguridad", icon: ShieldCheck },
     { key: "preferences", label: "Idioma", icon: Languages },
   ];
+
+  const rows = isColaborador
+    ? allRows.filter((r) => COLLABORATOR_SECTIONS.includes(r.key))
+    : allRows;
 
   const titleFor = (k: SectionKey) => rows.find((r) => r.key === k)?.label ?? "";
 
