@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneField } from "@/components/shared/PhoneField";
+import { GlowField, GLOW_FIELD_INPUT_CLS, BRAND_GRADIENT } from "@/components/shared/glow-field";
 import type { CollaboratorListItem } from "@/lib/services/collaboratorService";
 
 const EMPTY_FORM = { full_name: "", phone: "", email: "" };
@@ -147,14 +148,16 @@ export function CollaboratorForm({
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-1.5">
           <Label htmlFor="full_name" className="block text-center">Nombre completo</Label>
-          <Input
-            id="full_name"
-            value={form.full_name}
-            onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
-            placeholder="Ej. Angie Vásquez"
-            required
-            className="text-center"
-          />
+          <GlowField>
+            <Input
+              id="full_name"
+              value={form.full_name}
+              onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+              placeholder="Nombre de tu colaborador"
+              required
+              className={`text-center ${GLOW_FIELD_INPUT_CLS}`}
+            />
+          </GlowField>
         </div>
 
         <PhoneField
@@ -167,15 +170,17 @@ export function CollaboratorForm({
         {!isEditing && (
           <div className="space-y-1.5">
             <Label htmlFor="email" className="block text-center">Correo</Label>
-            <Input
-              id="email"
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              placeholder="correo@gmail.com"
-              required
-              className="text-center"
-            />
+            <GlowField>
+              <Input
+                id="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="correo@gmail.com"
+                required
+                className={`text-center ${GLOW_FIELD_INPUT_CLS}`}
+              />
+            </GlowField>
           </div>
         )}
 
@@ -189,6 +194,11 @@ export function CollaboratorForm({
                     id={`perm-${mod.key}`}
                     checked={permissions.includes(mod.key)}
                     onCheckedChange={(checked) => togglePermission(mod.key, checked === true)}
+                    style={
+                      permissions.includes(mod.key)
+                        ? { backgroundColor: "transparent", backgroundImage: BRAND_GRADIENT, borderColor: "transparent" }
+                        : undefined
+                    }
                   />
                   <mod.icon size={14} strokeWidth={1.75} style={{ color: 'var(--nexora-ink-dim)' }} />
                   {mod.label}
