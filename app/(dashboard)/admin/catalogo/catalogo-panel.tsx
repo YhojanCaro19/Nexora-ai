@@ -13,15 +13,19 @@ type View = "chooser" | "new" | "list" | "import";
 export function CatalogoPanel({
   products,
   countryIso2,
-  industryType,
   catalogKind,
 }: {
   products: Product[];
   countryIso2: string | null;
-  industryType: string | null;
   catalogKind: CatalogKind;
 }) {
   const [view, setView] = useState<View>("chooser");
+
+  // Categorías que el negocio ya creó — el formulario las ofrece de nuevo
+  // (no hay lista predefinida por industria).
+  const usedCategories = Array.from(
+    new Set(products.map((p) => p.category).filter((c): c is string => !!c)),
+  ).sort((a, b) => a.localeCompare(b, "es"));
 
   if (view === "chooser") {
     return (
@@ -61,14 +65,18 @@ export function CatalogoPanel({
       </button>
 
       {view === "new" && (
-        <ProductForm onDone={() => setView("list")} industryType={industryType} catalogKind={catalogKind} />
+        <ProductForm
+          onDone={() => setView("list")}
+          catalogKind={catalogKind}
+          usedCategories={usedCategories}
+        />
       )}
       {view === "list" && (
         <ProductsTable
           products={products}
           countryIso2={countryIso2}
-          industryType={industryType}
           catalogKind={catalogKind}
+          usedCategories={usedCategories}
         />
       )}
       {view === "import" && <BulkImport onDone={() => setView("list")} />}

@@ -3,7 +3,6 @@ import { getSessionProfile } from "@/lib/auth/get-session";
 import { getProducts } from "@/lib/services/productService";
 import {
   getBusinessCountryIso2,
-  getBusinessIndustryType,
   getBusinessCatalogKind,
 } from "@/lib/services/businessBrandingService";
 // Se reutiliza el mismo componente y las mismas server actions que usa
@@ -29,7 +28,6 @@ export default async function ColaboradorCatalogoPage() {
 
   const products = profile.businessId ? await getProducts(profile.businessId) : [];
   const countryIso2 = profile.businessId ? await getBusinessCountryIso2(profile.businessId) : null;
-  const industryType = profile.businessId ? await getBusinessIndustryType(profile.businessId) : null;
   const catalogKind = profile.businessId
     ? await getBusinessCatalogKind(profile.businessId)
     : ("ambos" as const);
@@ -39,12 +37,7 @@ export default async function ColaboradorCatalogoPage() {
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Catálogo
       </h1>
-      <CatalogoPanel
-        products={products}
-        countryIso2={countryIso2}
-        industryType={industryType}
-        catalogKind={catalogKind}
-      />
+      <CatalogoPanel products={products} countryIso2={countryIso2} catalogKind={catalogKind} />
     </div>
   );
 }

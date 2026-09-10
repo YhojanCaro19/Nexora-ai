@@ -49,10 +49,8 @@ export async function getBusinessCountryIso2(
   return data?.country_iso2 ?? null;
 }
 
-// Usado por Catálogo para saber qué lista de categorías sugerir en el
-// formulario de producto (ver lib/config/productCategories.ts) — cada
-// industria tiene las suyas, no tiene sentido mostrarle "Anillos/Aretes"
-// a un taller mecánico.
+// Usado por Pedidos (vocabulario "pedido" vs "cita", ver orderVocabulary)
+// y por Mi Agente (ejemplos por categoría de industria en el formulario).
 export async function getBusinessIndustryType(businessId: string): Promise<string | null> {
   const supabase = await createClient();
   const { data } = await supabase

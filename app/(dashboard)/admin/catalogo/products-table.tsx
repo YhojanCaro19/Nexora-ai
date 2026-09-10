@@ -23,13 +23,13 @@ import { toCsv, downloadCsv } from "@/lib/utils/csv";
 export function ProductsTable({
   products,
   countryIso2,
-  industryType,
   catalogKind,
+  usedCategories,
 }: {
   products: Product[];
   countryIso2: string | null;
-  industryType: string | null;
   catalogKind: CatalogKind;
+  usedCategories: string[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -37,13 +37,6 @@ export function ProductsTable({
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   const editing = products.find((p) => p.id === editingId) ?? null;
-
-  // Solo las categorías que de verdad tienen al menos un producto —
-  // mostrar chips de categorías vacías sería ruido, no ayuda a filtrar.
-  const usedCategories = useMemo(
-    () => [...new Set(products.map((p) => p.category).filter((c): c is string => !!c))].sort(),
-    [products]
-  );
 
   const filteredProducts = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -88,8 +81,8 @@ export function ProductsTable({
       <ProductForm
         editingProduct={editing}
         onDone={() => setEditingId(null)}
-        industryType={industryType}
         catalogKind={catalogKind}
+        usedCategories={usedCategories}
       />
     );
   }

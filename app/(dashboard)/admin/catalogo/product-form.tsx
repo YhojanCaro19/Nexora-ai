@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
-import { getCategoryOptions, OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
+import { OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
 import type { CatalogKind } from "@/lib/config/catalogKind";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
@@ -30,13 +30,14 @@ function formatThousands(raw: string): string {
 export function ProductForm({
   editingProduct,
   onDone,
-  industryType,
   catalogKind,
+  usedCategories,
 }: {
   editingProduct?: Product | null;
   onDone?: () => void;
-  industryType: string | null;
   catalogKind: CatalogKind;
+  /** Categorías que el negocio ya creó (distintas, de sus productos). */
+  usedCategories: string[];
 }) {
   const isEditing = !!editingProduct;
   // Negocio de solo servicios: nunca hay stock (un servicio no tiene
@@ -61,14 +62,12 @@ export function ProductForm({
     editingProduct ? editingProduct.stock !== null : stockApplies
   );
 
-  // Categoría: lista sugerida por industria + "Otra" como escape hatch a
-  // texto libre. Si el producto ya tenía una categoría que NO está en la
-  // lista sugerida (dato viejo, o cambió de industria), se trata como
-  // "Otra" con ese texto — nunca se pierde el dato ni se fuerza a encajar
-  // en una opción que no aplica.
-  const categoryOptions = getCategoryOptions(industryType);
+  // Categoría: la crea el negocio, no hay lista predefinida. El desplegable
+  // muestra las que ya usó + "Nueva categoría" (input de texto). La
+  // categoría de un producto que se está editando siempre está entre las
+  // usadas, así que se pre-selecciona sola.
   const existingCategory = editingProduct?.category ?? "";
-  const matchesOption = existingCategory && categoryOptions.includes(existingCategory);
+  const matchesOption = existingCategory !== "" && usedCategories.includes(existingCategory);
   const [categorySelect, setCategorySelect] = useState(
     existingCategory ? (matchesOption ? existingCategory : OTHER_CATEGORY_OPTION) : ""
   );
@@ -274,17 +273,19 @@ export function ProductForm({
                 <SelectValue placeholder="Sin categoría" />
               </SelectTrigger>
               <SelectContent>
-                {categoryOptions.map((cat) => (
+                {usedCategories.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
+                <SelectItem value={OTHER_CATEGORY_OPTION}>＋ Nueva categoría</SelectItem>
               </SelectContent>
             </Select>
             {categorySelect === OTHER_CATEGORY_OPTION && (
               <Input
                 value={categoryOther}
                 onChange={(e) => setCategoryOther(e.target.value)}
-                placeholder="Escribe la categoría"
+                placeholder="Nombre de la categoría"
                 maxLength={60}
+                autoFocus
                 className={`mt-1.5 ${inputCls}`}
               />
             )}
