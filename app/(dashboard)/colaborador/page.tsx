@@ -7,5 +7,5 @@ import { HomeDashboard } from '@/app/(dashboard)/admin/home-dashboard';
 
 export default async function ColaboradorHomePage() {
   const profile = await getSessionProfile();
-  return <HomeDashboard businessId={profile?.businessId ?? null} />;
+  return <HomeDashboard businessId={profile?.businessId ?? null} showCollaborators={false} />;
 }

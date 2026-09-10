@@ -16,7 +16,15 @@ import { PendingOrdersPreview } from "./pending-orders-preview";
 import { TodayReservations } from "./today-reservations";
 import { formatCurrency } from "@/lib/utils/currency";
 
-export async function HomeDashboard({ businessId }: { businessId: string | null }) {
+export async function HomeDashboard({
+  businessId,
+  // El colaborador ve todo el tablero MENOS "Colaboradores activos" — la
+  // plantilla del negocio no es asunto suyo.
+  showCollaborators = true,
+}: {
+  businessId: string | null;
+  showCollaborators?: boolean;
+}) {
   const stats = businessId ? await getAdminDashboardStats(businessId) : null;
   const bookingSettings = businessId ? await getBookingSettings(businessId) : null;
   const todayReservations =
@@ -98,7 +106,9 @@ export async function HomeDashboard({ businessId }: { businessId: string | null 
       {/* Estado general del negocio (no es "de hoy") — un solo bloque
           ancho, en horizontal. */}
       <div
-        className="rounded-2xl border p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center"
+        className={`rounded-2xl border p-4 sm:p-6 grid grid-cols-1 gap-6 text-center ${
+          showCollaborators ? 'sm:grid-cols-3' : 'sm:grid-cols-2'
+        }`}
         style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
       >
         <div>
@@ -109,10 +119,12 @@ export async function HomeDashboard({ businessId }: { businessId: string | null 
           <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Productos activos</p>
           <p className="text-base font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>{stats?.activeProducts ?? 0}</p>
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Colaboradores activos</p>
-          <p className="text-base font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>{stats?.activeCollaborators ?? 0}</p>
-        </div>
+        {showCollaborators && (
+          <div>
+            <p className="text-xs uppercase tracking-wide" style={{ color: 'var(--nexora-ink-dim)' }}>Colaboradores activos</p>
+            <p className="text-base font-semibold mt-1" style={{ color: 'var(--nexora-ink)' }}>{stats?.activeCollaborators ?? 0}</p>
+          </div>
+        )}
       </div>
     </div>
   );
