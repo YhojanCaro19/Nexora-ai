@@ -3,7 +3,6 @@
 import { useState, type ReactNode } from "react";
 import {
   ChevronLeft,
-  ChevronRight,
   Plus,
   Trash2,
   Fingerprint,
@@ -151,18 +150,11 @@ function SectionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-full flex-col gap-3.5 rounded-2xl border border-[rgba(129,140,248,0.22)] p-4 text-left transition-colors hover:border-[rgba(129,140,248,0.55)]"
+      className="group flex h-full flex-col items-center gap-3 rounded-2xl border border-[rgba(129,140,248,0.22)] p-4 text-center transition-colors hover:border-[rgba(129,140,248,0.55)]"
     >
-      <div className="flex items-start justify-between">
-        <span className="aventhra-grad-icon">
-          <Icon size={20} strokeWidth={1.75} />
-        </span>
-        <ChevronRight
-          size={15}
-          className="shrink-0 opacity-25 transition-all group-hover:translate-x-0.5 group-hover:opacity-55"
-          style={{ color: "var(--nexora-ink-dim)" }}
-        />
-      </div>
+      <span className="aventhra-grad-icon">
+        <Icon size={22} strokeWidth={1.75} />
+      </span>
 
       <div className="flex-1">
         <p className="text-sm font-medium leading-snug" style={{ color: "var(--nexora-ink)" }}>
