@@ -1,13 +1,11 @@
 // app/(dashboard)/colaborador/page.tsx
-import { StatCard } from '@/components/dashboard/shared/StatCard';
+//
+// El Inicio del colaborador muestra el MISMO tablero del negocio que ve el
+// admin (mismos KPIs de hoy, reservas del día, gráficas y estado general).
+import { getSessionProfile } from '@/lib/auth/get-session';
+import { HomeDashboard } from '@/app/(dashboard)/admin/home-dashboard';
 
-export default function ColaboradorHomePage() {
-  return (
-    <div className="space-y-6">
-      <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
-        Inicio
-      </h1>
-      <StatCard label="Mis ventas de hoy" value="$0" />
-    </div>
-  );
+export default async function ColaboradorHomePage() {
+  const profile = await getSessionProfile();
+  return <HomeDashboard businessId={profile?.businessId ?? null} />;
 }
