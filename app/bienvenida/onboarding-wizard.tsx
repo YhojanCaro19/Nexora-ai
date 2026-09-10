@@ -520,7 +520,7 @@ export function OnboardingWizard({ defaultFullName }: { defaultFullName: string 
             >
               <LandingVideo
                 src="/media/onboarding-robot.mp4"
-                poster="/media/onboarding-robot-poster.jpg"
+                poster="/media/onboarding-robot.webp"
                 fit="contain"
                 blend="screen"
                 revealOnPlay

@@ -46,8 +46,13 @@ interface LandingVideoProps {
    * ancestro con `opacity < 1` AÍSLA el `mix-blend-mode`, y ahí el fondo
    * negro del video se ve como recuadro. `undefined` = sin puerta. */
   blendReady?: boolean;
-  /** Imagen de respaldo (primer fotograma) — se ve si el navegador bloquea
-   * el autoplay: robot quieto en vez de un botón nativo de "reproducir". */
+  /** Imagen de respaldo — se ve si el navegador bloquea el autoplay (iOS
+   * Simulator, Modo de bajo consumo, Safari con autoplay en "Nunca") en
+   * lugar del botón nativo de "reproducir". Puede ser una imagen ANIMADA
+   * (WebP/APNG/GIF): una imagen no tiene política de autoplay ni controles
+   * nativos, así que el respaldo nunca se ve congelado. Se renderiza como
+   * `<img>` con el mismo `fit`/`blend` que el video y se funde por debajo
+   * de él en cuanto el video presenta un fotograma real. */
   poster?: string;
 }
 
@@ -76,12 +81,13 @@ export function LandingVideo({
   const gateOpen = blendReady ?? true;
   // Visible cuando hay fotograma real Y la puerta está abierta.
   const revealed = sawFrame && gateOpen;
-  // Póster: se ve el robot quieto mientras el video todavía no pinta un
-  // fotograma — incluido el caso en que el navegador BLOQUEA el autoplay
-  // (Modo de bajo consumo, Safari con autoplay en "Nunca", iOS Simulator).
-  // Así nunca se ve el botón nativo de "reproducir" ni un hueco negro:
-  // en el peor caso se ve una imagen fija del robot, que para un elemento
-  // decorativo es aceptable. En cuanto el video corre, se funde encima.
+  // Póster: se ve mientras el video todavía no pinta un fotograma — incluido
+  // el caso en que el navegador BLOQUEA el autoplay (Modo de bajo consumo,
+  // Safari con autoplay en "Nunca", iOS Simulator). Así nunca se ve el botón
+  // nativo de "reproducir" ni un hueco negro. Si el póster es una imagen
+  // ANIMADA (WebP/APNG), el respaldo tampoco se ve congelado: una imagen no
+  // tiene política de autoplay y arranca sola en cualquier navegador. En
+  // cuanto el video corre de verdad, se funde encima.
   const posterVisible = !!poster && gateOpen && !sawFrame;
 
   useEffect(() => {
