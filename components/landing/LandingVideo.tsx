@@ -118,6 +118,13 @@ export function LandingVideo({
     // emitir evento (Energy Saver de Chrome, política de autoplay, etc.).
     const kick = () => {
       if (!video.paused && !video.ended) return;
+      // React NO siempre pone `muted` como propiedad del DOM antes de que
+      // el navegador evalúe el autoplay — bug conocido. Sin `muted` real,
+      // la política de autoplay bloquea el play() hasta un gesto. Se
+      // reafirma en cada intento.
+      video.muted = true;
+      video.defaultMuted = true;
+      video.playsInline = true;
       const p = video.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
     };
@@ -223,8 +230,13 @@ export function LandingVideo({
         ref={(node) => {
           videoRef.current = node;
           // Primer intento de reproducción en cuanto el nodo existe —
-          // antes incluso de que corra el efecto de arriba.
+          // antes incluso de que corra el efecto de arriba. Se fija
+          // `muted` como PROPIEDAD (React a veces no lo hace a tiempo y sin
+          // eso el autoplay silenciado queda bloqueado hasta un gesto).
           if (node) {
+            node.muted = true;
+            node.defaultMuted = true;
+            node.playsInline = true;
             const p = node.play();
             if (p && typeof p.catch === 'function') p.catch(() => {});
           }
