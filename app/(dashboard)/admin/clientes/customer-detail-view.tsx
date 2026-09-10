@@ -123,10 +123,7 @@ export function CustomerDetailView({
       </button>
 
       <div className="flex flex-col items-center gap-3 text-center">
-        <span
-          className="relative grid h-14 w-14 place-items-center rounded-2xl"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
+        <span className="relative grid h-14 w-14 place-items-center rounded-2xl">
           <span
             aria-hidden
             className="pointer-events-none absolute inset-0 rounded-2xl"
@@ -216,12 +213,9 @@ function SectionMenuItem({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3.5 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+      className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.07] px-4 py-3.5 text-left transition-colors hover:border-white/[0.18]"
     >
-      <span
-        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl"
-        style={{ background: 'rgba(255,255,255,0.025)' }}
-      >
+      <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl">
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-xl"
