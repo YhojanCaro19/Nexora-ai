@@ -5,6 +5,7 @@ import { Check, X, Phone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatShortDateTime } from "@/lib/utils/date";
 import { resolveAccountChangeAction } from "./actions";
+import { GlowField, GLOW_FIELD_INPUT_CLS } from "@/components/shared/glow-field";
 import type { AccountChangeRequestListItem } from "@/lib/services/accountChangeService";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,7 +30,7 @@ const ROLE_LABEL: Record<string, string> = {
 function RequestCard({ request }: { request: AccountChangeRequestListItem }) {
   const [mode, setMode] = useState<"idle" | "approve" | "reject">("idle");
   const [note, setNote] = useState("");
-  const [feedback, setFeedback] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ kind: "ok" | "error" | "rejected"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const isPending = request.status === "pending";
@@ -45,10 +46,11 @@ function RequestCard({ request }: { request: AccountChangeRequestListItem }) {
         setFeedback({ kind: "error", text: result.error });
         return;
       }
-      setFeedback({
-        kind: "ok",
-        text: action === "approve" ? "Cambio aplicado." : "Solicitud rechazada.",
-      });
+      setFeedback(
+        action === "approve"
+          ? { kind: "ok", text: "Cambio aplicado." }
+          : { kind: "rejected", text: "Solicitud rechazada." },
+      );
       setMode("idle");
     });
   }
@@ -114,9 +116,9 @@ function RequestCard({ request }: { request: AccountChangeRequestListItem }) {
         <p
           className="mt-3 rounded-lg border p-2.5 text-xs"
           style={
-            feedback.kind === "error"
-              ? { borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "var(--nexora-alert)" }
-              : { borderColor: "rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", color: "var(--nexora-signal)" }
+            feedback.kind === "ok"
+              ? { borderColor: "rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", color: "var(--nexora-signal)" }
+              : { borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "var(--nexora-alert)" }
           }
         >
           {feedback.text}
@@ -147,15 +149,17 @@ function RequestCard({ request }: { request: AccountChangeRequestListItem }) {
                   ? "Confirma que ya verificaste la identidad por teléfono. Se cambiará el correo en Auth y se desvinculará la cuenta de Google anterior. Límite: 1 vez al año."
                   : "Se le avisará a la persona por correo con el motivo."}
               </p>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                maxLength={500}
-                placeholder={mode === "approve" ? "Nota interna (opcional)" : "Motivo del rechazo (opcional)"}
-                className="w-full rounded-lg border bg-transparent px-3 py-2 text-sm"
-                style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
-              />
+              <GlowField>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  placeholder={mode === "approve" ? "Nota interna (opcional)" : "Motivo del rechazo (opcional)"}
+                  className={`w-full resize-none rounded-lg border px-3 py-2 text-sm ${GLOW_FIELD_INPUT_CLS}`}
+                  style={{ color: "var(--nexora-ink)" }}
+                />
+              </GlowField>
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"

@@ -85,6 +85,35 @@ interface ProfilePanelProps {
 
 // ---------- helpers de layout ----------
 
+// Degradado de marca (cian → violeta) — mismo que el formulario de producto.
+const BRAND_GRADIENT = "linear-gradient(110deg, #4CC2E8, #818CF8, #A78BFA)";
+// Apaga el anillo/contorno por defecto al enfocar; el resplandor de marca
+// lo pone <GlowField> alrededor.
+const GLOW_FIELD_CLS =
+  "border-white/10 bg-white/[0.03] outline-none focus-visible:border-white/10 focus-visible:ring-0";
+
+// Envuelve un control y le pinta un borde en degradado de marca al
+// enfocarlo (máscara, sin tapar el relleno) — igual que en el formulario
+// de producto de Catálogo.
+function GlowField({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`group/glow relative rounded-lg ${className}`}>
+      {children}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200 group-focus-within/glow:opacity-100"
+        style={{
+          padding: "1px",
+          background: BRAND_GRADIENT,
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+    </div>
+  );
+}
+
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
@@ -170,15 +199,17 @@ function PersonalDataSection({ details }: { details: ProfileDetails }) {
         <Label htmlFor="fullName" className="block text-center">
           Nombre
         </Label>
-        <Input
-          id="fullName"
-          value={fullName}
-          onChange={(e) => {
-            setFullName(e.target.value);
-            setSaved(false);
-          }}
-          className="text-center"
-        />
+        <GlowField>
+          <Input
+            id="fullName"
+            value={fullName}
+            onChange={(e) => {
+              setFullName(e.target.value);
+              setSaved(false);
+            }}
+            className={`text-center ${GLOW_FIELD_CLS}`}
+          />
+        </GlowField>
       </div>
 
       <PhoneField
@@ -341,30 +372,34 @@ function AccessChangeSection({
         <Label htmlFor="newEmail" className="block text-center">
           Correo nuevo
         </Label>
-        <Input
-          id="newEmail"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="tucuenta@gmail.com"
-          className="text-center"
-        />
+        <GlowField>
+          <Input
+            id="newEmail"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="tucuenta@gmail.com"
+            className={`text-center ${GLOW_FIELD_CLS}`}
+          />
+        </GlowField>
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="reason" className="block text-center">
           Motivo
         </Label>
-        <textarea
-          id="reason"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={3}
-          maxLength={500}
-          placeholder="Perdí el acceso a mi correo actual…"
-          className="w-full rounded-lg border bg-transparent px-3 py-2 text-center text-sm"
-          style={{ borderColor: "var(--nexora-line)", color: "var(--nexora-ink)" }}
-        />
+        <GlowField>
+          <textarea
+            id="reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            maxLength={500}
+            placeholder="Perdí el acceso a mi correo actual…"
+            className="w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-center text-sm outline-none"
+            style={{ color: "var(--nexora-ink)" }}
+          />
+        </GlowField>
       </div>
 
       <div className="flex justify-center pt-1">
