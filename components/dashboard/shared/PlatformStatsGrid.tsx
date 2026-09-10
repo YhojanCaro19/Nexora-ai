@@ -25,12 +25,7 @@ export function PlatformStatsGrid({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <IconStatCard
-          icon={Building2}
-          label="Negocios registrados"
-          value={fmt(stats.businessesTotal)}
-          badge={stats.businessesNew > 0 ? { text: `${stats.businessesNew} nuevos` } : undefined}
-        />
+        <IconStatCard icon={Building2} label={`Negocios nuevos ${period}`} value={fmt(stats.businessesNew)} />
         <IconStatCard icon={PowerOff} label={`Negocios inhabilitados ${period}`} value={fmt(stats.businessesDisabled)} />
         <IconStatCard icon={ShoppingBag} label={`Pedidos completados ${period}`} value={fmt(stats.completedOrdersCount)} />
         <IconStatCard icon={CalendarDays} label={`Reservas completadas ${period}`} value={fmt(stats.completedReservationsCount)} />
