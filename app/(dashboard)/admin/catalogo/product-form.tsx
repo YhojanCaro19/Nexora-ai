@@ -16,7 +16,9 @@ import type { CatalogKind } from "@/lib/config/catalogKind";
 
 const NEW_CATEGORY_OPTION = "__new__";
 
-const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
+// El aviso de stock bajo es obligatorio cuando se lleva inventario —
+// arranca con el default para que no estorbe, pero se puede cambiar.
+const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "5" };
 
 // Degradado de marca (cian → violeta) reutilizado para bordes y detalles
 // finos — mismo criterio que el wizard de bienvenida.
@@ -67,7 +69,7 @@ export function ProductForm({
           price: formatThousands(String(editingProduct.price)),
           stock: editingProduct.stock === null ? "" : String(editingProduct.stock),
           lowStockThreshold:
-            editingProduct.low_stock_threshold === null ? "" : String(editingProduct.low_stock_threshold),
+            editingProduct.low_stock_threshold === null ? "5" : String(editingProduct.low_stock_threshold),
         }
       : EMPTY_FORM
   );
@@ -144,6 +146,11 @@ export function ProductForm({
 
     if (tracking && form.stock.trim() === "") {
       setError("El stock es obligatorio. Si este producto no lleva inventario, apaga «Llevar inventario».");
+      return;
+    }
+
+    if (tracking && form.lowStockThreshold.trim() === "") {
+      setError("El aviso de stock bajo es obligatorio: indica con cuántas unidades quieres que te avise.");
       return;
     }
 
@@ -482,7 +489,7 @@ export function ProductForm({
                     />
                   </GlowField>
                 </Field>
-                <Field label="Aviso de stock bajo (opcional)" htmlFor="low-stock-threshold">
+                <Field label="Aviso de stock bajo" htmlFor="low-stock-threshold">
                   <GlowField>
                     <Input
                       id="low-stock-threshold"
@@ -492,6 +499,7 @@ export function ProductForm({
                       placeholder="5"
                       value={form.lowStockThreshold}
                       onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
+                      required
                       className={FIELD_CLS}
                     />
                   </GlowField>
