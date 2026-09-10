@@ -1,13 +1,23 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type ComponentProps, type FormEvent } from "react";
 import { ImagePlus } from "lucide-react";
 import { updateBusinessBrandingAction, uploadBusinessLogoAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneField } from "@/components/shared/PhoneField";
+import { GlowField, GLOW_FIELD_INPUT_CLS } from "@/components/shared/glow-field";
 import type { BusinessBranding } from "@/lib/services/businessBrandingService";
+
+// Input con el resplandor de marca al enfocar (mismo efecto del catálogo).
+function GlowInput({ className, ...props }: ComponentProps<typeof Input>) {
+  return (
+    <GlowField>
+      <Input {...props} className={`${GLOW_FIELD_INPUT_CLS} ${className ?? ""}`} />
+    </GlowField>
+  );
+}
 
 // Misma plantilla de reporte para todos los negocios — esto es lo único
 // que cambia por negocio: el logo, el correo, el teléfono, el NIT/
@@ -138,7 +148,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="contactEmail" className="block text-center">Correo de contacto</Label>
-          <Input
+          <GlowInput
             id="contactEmail"
             type="email"
             value={contactEmail}
@@ -161,7 +171,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="taxId" className="block text-center">NIT o documento (opcional)</Label>
-          <Input
+          <GlowInput
             id="taxId"
             value={taxId}
             onChange={(e) => {
@@ -174,7 +184,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="address" className="block text-center">Dirección (opcional)</Label>
-          <Input
+          <GlowInput
             id="address"
             value={address}
             onChange={(e) => {
@@ -190,7 +200,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="instagram" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Instagram</Label>
-            <Input
+            <GlowInput
               id="instagram"
               value={instagram}
               onChange={(e) => {
@@ -203,7 +213,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="facebook" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Facebook</Label>
-            <Input
+            <GlowInput
               id="facebook"
               value={facebook}
               onChange={(e) => {
@@ -216,7 +226,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="tiktok" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>TikTok</Label>
-            <Input
+            <GlowInput
               id="tiktok"
               value={tiktok}
               onChange={(e) => {
@@ -229,7 +239,7 @@ export function CustomizePdfForm({ branding }: { branding: BusinessBranding }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="twitter" className="block text-center text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>X (Twitter)</Label>
-            <Input
+            <GlowInput
               id="twitter"
               value={twitter}
               onChange={(e) => {
