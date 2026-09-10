@@ -427,12 +427,6 @@ function AccessChangeSection({
   return (
     <div className="mx-auto max-w-sm space-y-4">
       <ResolvedNotice request={accessChange.lastResolved} />
-      <p className="text-center text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
-        Se entra con &ldquo;Continuar con Google&rdquo;, así que el correo es tu llave de
-        acceso. No se cambia solo: envías esta solicitud, verificamos tu identidad
-        por teléfono y el equipo aplica el cambio. Máximo 1 vez al año. El correo
-        nuevo <strong>debe ser una cuenta de Google</strong>.
-      </p>
 
       {error && (
         <p
