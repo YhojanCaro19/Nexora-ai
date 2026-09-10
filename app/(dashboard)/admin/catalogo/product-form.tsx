@@ -22,7 +22,12 @@ const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockTh
 // finos — mismo criterio que el wizard de bienvenida.
 const BRAND_GRADIENT = "linear-gradient(110deg, #4CC2E8, #818CF8, #A78BFA)";
 // Relleno translúcido + borde tenue de los inputs, igual que /bienvenida.
-const FIELD_CLS = "h-10 border-white/10 bg-white/[0.03]";
+// El anillo blanco de foco se apaga: el resplandor de marca lo pone
+// <GlowField> alrededor (borde en degradado al enfocar, como "Subir foto").
+const FIELD_CLS =
+  "h-10 border-white/10 bg-white/[0.03] focus-visible:border-white/10 focus-visible:ring-0";
+const TEXTAREA_CLS =
+  "resize-none border-white/10 bg-white/[0.03] focus-visible:border-white/10 focus-visible:ring-0";
 
 // "100" -> "100", "1000" -> "1,000", "10000000" -> "10,000,000" — separador
 // de miles mientras se escribe. Solo dígitos: se descarta cualquier otra
@@ -177,9 +182,6 @@ export function ProductForm({
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <header className="space-y-2 text-center">
-        <p className="aventhra-iridescent text-[11px] font-semibold uppercase tracking-[0.22em]">
-          Catálogo
-        </p>
         <h2 className="font-nexora text-xl" style={{ color: "var(--nexora-ink)" }}>
           {isEditing ? "Editar producto" : "Nuevo producto"}
         </h2>
@@ -288,28 +290,32 @@ export function ProductForm({
 
             <div className="w-full flex-1 space-y-4">
               <Field label="Nombre" htmlFor="name">
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Nombre del producto"
-                  required
-                  className={FIELD_CLS}
-                />
+                <GlowField>
+                  <Input
+                    id="name"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Nombre del producto"
+                    required
+                    className={FIELD_CLS}
+                  />
+                </GlowField>
               </Field>
 
               <Field label="Descripción" htmlFor="description">
-                <Textarea
-                  id="description"
-                  rows={4}
-                  maxLength={DESCRIPTION_MAX_LENGTH}
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))
-                  }
-                  placeholder="Descripción del producto"
-                  className="resize-none border-white/10 bg-white/[0.03]"
-                />
+                <GlowField>
+                  <Textarea
+                    id="description"
+                    rows={4}
+                    maxLength={DESCRIPTION_MAX_LENGTH}
+                    value={form.description}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))
+                    }
+                    placeholder="Descripción del producto"
+                    className={TEXTAREA_CLS}
+                  />
+                </GlowField>
                 <p
                   className="text-right text-[10px] tabular-nums"
                   style={{ color: "var(--nexora-ink-dim)", opacity: 0.7 }}
@@ -327,10 +333,10 @@ export function ProductForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Precio" htmlFor="price">
-              <div className="relative">
+              <GlowField>
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
+                  className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-sm"
                   style={{ color: "var(--nexora-ink-dim)" }}
                 >
                   $
@@ -345,31 +351,33 @@ export function ProductForm({
                   required
                   className={`${FIELD_CLS} pl-7`}
                 />
-              </div>
+              </GlowField>
             </Field>
 
             <Field label="Categoría (opcional)" htmlFor="category">
               {creatingCategory ? (
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="category"
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        createCategory();
-                      }
-                      if (e.key === "Escape") {
-                        setCreatingCategory(false);
-                        setNewCategory("");
-                      }
-                    }}
-                    placeholder="Nombre de la categoría"
-                    maxLength={60}
-                    autoFocus
-                    className={`flex-1 ${FIELD_CLS}`}
-                  />
+                  <GlowField className="flex-1">
+                    <Input
+                      id="category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          createCategory();
+                        }
+                        if (e.key === "Escape") {
+                          setCreatingCategory(false);
+                          setNewCategory("");
+                        }
+                      }}
+                      placeholder="Nombre de la categoría"
+                      maxLength={60}
+                      autoFocus
+                      className={FIELD_CLS}
+                    />
+                  </GlowField>
                   <Button
                     type="button"
                     size="icon"
@@ -404,12 +412,14 @@ export function ProductForm({
                     setCategorySelect(v ?? "");
                   }}
                 >
-                  <SelectTrigger
-                    id="category"
-                    className="h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm"
-                  >
-                    <SelectValue placeholder="Sin categoría" />
-                  </SelectTrigger>
+                  <GlowField>
+                    <SelectTrigger
+                      id="category"
+                      className="h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm focus-visible:border-white/10 focus-visible:ring-0"
+                    >
+                      <SelectValue placeholder="Sin categoría" />
+                    </SelectTrigger>
+                  </GlowField>
                   <SelectContent>
                     {categoryNames.map((cat) => (
                       <SelectItem key={cat} value={cat}>
@@ -444,6 +454,13 @@ export function ProductForm({
                 id="track-inventory"
                 checked={trackInventory}
                 onCheckedChange={(checked) => setTrackInventory(checked === true)}
+                // Marcado con el degradado de marca de la landing (cian →
+                // violeta) en vez del verde, solo en este formulario.
+                style={
+                  trackInventory
+                    ? { backgroundColor: "transparent", backgroundImage: BRAND_GRADIENT, borderColor: "transparent" }
+                    : undefined
+                }
               />
               Llevar inventario de este producto
             </Label>
@@ -451,29 +468,33 @@ export function ProductForm({
             {trackInventory ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Stock" htmlFor="stock">
-                  <Input
-                    id="stock"
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={form.stock}
-                    onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
-                    placeholder="0"
-                    required
-                    className={FIELD_CLS}
-                  />
+                  <GlowField>
+                    <Input
+                      id="stock"
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={form.stock}
+                      onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
+                      placeholder="0"
+                      required
+                      className={FIELD_CLS}
+                    />
+                  </GlowField>
                 </Field>
                 <Field label="Aviso de stock bajo (opcional)" htmlFor="low-stock-threshold">
-                  <Input
-                    id="low-stock-threshold"
-                    type="number"
-                    min="1"
-                    step="1"
-                    placeholder="5"
-                    value={form.lowStockThreshold}
-                    onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-                    className={FIELD_CLS}
-                  />
+                  <GlowField>
+                    <Input
+                      id="low-stock-threshold"
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="5"
+                      value={form.lowStockThreshold}
+                      onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
+                      className={FIELD_CLS}
+                    />
+                  </GlowField>
                 </Field>
               </div>
             ) : (
@@ -522,6 +543,28 @@ function SectionHeading({ children }: { children: string }) {
         aria-hidden
         className="h-px w-8 rounded-full"
         style={{ background: "linear-gradient(90deg, rgba(129,140,248,0.45), transparent)" }}
+      />
+    </div>
+  );
+}
+
+// Envuelve un control y le pinta un borde en degradado de marca al
+// enfocarlo (máscara, sin tapar el relleno) — el mismo resplandor que
+// "Subir foto", en vez del anillo blanco por defecto.
+function GlowField({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`group/glow relative rounded-lg ${className}`}>
+      {children}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200 group-focus-within/glow:opacity-100"
+        style={{
+          padding: "1px",
+          background: BRAND_GRADIENT,
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
       />
     </div>
   );
