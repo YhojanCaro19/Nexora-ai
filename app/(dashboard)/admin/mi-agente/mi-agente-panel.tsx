@@ -130,15 +130,11 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
 // usado en perfil/profile-panel.tsx y clientes/customer-detail-view.tsx).
 type View = "menu" | "identidad" | "como-habla" | "escalamiento" | "negocio" | "herramientas";
 
-// Borde en degradado de marca para el disco del ícono — mismos stops que el
-// menú de secciones de Clientes (customer-detail-view.tsx).
-const BRAND_BORDER = "linear-gradient(140deg, #4CC2E8, #818CF8, #A78BFA, #E879C7)";
-
-// Fila-cristal del menú de modulitos. Plantilla visual copiada tal cual de
-// SectionMenuItem de clientes/customer-detail-view.tsx: icono en disco de
-// vidrio con borde en degradado por máscara, label + descripción, resumen
-// corto opcional a la derecha y ChevronRight que se desliza en hover.
-function SectionMenuItem({
+// Tarjeta-cristal de un modulito. Sin relleno (solo borde), disco del ícono
+// con borde en degradado de marca por máscara. Van en una grilla
+// horizontal, no en lista vertical. Contenido apilado: ícono + chevron
+// arriba, luego título, descripción y el resumen corto al pie.
+function SectionCard({
   icon: Icon,
   label,
   description,
@@ -155,46 +151,34 @@ function SectionMenuItem({
     <button
       type="button"
       onClick={onClick}
-      className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3.5 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+      className="group flex h-full flex-col gap-4 rounded-2xl border border-white/[0.07] p-5 text-left transition-colors hover:border-white/[0.18]"
     >
-      <span
-        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl"
-        style={{ background: "rgba(255,255,255,0.025)" }}
-      >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-xl"
-          style={{
-            padding: "1px",
-            background: BRAND_BORDER,
-            opacity: 0.5,
-            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-            WebkitMaskComposite: "xor",
-            maskComposite: "exclude",
-          }}
+      <div className="flex items-start justify-between">
+        <Icon size={20} strokeWidth={1.5} style={{ color: "var(--nexora-ink)" }} />
+        <ChevronRight
+          size={16}
+          className="shrink-0 opacity-25 transition-all group-hover:translate-x-0.5 group-hover:opacity-55"
+          style={{ color: "var(--nexora-ink-dim)" }}
         />
-        <Icon size={17} strokeWidth={1.75} style={{ color: "var(--nexora-ink)" }} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-medium" style={{ color: "var(--nexora-ink)" }}>
-            {label}
-          </span>
-          {summary && (
-            <span className="shrink-0 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-              {summary}
-            </span>
-          )}
-        </div>
-        <p className="mt-0.5 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+      </div>
+
+      <div className="flex-1">
+        <p className="font-medium" style={{ color: "var(--nexora-ink)" }}>
+          {label}
+        </p>
+        <p className="mt-1.5 text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
           {description}
         </p>
       </div>
-      <ChevronRight
-        size={15}
-        className="shrink-0 opacity-30 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
-        style={{ color: "var(--nexora-ink-dim)" }}
-      />
+
+      {summary && (
+        <p
+          className="text-[11px] uppercase tracking-wide"
+          style={{ color: "rgba(238,240,247,0.4)" }}
+        >
+          {summary}
+        </p>
+      )}
     </button>
   );
 }
@@ -429,9 +413,9 @@ export function MiAgentePanel({
 
   if (view === "menu") {
     return (
-      <div className="mx-auto max-w-lg space-y-2.5">
+      <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {MENU.map((m) => (
-          <SectionMenuItem
+          <SectionCard
             key={m.key}
             icon={m.icon}
             label={m.label}
