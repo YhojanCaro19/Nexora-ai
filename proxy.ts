@@ -22,23 +22,28 @@ const INACTIVITY_TIMEOUT_MS = 60 * 60 * 1000;
 async function resolveRoleAndBusiness(
   supabase: ReturnType<typeof createServerClient>,
   userId: string
-): Promise<{ role: string | null; businessId: string | null }> {
+): Promise<{ role: string | null; businessId: string | null; businessActive: boolean }> {
   const { data: platformAdmin } = await supabase
     .from('platform_admins')
     .select('user_id')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (platformAdmin) return { role: 'superadmin', businessId: null };
+  if (platformAdmin) return { role: 'superadmin', businessId: null, businessActive: true };
 
   const { data: membership } = await supabase
     .from('business_members')
-    .select('role, business_id')
+    .select('role, business_id, businesses(is_active)')
     .eq('user_id', userId)
     .eq('is_active', true)
     .maybeSingle();
 
-  return { role: membership?.role ?? null, businessId: membership?.business_id ?? null };
+  const business = membership?.businesses as unknown as { is_active: boolean } | null;
+  return {
+    role: membership?.role ?? null,
+    businessId: membership?.business_id ?? null,
+    businessActive: business?.is_active ?? true,
+  };
 }
 
 export async function proxy(request: NextRequest) {
@@ -109,7 +114,19 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  const { role } = await resolveRoleAndBusiness(supabase, user.id);
+  const { role, businessActive } = await resolveRoleAndBusiness(supabase, user.id);
+
+  // Negocio inhabilitado por el superadmin (falta de pago, etc.): el admin
+  // y los colaboradores no pueden entrar. Se les manda a /login con un
+  // mensaje claro en vez de un rebote silencioso. NO se cierra la sesión —
+  // al reactivar el negocio vuelven a entrar sin tener que loguearse otra
+  // vez.
+  if (role && role !== 'superadmin' && !businessActive) {
+    const msg =
+      'No pudiste entrar porque tu negocio está inhabilitado. Escríbele a soporte para reactivarlo.';
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(msg)}`, request.url));
+  }
+
   const ownPrefix = role ? ROLE_PREFIX[role] : undefined;
 
   if (!ownPrefix || !pathname.startsWith(ownPrefix)) {

@@ -26,23 +26,28 @@ const ROLE_PREFIX: Record<string, string> = {
 async function resolveRoleAndBusiness(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string
-): Promise<{ role: string | null; businessId: string | null }> {
+): Promise<{ role: string | null; businessId: string | null; businessActive: boolean }> {
   const { data: platformAdmin } = await supabase
     .from("platform_admins")
     .select("user_id")
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (platformAdmin) return { role: "superadmin", businessId: null };
+  if (platformAdmin) return { role: "superadmin", businessId: null, businessActive: true };
 
   const { data: membership } = await supabase
     .from("business_members")
-    .select("role, business_id")
+    .select("role, business_id, businesses(is_active)")
     .eq("user_id", userId)
     .eq("is_active", true)
     .maybeSingle();
 
-  return { role: membership?.role ?? null, businessId: membership?.business_id ?? null };
+  const business = membership?.businesses as unknown as { is_active: boolean } | null;
+  return {
+    role: membership?.role ?? null,
+    businessId: membership?.business_id ?? null,
+    businessActive: business?.is_active ?? true,
+  };
 }
 
 export async function GET(request: Request) {
@@ -66,13 +71,22 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=No se pudo iniciar sesión`);
   }
 
-  const { role, businessId } = await resolveRoleAndBusiness(supabase, user.id);
+  const { role, businessId, businessActive } = await resolveRoleAndBusiness(supabase, user.id);
 
   // Correo de Google sin acceso a la plataforma.
   if (!role) {
     await supabase.auth.signOut();
     const email = user.email ? `?email=${encodeURIComponent(user.email)}` : "";
     return NextResponse.redirect(`${origin}/solicitar-acceso${email}`);
+  }
+
+  // Negocio inhabilitado por el superadmin: el admin y los colaboradores no
+  // pueden entrar. Mensaje claro en el login, no un rebote silencioso.
+  if (role !== "superadmin" && !businessActive) {
+    await supabase.auth.signOut();
+    const msg =
+      "No pudiste entrar porque tu negocio está inhabilitado. Escríbele a soporte para reactivarlo.";
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`);
   }
 
   // Log informativo de "Sesiones activas" (Perfil → Seguridad). Nunca
