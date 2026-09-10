@@ -130,9 +130,9 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
 // usado en perfil/profile-panel.tsx y clientes/customer-detail-view.tsx).
 type View = "menu" | "identidad" | "como-habla" | "escalamiento" | "negocio" | "herramientas";
 
-// Tarjeta-cristal de un modulito. Sin relleno (solo borde), disco del ícono
-// con borde en degradado de marca por máscara. Van en una grilla
-// horizontal, no en lista vertical. Contenido apilado: ícono + chevron
+// Tarjeta de un modulito. Sin relleno; borde tenue teñido del índigo de
+// marca (no blanco). Ícono pintado con el degradado de marca. Van todas
+// en una misma fila (grilla de 5). Contenido apilado: ícono + chevron
 // arriba, luego título, descripción y el resumen corto al pie.
 function SectionCard({
   icon: Icon,
@@ -151,35 +151,51 @@ function SectionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-full flex-col gap-4 rounded-2xl border border-white/[0.07] p-5 text-left transition-colors hover:border-white/[0.18]"
+      className="group flex h-full flex-col gap-3.5 rounded-2xl border border-[rgba(129,140,248,0.22)] p-4 text-left transition-colors hover:border-[rgba(129,140,248,0.55)]"
     >
       <div className="flex items-start justify-between">
-        <Icon size={20} strokeWidth={1.5} style={{ color: "var(--nexora-ink)" }} />
+        <span className="aventhra-grad-icon">
+          <Icon size={20} strokeWidth={1.75} />
+        </span>
         <ChevronRight
-          size={16}
+          size={15}
           className="shrink-0 opacity-25 transition-all group-hover:translate-x-0.5 group-hover:opacity-55"
           style={{ color: "var(--nexora-ink-dim)" }}
         />
       </div>
 
       <div className="flex-1">
-        <p className="font-medium" style={{ color: "var(--nexora-ink)" }}>
+        <p className="text-sm font-medium leading-snug" style={{ color: "var(--nexora-ink)" }}>
           {label}
         </p>
-        <p className="mt-1.5 text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
+        <p className="mt-1.5 text-[11px] leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
           {description}
         </p>
       </div>
 
       {summary && (
-        <p
-          className="text-[11px] uppercase tracking-wide"
-          style={{ color: "rgba(238,240,247,0.4)" }}
-        >
+        <p className="text-[10px] uppercase tracking-wide" style={{ color: "rgba(238,240,247,0.4)" }}>
           {summary}
         </p>
       )}
     </button>
+  );
+}
+
+// Definición del degradado de marca para pintar los íconos (.aventhra-grad-icon
+// lo referencia por id). Se monta una sola vez, oculto.
+function IconGradientDef() {
+  return (
+    <svg width="0" height="0" aria-hidden className="absolute">
+      <defs>
+        <linearGradient id="aventhra-icon-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#4CC2E8" />
+          <stop offset="38%" stopColor="#818CF8" />
+          <stop offset="68%" stopColor="#A78BFA" />
+          <stop offset="100%" stopColor="#E879C7" />
+        </linearGradient>
+      </defs>
+    </svg>
   );
 }
 
@@ -413,22 +429,25 @@ export function MiAgentePanel({
 
   if (view === "menu") {
     return (
-      <div className="mx-auto grid max-w-3xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {MENU.map((m) => (
-          <SectionCard
-            key={m.key}
-            icon={m.icon}
-            label={m.label}
-            description={m.description}
-            summary={m.summary}
-            onClick={() => {
-              setSaved(false);
-              setError(null);
-              setView(m.key);
-            }}
-          />
-        ))}
-      </div>
+      <>
+        <IconGradientDef />
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {MENU.map((m) => (
+            <SectionCard
+              key={m.key}
+              icon={m.icon}
+              label={m.label}
+              description={m.description}
+              summary={m.summary}
+              onClick={() => {
+                setSaved(false);
+                setError(null);
+                setView(m.key);
+              }}
+            />
+          ))}
+        </div>
+      </>
     );
   }
 

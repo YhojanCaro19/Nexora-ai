@@ -424,3 +424,11 @@ body {
   height: 0 !important;
   pointer-events: none !important;
 }
+/* Íconos pintados con el degradado de marca (cian → violeta → rosa), el
+   mismo de las letras de AVENTHRA. La CSS `stroke:` gana sobre el atributo
+   `stroke="currentColor"` que traen los íconos de lucide. Requiere que en
+   la página exista un <linearGradient id="aventhra-icon-grad">. */
+.aventhra-grad-icon svg,
+.aventhra-grad-icon svg * {
+  stroke: url(#aventhra-icon-grad);
+}
