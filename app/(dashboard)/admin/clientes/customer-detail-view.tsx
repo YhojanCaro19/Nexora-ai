@@ -9,7 +9,10 @@
 // Volver visibles a la vez, cada uno solo retrocede un nivel: chat →
 // lista de conversaciones → menú → lista de clientes.
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, MessageCircle, Package, CalendarClock } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle, Package, CalendarClock, User } from "lucide-react";
+
+// Borde en degradado de marca (mismo criterio que el resto del panel).
+const BRAND_BORDER = "linear-gradient(140deg, #4CC2E8, #818CF8, #A78BFA, #E879C7)";
 import {
   Table,
   TableBody,
@@ -119,20 +122,40 @@ export function CustomerDetailView({
         Volver
       </button>
 
-      <div className="text-center space-y-1">
-        <h2 className="font-nexora text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
-          {customer.name ?? "Sin nombre"}
-        </h2>
-        <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
-          {customer.phone} · {channelLabel(customer.channel)}
-        </p>
-        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
-          Cliente desde {formatShortDate(customer.created_at)}
-        </p>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span
+          className="relative grid h-14 w-14 place-items-center rounded-2xl"
+          style={{ background: 'rgba(255,255,255,0.03)' }}
+        >
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-2xl"
+            style={{
+              padding: '1px',
+              background: BRAND_BORDER,
+              opacity: 0.5,
+              WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
+          <User size={22} strokeWidth={1.5} style={{ color: 'var(--nexora-ink)' }} />
+        </span>
+        <div className="space-y-1">
+          <h2 className="font-nexora text-2xl font-semibold" style={{ color: 'var(--nexora-ink)' }}>
+            {customer.name ?? "Sin nombre"}
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--nexora-ink-dim)' }}>
+            {customer.phone} · {channelLabel(customer.channel)}
+          </p>
+          <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+            Cliente desde {formatShortDate(customer.created_at)}
+          </p>
+        </div>
       </div>
 
-      {/* Menú de secciones: Pedidos y Conversaciones, lado a lado. */}
-      <div className="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Menú de secciones — lista limpia, una fila por sección. */}
+      <div className="mx-auto max-w-lg space-y-2.5">
         <SectionMenuItem
           icon={Package}
           label="Pedidos"
@@ -180,7 +203,6 @@ function SectionMenuItem({
   description,
   summary,
   onClick,
-  className = "",
 }: {
   icon: typeof Package;
   label: string;
@@ -189,37 +211,49 @@ function SectionMenuItem({
   description: string;
   summary: string;
   onClick: () => void;
-  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-4 lg:gap-5 rounded-2xl border px-5 py-4 lg:px-7 lg:py-6 text-left transition-colors hover:bg-white/[0.06] ${className}`}
-      style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+      className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3.5 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
     >
       <span
-        className="mt-0.5 flex h-11 w-11 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: 'var(--nexora-muted)' }}
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+        style={{ background: 'rgba(255,255,255,0.025)' }}
       >
-        <Icon size={19} strokeWidth={1.5} className="lg:hidden" style={{ color: 'var(--nexora-nova)' }} />
-        <Icon size={24} strokeWidth={1.5} className="hidden lg:block" style={{ color: 'var(--nexora-nova)' }} />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-xl"
+          style={{
+            padding: '1px',
+            background: BRAND_BORDER,
+            opacity: 0.5,
+            WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+            WebkitMaskComposite: 'xor',
+            maskComposite: 'exclude',
+          }}
+        />
+        <Icon size={17} strokeWidth={1.75} style={{ color: 'var(--nexora-ink)' }} />
       </span>
-      <div className="min-w-0 flex-1 space-y-1 lg:space-y-1.5">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="text-sm lg:text-base font-medium" style={{ color: 'var(--nexora-ink)' }}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium" style={{ color: 'var(--nexora-ink)' }}>
             {label}
-          </p>
-          <span className="shrink-0 text-[11px] lg:text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+          </span>
+          <span className="shrink-0 text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
             {summary}
           </span>
         </div>
-        <p className="text-xs lg:text-sm leading-relaxed" style={{ color: 'var(--nexora-ink-dim)', opacity: 0.85 }}>
+        <p className="mt-0.5 text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
           {description}
         </p>
       </div>
-      <ChevronRight size={16} strokeWidth={1.75} className="mt-1 shrink-0 lg:hidden" style={{ color: 'var(--nexora-ink-dim)' }} />
-      <ChevronRight size={20} strokeWidth={1.75} className="mt-1.5 shrink-0 hidden lg:block" style={{ color: 'var(--nexora-ink-dim)' }} />
+      <ChevronRight
+        size={15}
+        className="shrink-0 opacity-30 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
+        style={{ color: 'var(--nexora-ink-dim)' }}
+      />
     </button>
   );
 }
