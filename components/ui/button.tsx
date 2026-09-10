@@ -33,6 +33,15 @@ const buttonVariants = cva(
         "icon-lg": "size-9",
       },
     },
+    // El botón primario lleva el filo iridiscente animado (.aventhra-cta),
+    // pero solo en tamaños con texto — no en los botones-ícono, donde un
+    // marco que "fluye" distrae. `relative` es para el ::before.
+    compoundVariants: [
+      { variant: "default", size: "default", class: "relative aventhra-cta" },
+      { variant: "default", size: "xs", class: "relative aventhra-cta" },
+      { variant: "default", size: "sm", class: "relative aventhra-cta" },
+      { variant: "default", size: "lg", class: "relative aventhra-cta" },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",
