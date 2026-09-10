@@ -43,7 +43,7 @@ import type { LoginEvent } from "@/lib/services/loginEventService";
 // todo el módulo al bundle del navegador (este es un Client Component).
 import { SECURITY_EVENT_LABELS } from "@/lib/constants/securityEventLabels";
 import type { ProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
-import type { AccessChangeEligibility } from "@/lib/services/accountChangeService";
+import type { AccessChangeEligibility, AccountChangeRequest } from "@/lib/services/accountChangeService";
 import type { BillingSummary } from "@/lib/services/creditService";
 import type { OwnAgentUsage } from "@/lib/services/agentUsageService";
 import type { ChannelConnectionPublic } from "@/lib/types/channel";
@@ -260,6 +260,42 @@ function AccountInfoSection({ details }: { details: ProfileDetails }) {
   );
 }
 
+// Aviso del resultado de la última solicitud de cambio de cuenta de acceso
+// ya resuelta (≤30 días) — para que el admin se entere en la app, no solo
+// por correo. Aprobada = verde; rechazada = rojo + el motivo del equipo.
+function ResolvedNotice({ request }: { request: AccountChangeRequest | null }) {
+  if (!request || !request.resolvedAt) return null;
+  const approved = request.status === "approved";
+  return (
+    <div
+      className="rounded-lg border p-3 text-center text-xs"
+      style={
+        approved
+          ? { borderColor: "rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", color: "var(--nexora-signal)" }
+          : { borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "var(--nexora-alert)" }
+      }
+    >
+      <p className="font-semibold">
+        {approved
+          ? "Tu solicitud de cambio de cuenta de acceso fue aprobada."
+          : "Tu solicitud de cambio de cuenta de acceso fue rechazada."}
+      </p>
+      <p className="mt-1 opacity-90" style={{ color: "var(--nexora-ink-dim)" }}>
+        {approved ? "Ahora entras con " : "Seguías entrando con "}
+        <span className="font-mono-data">
+          {approved ? request.requestedEmail : request.currentEmail}
+        </span>
+        . Resuelta el {formatShortDateTime(request.resolvedAt)}.
+      </p>
+      {request.resolutionNote && (
+        <p className="mt-1.5" style={{ color: "var(--nexora-ink-dim)" }}>
+          Motivo del equipo: <span style={{ color: "var(--nexora-ink)" }}>{request.resolutionNote}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function AccessChangeSection({
   details,
   accessChange,
@@ -342,16 +378,20 @@ function AccessChangeSection({
 
   if (accessChange.nextEligibleAt) {
     return (
-      <p className="mx-auto max-w-sm text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
-        Solo se puede cambiar la cuenta de acceso una vez al año. Podrás pedir otro
-        cambio a partir del{" "}
-        <span style={{ color: "var(--nexora-ink)" }}>{formatShortDate(accessChange.nextEligibleAt)}</span>.
-      </p>
+      <div className="mx-auto max-w-sm space-y-4">
+        <ResolvedNotice request={accessChange.lastResolved} />
+        <p className="text-center text-sm" style={{ color: "var(--nexora-ink-dim)" }}>
+          Solo se puede cambiar la cuenta de acceso una vez al año. Podrás pedir otro
+          cambio a partir del{" "}
+          <span style={{ color: "var(--nexora-ink)" }}>{formatShortDate(accessChange.nextEligibleAt)}</span>.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-sm space-y-4">
+      <ResolvedNotice request={accessChange.lastResolved} />
       <p className="text-center text-xs leading-relaxed" style={{ color: "var(--nexora-ink-dim)" }}>
         Se entra con &ldquo;Continuar con Google&rdquo;, así que el correo es tu llave de
         acceso. No se cambia solo: envías esta solicitud, verificamos tu identidad
@@ -713,7 +753,13 @@ export function ProfilePanel({
       key: "access-change",
       label: "Cambiar cuenta de acceso",
       icon: KeyRound,
-      hint: accessChange.pendingRequest ? "En revisión" : undefined,
+      hint: accessChange.pendingRequest
+        ? "En revisión"
+        : accessChange.lastResolved
+          ? accessChange.lastResolved.status === "approved"
+            ? "Aprobada"
+            : "Rechazada"
+          : undefined,
     },
     ...(canManageChannels
       ? [

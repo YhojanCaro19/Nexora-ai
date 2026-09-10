@@ -89,7 +89,14 @@ export interface AccessChangeEligibility {
   nextEligibleAt: string | null;
   // La solicitud pendiente de esta persona, si hay una.
   pendingRequest: AccountChangeRequest | null;
+  // La última solicitud YA RESUELTA (aprobada o rechazada) de esta persona,
+  // resuelta hace ≤30 días — para mostrarle el resultado + el motivo en
+  // Perfil aunque no haya revisado el correo. `null` si no hay ninguna
+  // reciente o si hay una pendiente (esa se muestra en su lugar).
+  lastResolved: AccountChangeRequest | null;
 }
+
+const RESOLVED_NOTICE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 function nextEligibleAt(lastChangedAtIso: string | null): string | null {
   if (!lastChangedAtIso) return null;
@@ -105,7 +112,7 @@ export async function getAccessChangeEligibility(
 ): Promise<AccessChangeEligibility> {
   const admin = createAdminClient();
 
-  const [{ data: member }, { data: pending }] = await Promise.all([
+  const [{ data: member }, { data: pending }, { data: resolved }] = await Promise.all([
     admin
       .from("business_members")
       .select("access_email_changed_at")
@@ -118,14 +125,31 @@ export async function getAccessChangeEligibility(
       .eq("requested_by", userId)
       .eq("status", "pending")
       .maybeSingle(),
+    admin
+      .from("account_change_requests")
+      .select("*")
+      .eq("requested_by", userId)
+      .in("status", ["approved", "rejected"])
+      .order("resolved_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const lastChangedAt = (member as { access_email_changed_at: string | null } | null)?.access_email_changed_at ?? null;
+
+  const resolvedRow = resolved ? mapRow(resolved as RequestRow) : null;
+  const lastResolved =
+    resolvedRow &&
+    resolvedRow.resolvedAt &&
+    Date.now() - new Date(resolvedRow.resolvedAt).getTime() <= RESOLVED_NOTICE_WINDOW_MS
+      ? resolvedRow
+      : null;
 
   return {
     lastChangedAt,
     nextEligibleAt: nextEligibleAt(lastChangedAt),
     pendingRequest: pending ? mapRow(pending as RequestRow) : null,
+    lastResolved,
   };
 }
 

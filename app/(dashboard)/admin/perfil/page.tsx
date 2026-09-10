@@ -36,7 +36,7 @@ export default async function PerfilPage() {
     profile.businessId ? getAgentUsageForBusiness(profile.businessId) : Promise.resolve(null),
     profile.businessId
       ? getAccessChangeEligibility(profile.userId, profile.businessId)
-      : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null }),
+      : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null, lastResolved: null }),
     profile.businessId
       ? listConnectionsForBusiness(profile.businessId)
       : Promise.resolve([]),

@@ -30,7 +30,7 @@ export default async function ColaboradorPerfilPage() {
     profile.businessId ? getBillingSummary(profile.businessId) : Promise.resolve(null),
     profile.businessId
       ? getAccessChangeEligibility(profile.userId, profile.businessId)
-      : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null }),
+      : Promise.resolve({ lastChangedAt: null, nextEligibleAt: null, pendingRequest: null, lastResolved: null }),
   ]);
 
   return (
