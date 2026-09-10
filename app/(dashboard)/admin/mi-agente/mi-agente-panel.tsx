@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Fingerprint,
+  MessageSquare,
+  Headset,
+  Store,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -114,6 +125,96 @@ function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; 
   );
 }
 
+// Las personalizaciones del agente son "modulitos": el nivel de arriba es
+// un menú y tocar uno entra a esa parte sola (patrón "tocar y entrar" ya
+// usado en perfil/profile-panel.tsx y clientes/customer-detail-view.tsx).
+type View = "menu" | "identidad" | "como-habla" | "escalamiento" | "negocio" | "herramientas";
+
+// Borde en degradado de marca para el disco del ícono — mismos stops que el
+// menú de secciones de Clientes (customer-detail-view.tsx).
+const BRAND_BORDER = "linear-gradient(140deg, #4CC2E8, #818CF8, #A78BFA, #E879C7)";
+
+// Fila-cristal del menú de modulitos. Plantilla visual copiada tal cual de
+// SectionMenuItem de clientes/customer-detail-view.tsx: icono en disco de
+// vidrio con borde en degradado por máscara, label + descripción, resumen
+// corto opcional a la derecha y ChevronRight que se desliza en hover.
+function SectionMenuItem({
+  icon: Icon,
+  label,
+  description,
+  summary,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  description: string;
+  summary?: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.018] px-4 py-3.5 text-left transition-colors hover:border-white/[0.12] hover:bg-white/[0.04]"
+    >
+      <span
+        className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl"
+        style={{ background: "rgba(255,255,255,0.025)" }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-xl"
+          style={{
+            padding: "1px",
+            background: BRAND_BORDER,
+            opacity: 0.5,
+            WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+            WebkitMaskComposite: "xor",
+            maskComposite: "exclude",
+          }}
+        />
+        <Icon size={17} strokeWidth={1.75} style={{ color: "var(--nexora-ink)" }} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium" style={{ color: "var(--nexora-ink)" }}>
+            {label}
+          </span>
+          {summary && (
+            <span className="shrink-0 text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
+              {summary}
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+          {description}
+        </p>
+      </div>
+      <ChevronRight
+        size={15}
+        className="shrink-0 opacity-30 transition-all group-hover:translate-x-0.5 group-hover:opacity-60"
+        style={{ color: "var(--nexora-ink-dim)" }}
+      />
+    </button>
+  );
+}
+
+// Botón "Volver" — mismo markup que perfil/clientes: píldora sutil con
+// ChevronLeft, retrocede un solo nivel (sección → menú).
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm transition-colors hover:bg-white/[0.06]"
+      style={{ color: "var(--nexora-ink-dim)" }}
+    >
+      <ChevronLeft size={16} />
+      Volver
+    </button>
+  );
+}
+
 export function MiAgentePanel({
   agentConfig,
   catalog,
@@ -156,6 +257,10 @@ export function MiAgentePanel({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Navegación entre modulitos. Todo el estado sigue viviendo acá; las
+  // secciones son solo vistas condicionales de este mismo árbol.
+  const [view, setView] = useState<View>("menu");
 
   // Interruptor de reservas/citas — vive en booking_settings, no en
   // agent_configs, así que se guarda solo (no con el botón "Guardar" del
@@ -279,9 +384,75 @@ export function MiAgentePanel({
     setSaved(true);
   }
 
+  const MENU: {
+    key: Exclude<View, "menu">;
+    label: string;
+    description: string;
+    icon: LucideIcon;
+    summary?: string;
+  }[] = [
+    {
+      key: "identidad",
+      label: "Identidad",
+      description: "Nombre, saludo y personalidad del agente.",
+      icon: Fingerprint,
+      summary: name.trim() || undefined,
+    },
+    {
+      key: "como-habla",
+      label: "Cómo habla",
+      description: "Tono, emojis, idioma y mensajes automáticos.",
+      icon: MessageSquare,
+    },
+    {
+      key: "escalamiento",
+      label: "Cuándo pasar a una persona",
+      description: "Cuándo el agente deja de responder y avisa a tu equipo.",
+      icon: Headset,
+      summary: escalationTriggers.length ? `${escalationTriggers.length} activos` : undefined,
+    },
+    {
+      key: "negocio",
+      label: "Sobre el negocio",
+      description: "Qué haces, sedes, horarios, pagos y preguntas frecuentes.",
+      icon: Store,
+      summary: faqs.length ? `${faqs.length} FAQ` : undefined,
+    },
+    {
+      key: "herramientas",
+      label: "Qué puede hacer",
+      description: "Herramientas y acciones que habilitas para el agente.",
+      icon: Wrench,
+      summary: enabledTools.length ? `${enabledTools.length} activas` : undefined,
+    },
+  ];
+
+  if (view === "menu") {
+    return (
+      <div className="mx-auto max-w-lg space-y-2.5">
+        {MENU.map((m) => (
+          <SectionMenuItem
+            key={m.key}
+            icon={m.icon}
+            label={m.label}
+            description={m.description}
+            summary={m.summary}
+            onClick={() => {
+              setSaved(false);
+              setError(null);
+              setView(m.key);
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="space-y-9">
+      <BackButton onClick={() => setView("menu")} />
+      <div className="mt-6 space-y-9">
+        {view === "identidad" && (
         <section className="space-y-5">
           <SectionHeading>Identidad</SectionHeading>
           <Field label="Nombre del agente" htmlFor="agent-name">
@@ -319,7 +490,9 @@ export function MiAgentePanel({
             </GlowField>
           </Field>
         </section>
+        )}
 
+        {view === "como-habla" && (
         <section className="space-y-5">
           <SectionHeading>Cómo habla</SectionHeading>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -468,7 +641,9 @@ export function MiAgentePanel({
             </GlowField>
           </Field>
         </section>
+        )}
 
+        {view === "escalamiento" && (
         <section className="space-y-5">
           <SectionHeading>Cuándo pasar a una persona</SectionHeading>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -506,7 +681,10 @@ export function MiAgentePanel({
             </GlowField>
           </Field>
         </section>
+        )}
 
+        {view === "negocio" && (
+        <>
         <section className="space-y-5">
           <SectionHeading>Sobre el negocio</SectionHeading>
           <Field label="¿A qué se dedica el negocio? (opcional)" htmlFor="agent-description">
@@ -746,7 +924,10 @@ export function MiAgentePanel({
             </Button>
           </div>
         </section>
+        </>
+        )}
 
+        {view === "herramientas" && (
         <section className="space-y-5">
           <SectionHeading>Qué puede hacer</SectionHeading>
           <MultiSelectSearch
@@ -760,9 +941,14 @@ export function MiAgentePanel({
             emptyMessage="Ninguna herramienta coincide."
           />
         </section>
+        )}
       </div>
 
-      {/* ---- Guardar — al final de todo, quieto ---- */}
+      {/* Guardar — vive dentro de la sección abierta, junto al aviso de
+          "Guardado"/error. Guarda TODA la config con el mismo handleSave de
+          siempre (no solo la sección visible): es lo más simple y no cambia
+          nada de la lógica. Tras guardar OK te quedas en la sección viendo
+          "Guardado" — igual que Datos personales en Perfil. */}
       <div className="mt-12 flex flex-col items-center gap-2">
         <Button disabled={saving} onClick={handleSave}>
           {saving ? "Guardando..." : "Guardar"}
