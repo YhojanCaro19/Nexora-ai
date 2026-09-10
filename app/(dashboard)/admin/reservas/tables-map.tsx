@@ -146,6 +146,7 @@ export function TablesMap({
   // Alto del plano en px. `null` hasta que se lee el guardado (o el usuario
   // lo cambia) — mientras tanto vale el default.
   const [floorH, setFloorH] = useState<number | null>(null);
+  const [resizing, setResizing] = useState(false);
 
   // A propósito en un efecto y no en el initializer de useState: en SSR no
   // hay `localStorage`, así que el primer render (servidor + cliente) usa el
@@ -166,6 +167,7 @@ export function TablesMap({
     e.stopPropagation();
     const startY = e.clientY;
     const startH = canvasRef.current?.getBoundingClientRect().height ?? FLOOR_DEFAULT_H;
+    setResizing(true);
 
     function move(ev: PointerEvent) {
       setFloorH(clamp(startH + (ev.clientY - startY), FLOOR_MIN_H, FLOOR_MAX_H));
@@ -173,6 +175,7 @@ export function TablesMap({
     function up() {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      setResizing(false);
       setFloorH((h) => {
         if (h != null) {
           try {
@@ -373,27 +376,40 @@ export function TablesMap({
         )}
 
         {/* Handle propio para agrandar el plano — barra en el borde inferior.
-            Funciona con mouse y touch (a diferencia de `resize` de CSS). */}
+            Funciona con mouse y touch (a diferencia de `resize` de CSS). El
+            grip late suavemente hacia abajo para insinuar que se arrastra. */}
         <div
           onPointerDown={onResizeDown}
           role="separator"
           aria-orientation="horizontal"
           aria-label="Agrandar o achicar el plano"
           title="Arrastra para agrandar el plano"
-          className="absolute inset-x-0 bottom-0 z-40 flex h-5 touch-none cursor-ns-resize items-center justify-center"
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }}
+          className="absolute inset-x-0 bottom-0 z-40 flex h-6 touch-none cursor-ns-resize items-center justify-center"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.45), transparent)" }}
         >
           <span
-            className="h-1 w-10 rounded-full transition-colors"
-            style={{ background: "rgba(255,255,255,0.28)" }}
+            className={`h-1.5 w-12 rounded-full ${resizing ? "" : "av-floorgrip"}`}
+            style={{ background: resizing ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.3)" }}
           />
         </div>
       </div>
       </div>
 
       <p className="text-center text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-        Arrastra la barra del borde inferior del plano para agrandarlo.
+        Para ampliar el espacio, arrastra la barra hacia abajo.
       </p>
+
+      <style>{`
+        @keyframes av-floorgrip {
+          0%, 55%, 100% { transform: translateY(0); opacity: 0.55; }
+          72% { transform: translateY(5px); opacity: 1; }
+          86% { transform: translateY(0); opacity: 0.55; }
+        }
+        .av-floorgrip { animation: av-floorgrip 2.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .av-floorgrip { animation: none; opacity: 0.55; }
+        }
+      `}</style>
 
       <div className="flex justify-center">
         <Button type="button" variant="outline" size="sm" onClick={addTable} disabled={pending}>
