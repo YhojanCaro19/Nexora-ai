@@ -53,58 +53,50 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
   ];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
+    <div className="mx-auto max-w-5xl space-y-4">
+      {/* Filtro a la izquierda (pestañas de texto, sin caja) y búsqueda
+          compacta a la derecha — una sola línea sobre la tabla. */}
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex items-center gap-5 text-sm">
+          {STATE_TABS.map((t) => {
+            const on = tab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className="relative whitespace-nowrap pb-1.5 transition-colors"
+                style={{ color: on ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
+              >
+                {t.label}{' '}
+                <span className="font-mono-data tabular-nums text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+                  {t.count}
+                </span>
+                {on && (
+                  <span
+                    className="absolute inset-x-0 bottom-0 h-px"
+                    style={{ background: 'var(--nexora-ink)' }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full sm:w-72">
           <Search
-            size={15}
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2"
+            size={14}
+            className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2"
             style={{ color: 'var(--nexora-ink-dim)' }}
           />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por negocio, dueño o correo…"
-            className="w-full rounded-full border py-2 pl-9 pr-4 text-sm outline-none transition-colors focus:border-white/25"
-            style={{
-              borderColor: 'var(--nexora-line)',
-              background: 'rgba(255,255,255,0.03)',
-              color: 'var(--nexora-ink)',
-            }}
+            placeholder="Buscar negocio, dueño o correo…"
+            className="w-full border-0 border-b bg-transparent py-1.5 pl-6 pr-2 text-sm outline-none transition-colors focus:border-white/30"
+            style={{ borderColor: 'var(--nexora-line)', color: 'var(--nexora-ink)' }}
           />
-        </div>
-
-        {/* Filtro de estado — segmentado discreto, en la misma fila que la
-            búsqueda (antes eran dos píldoras grandes flotando solas). */}
-        <div
-          className="flex shrink-0 self-stretch overflow-hidden rounded-full border text-xs sm:self-center"
-          style={{ borderColor: 'var(--nexora-line)' }}
-        >
-          {STATE_TABS.map((t) => {
-            const isActiveTab = tab === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTab(t.key)}
-                className="flex-1 whitespace-nowrap px-3.5 py-1.5 font-medium transition-colors sm:flex-none"
-                style={
-                  isActiveTab
-                    ? { background: 'rgba(255,255,255,0.1)', color: 'var(--nexora-ink)' }
-                    : { background: 'transparent', color: 'var(--nexora-ink-dim)' }
-                }
-              >
-                {t.label}{' '}
-                <span
-                  className="font-mono-data tabular-nums"
-                  style={{ color: isActiveTab ? 'var(--nexora-ink-dim)' : 'rgba(238,240,247,0.35)' }}
-                >
-                  {t.count}
-                </span>
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -113,15 +105,29 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
           {query.trim() ? "Ningún negocio coincide con la búsqueda." : "No hay negocios en este estado."}
         </p>
       ) : (
-        // Lista de filas-cristal, no una tabla: cada negocio es una tarjeta
-        // ligera con su monograma (borde en degradado de marca) que se
-        // ilumina al pasar el mouse. Las columnas secundarias (dueño, plan,
-        // vence) van apareciendo según el ancho; en móvil queda monograma +
-        // nombre + estado, y el detalle completo es al tocar.
-        <div className="space-y-1.5">
-          {filtered.map((b) => (
-            <BusinessRow key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
-          ))}
+        // Tabla plana, sin fondo ni marco: solo filas separadas por una
+        // línea fina. Columnas: Negocio · Tipo · Dueño · Correo · Plan.
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] text-sm">
+            <thead>
+              <tr
+                className="border-b text-left text-[11px] uppercase tracking-wider"
+                style={{ borderColor: 'var(--nexora-line)', color: 'var(--nexora-ink-dim)' }}
+              >
+                <th className="py-2.5 pr-4 font-medium">Negocio</th>
+                <th className="py-2.5 pr-4 font-medium">Tipo</th>
+                <th className="py-2.5 pr-4 font-medium">Dueño</th>
+                <th className="py-2.5 pr-4 font-medium">Correo</th>
+                <th className="py-2.5 pr-4 font-medium">Plan</th>
+                <th className="w-6" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((b) => (
+                <BusinessRow key={b.id} business={b} onClick={() => setSelectedId(b.id)} />
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
@@ -130,139 +136,45 @@ export function BusinessesPanel({ businesses }: { businesses: BusinessWithOwner[
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
-// Iniciales para el monograma: la primera letra de las dos primeras
-// palabras del nombre, o las dos primeras letras si es una sola palabra.
-function initialsOf(name: string): string {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-  return (words[0][0] + words[1][0]).toUpperCase();
-}
-
-// Monograma del negocio — disco de vidrio con el borde en degradado de
-// marca (misma técnica de máscara que las tarjetas de /bienvenida). Le da
-// identidad a cada fila sin depender de un logo. Punto rojo si el negocio
-// está inhabilitado.
-function Monogram({ name, active }: { name: string; active: boolean }) {
-  return (
-    <span
-      className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl"
-      style={{ background: "rgba(255,255,255,0.025)" }}
-    >
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-xl"
-        style={{
-          padding: 1,
-          background: "linear-gradient(140deg, #4CC2E8, #818CF8, #A78BFA, #E879C7)",
-          opacity: active ? 0.55 : 0.18,
-          WebkitMask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-          WebkitMaskComposite: "xor",
-          maskComposite: "exclude",
-        }}
-      />
-      <span
-        className="font-nexora text-[13px] font-semibold"
-        style={{ color: active ? "var(--nexora-ink)" : "var(--nexora-ink-dim)" }}
-      >
-        {initialsOf(name)}
-      </span>
-      {!active && (
-        <span
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full"
-          style={{ background: "var(--nexora-alert)", boxShadow: "0 0 0 2.5px #0a0a0f" }}
-        />
-      )}
-    </span>
-  );
-}
-
 function BusinessRow({ business, onClick }: { business: BusinessWithOwner; onClick: () => void }) {
-  const renewal = renewalInfo(business.planRenewsAt);
   const active = business.is_active;
   return (
-    <button
-      type="button"
+    <tr
       onClick={onClick}
-      className="group flex w-full items-center gap-3.5 rounded-xl border border-white/[0.055] bg-white/[0.018] px-3.5 py-3 text-left transition-colors hover:border-white/[0.13] hover:bg-white/[0.04]"
-      style={{ opacity: active ? 1 : 0.6 }}
+      className="group cursor-pointer border-b transition-colors hover:bg-white/[0.025]"
+      style={{ borderColor: 'var(--nexora-line)', opacity: active ? 1 : 0.5 }}
     >
-      <Monogram name={business.name} active={active} />
-
-      {/* Negocio + industria */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate font-medium" style={{ color: "var(--nexora-ink)" }}>
-            {business.name}
-          </span>
-          {!active && (
-            <span
-              className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
-              style={{ background: "rgba(248,113,113,0.12)", color: "var(--nexora-alert)" }}
-            >
-              Inhabilitado
-            </span>
-          )}
-        </div>
-        <div className="mt-0.5 truncate text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-          {industryLabel(business.industry_type)}
-        </div>
-      </div>
-
-      {/* Dueño — aparece en pantallas grandes */}
-      <div className="hidden min-w-0 basis-52 lg:block">
-        <div className="truncate text-sm" style={{ color: "var(--nexora-ink)" }}>
-          {business.ownerName ?? "Sin nombre"}
-        </div>
-        {business.ownerEmail && (
-          <div
-            className="mt-0.5 truncate font-mono-data text-xs"
-            style={{ color: "var(--nexora-ink-dim)" }}
-          >
-            {business.ownerEmail}
-          </div>
-        )}
-      </div>
-
-      {/* Plan */}
-      <div className="hidden shrink-0 basis-24 text-right sm:block">
-        {business.planKey ? (
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium"
-            style={{
-              borderColor: "rgba(255,255,255,0.1)",
-              background: "rgba(255,255,255,0.035)",
-              color: "var(--nexora-ink)",
-            }}
-          >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#A78BFA" }} />
-            {cap(business.planKey)}
-          </span>
-        ) : (
-          <span className="text-[11px]" style={{ color: "rgba(238,240,247,0.32)" }}>
-            Sin plan
+      <td className="py-3 pr-4 font-medium" style={{ color: 'var(--nexora-ink)' }}>
+        {business.name}
+        {!active && (
+          <span className="ml-2 text-[10px] uppercase tracking-wide" style={{ color: 'var(--nexora-alert)' }}>
+            inhabilitado
           </span>
         )}
-      </div>
-
-      {/* Vence — solo si hay fecha; si no, nada */}
-      <div className="hidden shrink-0 basis-36 text-right xl:block">
-        {renewal.empty ? (
-          <span className="text-xs" style={{ color: "rgba(238,240,247,0.28)" }}>—</span>
-        ) : (
-          <span className="flex flex-col text-xs" style={{ color: renewal.color }}>
-            <span className="tabular-nums">{renewal.label}</span>
-            {renewal.hint && <span className="mt-0.5 text-[11px] opacity-90">{renewal.hint}</span>}
-          </span>
-        )}
-      </div>
-
-      <ChevronRight
-        size={16}
-        className="shrink-0 opacity-30 transition-all group-hover:translate-x-0.5 group-hover:opacity-70"
-        style={{ color: "var(--nexora-ink-dim)" }}
-      />
-    </button>
+      </td>
+      <td className="py-3 pr-4 whitespace-nowrap" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {industryLabel(business.industry_type)}
+      </td>
+      <td className="py-3 pr-4 whitespace-nowrap" style={{ color: 'var(--nexora-ink)' }}>
+        {business.ownerName ?? '—'}
+      </td>
+      <td className="py-3 pr-4 font-mono-data text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+        {business.ownerEmail ?? '—'}
+      </td>
+      <td
+        className="py-3 pr-4 whitespace-nowrap"
+        style={{ color: business.planKey ? 'var(--nexora-ink)' : 'var(--nexora-ink-dim)' }}
+      >
+        {business.planKey ? cap(business.planKey) : 'Sin plan'}
+      </td>
+      <td className="py-3 text-right">
+        <ChevronRight
+          size={15}
+          className="ml-auto opacity-0 transition-opacity group-hover:opacity-60"
+          style={{ color: 'var(--nexora-ink-dim)' }}
+        />
+      </td>
+    </tr>
   );
 }
 
