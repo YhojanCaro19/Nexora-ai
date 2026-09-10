@@ -109,12 +109,16 @@ function TableGlyph({
 
 const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
-// Alto del plano — el usuario lo agranda arrastrando el borde inferior
-// (resize: vertical). Se recuerda por navegador (localStorage); las
+// Alto del plano — el usuario lo agranda arrastrando la barra inferior. NO
+// se usa `resize: vertical` de CSS: en Safari/iOS (y el iOS Simulator, donde
+// el usuario previsualiza) esa propiedad no hace nada y no aparece ningún
+// tirador. En su lugar hay un handle propio con pointer events, que funciona
+// igual con mouse y con touch. Se recuerda por navegador (localStorage); las
 // posiciones de mesa son permille del canvas, así que al agrandar solo se
 // separan, nada se pierde.
+const FLOOR_DEFAULT_H = 512; // 32rem
 const FLOOR_MIN_H = 384; // 24rem
-const FLOOR_MAX_H = 960; // 60rem — default 32rem va en la clase h-[32rem]
+const FLOOR_MAX_H = 960; // 60rem
 const FLOOR_H_KEY = "av_floorplan_h";
 
 // Posición por defecto (permille) para una mesa que todavía no se colocó.
@@ -139,37 +143,50 @@ export function TablesMap({
   const [feedback, setFeedback] = useState<Feed>(null);
   const [pending, start] = useTransition();
 
-  // Alto del plano: se maneja imperativamente (no por estado) para no pelear
-  // con el resize nativo del borde. Se restaura del localStorage al montar y
-  // se persiste cuando el usuario lo cambia.
-  useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
+  // Alto del plano en px. `null` hasta que se lee el guardado (o el usuario
+  // lo cambia) — mientras tanto vale el default.
+  const [floorH, setFloorH] = useState<number | null>(null);
 
+  // A propósito en un efecto y no en el initializer de useState: en SSR no
+  // hay `localStorage`, así que el primer render (servidor + cliente) usa el
+  // alto por defecto y recién tras montar se ajusta al guardado — sin esto
+  // habría un desajuste de hidratación en el alto del canvas.
+  useEffect(() => {
     try {
       const saved = Number(localStorage.getItem(FLOOR_H_KEY));
-      if (saved) el.style.height = `${clamp(saved, FLOOR_MIN_H, FLOOR_MAX_H)}px`;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setFloorH(clamp(saved, FLOOR_MIN_H, FLOOR_MAX_H));
     } catch {
-      /* localStorage inaccesible — se queda con el alto por defecto (clase) */
+      /* localStorage inaccesible — se queda con el alto por defecto */
     }
-
-    let saveTimer: number | undefined;
-    const ro = new ResizeObserver(() => {
-      window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(() => {
-        try {
-          localStorage.setItem(FLOOR_H_KEY, String(Math.round(el.getBoundingClientRect().height)));
-        } catch {
-          /* no-op */
-        }
-      }, 400);
-    });
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      window.clearTimeout(saveTimer);
-    };
   }, []);
+
+  function onResizeDown(e: React.PointerEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const startY = e.clientY;
+    const startH = canvasRef.current?.getBoundingClientRect().height ?? FLOOR_DEFAULT_H;
+
+    function move(ev: PointerEvent) {
+      setFloorH(clamp(startH + (ev.clientY - startY), FLOOR_MIN_H, FLOOR_MAX_H));
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      setFloorH((h) => {
+        if (h != null) {
+          try {
+            localStorage.setItem(FLOOR_H_KEY, String(Math.round(h)));
+          } catch {
+            /* no-op */
+          }
+        }
+        return h;
+      });
+    }
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
 
   // Posición local mientras se arrastra (permille). Al soltar se persiste y
   // se limpia para volver a usar el valor de la prop.
@@ -263,11 +280,11 @@ export function TablesMap({
         onPointerDown={(e) => {
           if (e.target === canvasRef.current) setSelectedId(null);
         }}
-        className="relative h-[32rem] w-full min-w-[32rem] overflow-hidden rounded-3xl md:min-w-0"
+        className={`relative w-full min-w-[32rem] overflow-hidden rounded-3xl md:min-w-0 ${
+          floorH == null ? "h-[32rem]" : ""
+        }`}
         style={{
-          minHeight: FLOOR_MIN_H,
-          maxHeight: FLOOR_MAX_H,
-          resize: "vertical",
+          height: floorH ?? undefined,
           background: FLOOR_BG,
           boxShadow: "inset 0 0 60px rgba(0,0,0,0.55)",
         }}
@@ -354,11 +371,28 @@ export function TablesMap({
             </span>
           </div>
         )}
+
+        {/* Handle propio para agrandar el plano — barra en el borde inferior.
+            Funciona con mouse y touch (a diferencia de `resize` de CSS). */}
+        <div
+          onPointerDown={onResizeDown}
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="Agrandar o achicar el plano"
+          title="Arrastra para agrandar el plano"
+          className="absolute inset-x-0 bottom-0 z-40 flex h-5 touch-none cursor-ns-resize items-center justify-center"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,0.4), transparent)" }}
+        >
+          <span
+            className="h-1 w-10 rounded-full transition-colors"
+            style={{ background: "rgba(255,255,255,0.28)" }}
+          />
+        </div>
       </div>
       </div>
 
       <p className="text-center text-[11px]" style={{ color: "var(--nexora-ink-dim)" }}>
-        Arrastra el borde inferior del plano para agrandarlo.
+        Arrastra la barra del borde inferior del plano para agrandarlo.
       </p>
 
       <div className="flex justify-center">
