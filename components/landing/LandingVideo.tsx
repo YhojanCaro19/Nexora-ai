@@ -46,6 +46,9 @@ interface LandingVideoProps {
    * ancestro con `opacity < 1` AÍSLA el `mix-blend-mode`, y ahí el fondo
    * negro del video se ve como recuadro. `undefined` = sin puerta. */
   blendReady?: boolean;
+  /** Imagen de respaldo (primer fotograma) — se ve si el navegador bloquea
+   * el autoplay: robot quieto en vez de un botón nativo de "reproducir". */
+  poster?: string;
 }
 
 export function LandingVideo({
@@ -57,6 +60,7 @@ export function LandingVideo({
   chromeless = false,
   revealOnPlay = false,
   blendReady,
+  poster,
 }: LandingVideoProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -253,6 +257,8 @@ export function LandingVideo({
             : '[mask-image:radial-gradient(ellipse_80%_80%_at_50%_48%,black_66%,transparent_95%)]'
         } ${fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'}`}
         {...(src ? { src } : {})}
+        {...(poster ? { poster } : {})}
+        {...({ 'webkit-playsinline': 'true', 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         autoPlay
         muted
         loop
@@ -274,14 +280,19 @@ export function LandingVideo({
           lo pausa (Energy Saver). No queremos que aparezca NUNCA: el video
           es decorativo y se re-arranca solo desde el efecto de arriba. */}
       <style jsx global>{`
-        .landing-video::-webkit-media-controls-start-playback-button,
-        .landing-video::-webkit-media-controls-overlay-play-button,
-        .landing-video::-webkit-media-controls-play-button,
+        .landing-video::-webkit-media-controls,
+        .landing-video::-webkit-media-controls-enclosure,
         .landing-video::-webkit-media-controls-panel,
-        .landing-video::-webkit-media-controls {
+        .landing-video::-webkit-media-controls-overlay-enclosure,
+        .landing-video::-webkit-media-controls-overlay-play-button,
+        .landing-video::-webkit-media-controls-start-playback-button,
+        .landing-video::-webkit-media-controls-play-button {
           display: none !important;
           -webkit-appearance: none !important;
+          appearance: none !important;
           opacity: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
           pointer-events: none !important;
         }
       `}</style>
