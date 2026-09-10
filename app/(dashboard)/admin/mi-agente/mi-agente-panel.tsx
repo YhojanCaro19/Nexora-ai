@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import {
-  Sparkles,
-  MessageCircle,
-  LifeBuoy,
-  BookOpen,
-  Wallet,
-  Wrench,
-  Plus,
-  Trash2,
-  type LucideIcon,
-} from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,34 +34,79 @@ const LANGUAGE_OPTIONS = [
   { value: "Inglés", label: "Inglés" },
 ];
 
-// Bloque de sección: encabezado con ícono + línea + los campos. Todo vive
-// en una sola página que fluye (ya no hay "entrar y salir" de secciones).
-function ConfigSection({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: LucideIcon;
-  title: string;
-  children: ReactNode;
-}) {
+// Degradado de marca (cian → violeta) reutilizado para bordes y detalles
+// finos — mismo criterio que el formulario de producto y el wizard de
+// bienvenida.
+const BRAND_GRADIENT = "linear-gradient(110deg, #4CC2E8, #818CF8, #A78BFA)";
+// Relleno translúcido + borde tenue de los inputs, igual que el catálogo.
+// El anillo blanco de foco se apaga: el resplandor de marca lo pone
+// <GlowField> alrededor (borde en degradado al enfocar).
+const FIELD_CLS =
+  "h-10 border-white/10 bg-white/[0.03] focus-visible:border-white/10 focus-visible:ring-0";
+const TEXTAREA_CLS =
+  "resize-none border-white/10 bg-white/[0.03] focus-visible:border-white/10 focus-visible:ring-0";
+const SELECT_TRIGGER_CLS =
+  "h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm focus-visible:border-white/10 focus-visible:ring-0";
+
+// Rótulo de sección centrado con dos filetes cortos teñidos de marca —
+// da estructura sin encerrar nada en una tarjeta (reemplaza el border-b
+// gris pelado con ícono). Mismo lenguaje visual que el formulario de
+// producto.
+function SectionHeading({ children }: { children: string }) {
   return (
-    <section className="space-y-4">
-      <div className="flex items-center justify-center gap-2 border-b pb-2" style={{ borderColor: "var(--nexora-line)" }}>
-        <Icon size={15} strokeWidth={1.75} style={{ color: "var(--nexora-nova)" }} />
-        <h3 className="font-nexora text-sm font-semibold" style={{ color: "var(--nexora-ink)" }}>
-          {title}
-        </h3>
-      </div>
-      {children}
-    </section>
+    <div className="flex items-center justify-center gap-3">
+      <span
+        aria-hidden
+        className="h-px w-8 rounded-full"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(129,140,248,0.45))" }}
+      />
+      <span
+        className="text-[11px] font-semibold uppercase tracking-[0.2em]"
+        style={{ color: "var(--nexora-ink-dim)" }}
+      >
+        {children}
+      </span>
+      <span
+        aria-hidden
+        className="h-px w-8 rounded-full"
+        style={{ background: "linear-gradient(90deg, rgba(129,140,248,0.45), transparent)" }}
+      />
+    </div>
   );
 }
 
+// Envuelve un control y le pinta un borde en degradado de marca al
+// enfocarlo (máscara, sin tapar el relleno) — en vez del anillo blanco
+// por defecto. Copiado del formulario de producto.
+function GlowField({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`group/glow relative rounded-lg ${className}`}>
+      {children}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-lg opacity-0 transition-opacity duration-200 group-focus-within/glow:opacity-100"
+        style={{
+          padding: "1px",
+          background: BRAND_GRADIENT,
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+    </div>
+  );
+}
+
+// Campo con label centrado en text-xs/tracking sobre el control — la
+// estética que el usuario aprobó en el formulario de producto.
 function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={htmlFor} className="block text-center">
+      <Label
+        htmlFor={htmlFor}
+        className="justify-center text-xs tracking-wide"
+        style={{ color: "var(--nexora-ink-dim)" }}
+      >
         {label}
       </Label>
       {children}
@@ -246,390 +281,485 @@ export function MiAgentePanel({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="space-y-10">
-          <ConfigSection icon={Sparkles} title="Identidad">
-            <Field label="Nombre del agente" htmlFor="agent-name">
+      <div className="space-y-9">
+        <section className="space-y-5">
+          <SectionHeading>Identidad</SectionHeading>
+          <Field label="Nombre del agente" htmlFor="agent-name">
+            <GlowField>
               <Input
                 id="agent-name"
                 value={name}
                 onChange={(e) => touched(setName)(e.target.value)}
                 placeholder="Ej. Nova, Max, Avhen…"
+                className={FIELD_CLS}
               />
-            </Field>
-            <Field label="Mensaje de bienvenida (opcional)" htmlFor="agent-greeting">
+            </GlowField>
+          </Field>
+          <Field label="Mensaje de bienvenida (opcional)" htmlFor="agent-greeting">
+            <GlowField>
               <Input
                 id="agent-greeting"
                 value={greetingMessage}
                 onChange={(e) => touched(setGreetingMessage)(e.target.value)}
                 placeholder={ph.greeting}
+                className={FIELD_CLS}
               />
-            </Field>
-            <Field label="Personalidad y tono (opcional)" htmlFor="agent-personality">
+            </GlowField>
+          </Field>
+          <Field label="Personalidad y tono (opcional)" htmlFor="agent-personality">
+            <GlowField>
               <Textarea
                 id="agent-personality"
                 rows={3}
                 value={personality}
                 onChange={(e) => touched(setPersonality)(e.target.value)}
                 placeholder={ph.personality}
+                className={TEXTAREA_CLS}
               />
+            </GlowField>
+          </Field>
+        </section>
+
+        <section className="space-y-5">
+          <SectionHeading>Cómo habla</SectionHeading>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Emojis">
+              <Select value={emojiMode} onValueChange={(v) => v && touched(setEmojiMode)(v as typeof emojiMode)}>
+                <GlowField>
+                  <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                    <SelectValue />
+                  </SelectTrigger>
+                </GlowField>
+                <SelectContent>
+                  {EMOJI_MODES.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
-          </ConfigSection>
-
-          <ConfigSection icon={MessageCircle} title="Cómo habla">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Emojis">
-                <Select value={emojiMode} onValueChange={(v) => v && touched(setEmojiMode)(v as typeof emojiMode)}>
-                  <SelectTrigger className="h-10 w-full text-sm">
+            <Field label="Trato al cliente">
+              <Select value={addressForm} onValueChange={(v) => v && touched(setAddressForm)(v as typeof addressForm)}>
+                <GlowField>
+                  <SelectTrigger className={SELECT_TRIGGER_CLS}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    {EMOJI_MODES.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Trato al cliente">
-                <Select value={addressForm} onValueChange={(v) => v && touched(setAddressForm)(v as typeof addressForm)}>
-                  <SelectTrigger className="h-10 w-full text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ADDRESS_FORMS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+                </GlowField>
+                <SelectContent>
+                  {ADDRESS_FORMS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
 
-            {emojiMode === "personalizado" && (
-              <Field label="¿Qué emojis quieres que use?" htmlFor="agent-emoji-set">
+          {emojiMode === "personalizado" && (
+            <Field label="¿Qué emojis quieres que use?" htmlFor="agent-emoji-set">
+              <GlowField>
                 <Input
                   id="agent-emoji-set"
                   value={emojiSet}
                   onChange={(e) => touched(setEmojiSet)(e.target.value)}
                   placeholder="Ej. ✂️ 💈 🔥 ✨"
+                  className={FIELD_CLS}
                 />
-              </Field>
-            )}
+              </GlowField>
+            </Field>
+          )}
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Longitud de respuesta">
-                <Select value={responseLength} onValueChange={(v) => touched(setResponseLength)(v ?? "")}>
-                  <SelectTrigger className="h-10 w-full text-sm">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Longitud de respuesta">
+              <Select value={responseLength} onValueChange={(v) => touched(setResponseLength)(v ?? "")}>
+                <GlowField>
+                  <SelectTrigger className={SELECT_TRIGGER_CLS}>
                     <SelectValue placeholder="Sin preferencia" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {RESPONSE_LENGTH_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Idioma">
-                <Select value={language} onValueChange={(v) => touched(setLanguage)(v ?? "")}>
-                  <SelectTrigger className="h-10 w-full text-sm">
+                </GlowField>
+                <SelectContent>
+                  {RESPONSE_LENGTH_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Idioma">
+              <Select value={language} onValueChange={(v) => touched(setLanguage)(v ?? "")}>
+                <GlowField>
+                  <SelectTrigger className={SELECT_TRIGGER_CLS}>
                     <SelectValue placeholder="Español" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {LANGUAGE_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        {o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+                </GlowField>
+                <SelectContent>
+                  {LANGUAGE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </div>
 
-            <Field label="Modismos / así hablamos acá (opcional)" htmlFor="agent-phrases">
+          <Field label="Modismos / así hablamos acá (opcional)" htmlFor="agent-phrases">
+            <GlowField>
               <Textarea
                 id="agent-phrases"
                 rows={2}
                 value={localPhrases}
                 onChange={(e) => touched(setLocalPhrases)(e.target.value)}
                 placeholder={ph.localPhrases}
+                className={TEXTAREA_CLS}
               />
-            </Field>
+            </GlowField>
+          </Field>
 
-            <Field label="Instrucciones adicionales (opcional)" htmlFor="agent-extra">
+          <Field label="Instrucciones adicionales (opcional)" htmlFor="agent-extra">
+            <GlowField>
               <Textarea
                 id="agent-extra"
                 rows={2}
                 value={systemPromptExtra}
                 onChange={(e) => touched(setSystemPromptExtra)(e.target.value)}
                 placeholder="Cualquier instrucción extra que quieras darle al agente."
+                className={TEXTAREA_CLS}
               />
-            </Field>
-            <Field label="Restricciones (opcional)" htmlFor="agent-restrictions">
+            </GlowField>
+          </Field>
+          <Field label="Restricciones (opcional)" htmlFor="agent-restrictions">
+            <GlowField>
               <Textarea
                 id="agent-restrictions"
                 rows={2}
                 value={restrictions}
                 onChange={(e) => touched(setRestrictions)(e.target.value)}
                 placeholder="Ej. No ofrecer descuentos, no hablar de la competencia…"
+                className={TEXTAREA_CLS}
               />
-            </Field>
-            <Field label="Mensaje cuando no sabe algo (opcional)" htmlFor="agent-fallback">
+            </GlowField>
+          </Field>
+          <Field label="Mensaje cuando no sabe algo (opcional)" htmlFor="agent-fallback">
+            <GlowField>
               <Textarea
                 id="agent-fallback"
                 rows={2}
                 value={fallbackMessage}
                 onChange={(e) => touched(setFallbackMessage)(e.target.value)}
                 placeholder="Ej. Mejor te confirmo esto directamente, dame un momento."
+                className={TEXTAREA_CLS}
               />
-            </Field>
-            <Field label="Mensaje de despedida (opcional)" htmlFor="agent-farewell">
+            </GlowField>
+          </Field>
+          <Field label="Mensaje de despedida (opcional)" htmlFor="agent-farewell">
+            <GlowField>
               <Textarea
                 id="agent-farewell"
                 rows={2}
                 value={farewellMessage}
                 onChange={(e) => touched(setFarewellMessage)(e.target.value)}
                 placeholder="Ej. ¡Gracias por escribirnos, que tengas un excelente día!"
+                className={TEXTAREA_CLS}
               />
-            </Field>
-          </ConfigSection>
+            </GlowField>
+          </Field>
+        </section>
 
-          <ConfigSection icon={LifeBuoy} title="Cuándo pasar a una persona">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {ESCALATION_TRIGGERS.map((t) => (
-                <Label key={t.key} htmlFor={`esc-${t.key}`} className="font-normal">
-                  <Checkbox
-                    id={`esc-${t.key}`}
-                    checked={escalationTriggers.includes(t.key)}
-                    onCheckedChange={(checked) => toggleEscalationTrigger(t.key, checked === true)}
-                  />
-                  {t.label}
-                </Label>
-              ))}
-            </div>
-            <Field label="Mensaje de escalamiento (opcional)" htmlFor="agent-escalation">
+        <section className="space-y-5">
+          <SectionHeading>Cuándo pasar a una persona</SectionHeading>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+            {ESCALATION_TRIGGERS.map((t) => (
+              <Label
+                key={t.key}
+                htmlFor={`esc-${t.key}`}
+                className="font-normal"
+                style={{ color: "var(--nexora-ink)" }}
+              >
+                <Checkbox
+                  id={`esc-${t.key}`}
+                  checked={escalationTriggers.includes(t.key)}
+                  onCheckedChange={(checked) => toggleEscalationTrigger(t.key, checked === true)}
+                  style={
+                    escalationTriggers.includes(t.key)
+                      ? { backgroundColor: "transparent", backgroundImage: BRAND_GRADIENT, borderColor: "transparent" }
+                      : undefined
+                  }
+                />
+                {t.label}
+              </Label>
+            ))}
+          </div>
+          <Field label="Mensaje de escalamiento (opcional)" htmlFor="agent-escalation">
+            <GlowField>
               <Textarea
                 id="agent-escalation"
                 rows={2}
                 value={escalationMessage}
                 onChange={(e) => touched(setEscalationMessage)(e.target.value)}
                 placeholder="Ej. Si quieres hablar directamente con nosotros, escríbenos al 300-123-4567."
+                className={TEXTAREA_CLS}
               />
-            </Field>
-          </ConfigSection>
+            </GlowField>
+          </Field>
+        </section>
 
-          <ConfigSection icon={BookOpen} title="Sobre el negocio">
-            <Field label="¿A qué se dedica el negocio? (opcional)" htmlFor="agent-description">
+        <section className="space-y-5">
+          <SectionHeading>Sobre el negocio</SectionHeading>
+          <Field label="¿A qué se dedica el negocio? (opcional)" htmlFor="agent-description">
+            <GlowField>
               <Textarea
                 id="agent-description"
                 rows={3}
                 value={businessDescription}
                 onChange={(e) => touched(setBusinessDescription)(e.target.value)}
                 placeholder={ph.businessDescription}
+                className={TEXTAREA_CLS}
               />
-            </Field>
+            </GlowField>
+          </Field>
 
-            {/* ¿Qué vende el negocio? Vive en businesses.catalog_kind — se
-                guarda solo. Decide si el stock del Catálogo es obligatorio. */}
-            <Field label="¿Qué vende tu negocio?" htmlFor="agent-catalog-kind">
-              <Select
-                value={catalogKind}
-                disabled={catalogKindSaving}
-                onValueChange={(v) => v && changeCatalogKind(v as CatalogKind)}
-              >
-                <SelectTrigger id="agent-catalog-kind" className="h-10 w-full text-sm">
+          {/* ¿Qué vende el negocio? Vive en businesses.catalog_kind — se
+              guarda solo. Decide si el stock del Catálogo es obligatorio. */}
+          <Field label="¿Qué vende tu negocio?" htmlFor="agent-catalog-kind">
+            <Select
+              value={catalogKind}
+              disabled={catalogKindSaving}
+              onValueChange={(v) => v && changeCatalogKind(v as CatalogKind)}
+            >
+              <GlowField>
+                <SelectTrigger id="agent-catalog-kind" className={SELECT_TRIGGER_CLS}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  {CATALOG_KIND_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-                {catalogKindError
-                  ? catalogKindError
-                  : catalogKind === "servicios"
-                    ? "En el Catálogo no se pide stock (un servicio no tiene inventario)."
-                    : "En el Catálogo el stock es obligatorio por producto (con un escape para hechos a pedido)."}
-              </p>
-            </Field>
+              </GlowField>
+              <SelectContent>
+                {CATALOG_KIND_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+              {catalogKindError
+                ? catalogKindError
+                : catalogKind === "servicios"
+                  ? "En el Catálogo no se pide stock (un servicio no tiene inventario)."
+                  : "En el Catálogo el stock es obligatorio por producto (con un escape para hechos a pedido)."}
+            </p>
+          </Field>
 
-            {/* Interruptor de reservas/citas. Vive en booking_settings —
-                se guarda solo, aparte del botón "Guardar" de esta página.
-                Cambiar de/hacia "No" hace aparecer/desaparecer el módulo
-                "Reservas" en el menú. */}
-            <Field label="¿Atiendes con reservas o citas?" htmlFor="agent-booking-mode">
-              <Select
-                value={bookingMode}
-                disabled={bookingSaving}
-                onValueChange={(v) => v && changeBookingMode(v as BookingMode)}
-              >
-                <SelectTrigger id="agent-booking-mode" className="h-10 w-full text-sm">
+          {/* Interruptor de reservas/citas. Vive en booking_settings —
+              se guarda solo, aparte del botón "Guardar" de esta página.
+              Cambiar de/hacia "No" hace aparecer/desaparecer el módulo
+              "Reservas" en el menú. */}
+          <Field label="¿Atiendes con reservas o citas?" htmlFor="agent-booking-mode">
+            <Select
+              value={bookingMode}
+              disabled={bookingSaving}
+              onValueChange={(v) => v && changeBookingMode(v as BookingMode)}
+            >
+              <GlowField>
+                <SelectTrigger id="agent-booking-mode" className={SELECT_TRIGGER_CLS}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  {BOOKING_MODE_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-                {bookingError
-                  ? bookingError
-                  : bookingMode === "off"
-                    ? "Si lo activas, aparece el módulo Reservas para configurar la agenda, los horarios y los empleados."
-                    : "La agenda, los horarios y los empleados se configuran en el módulo Reservas."}
-              </p>
-            </Field>
-            <Field label="Dirección / sedes (opcional)" htmlFor="agent-locations">
+              </GlowField>
+              <SelectContent>
+                {BOOKING_MODE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+              {bookingError
+                ? bookingError
+                : bookingMode === "off"
+                  ? "Si lo activas, aparece el módulo Reservas para configurar la agenda, los horarios y los empleados."
+                  : "La agenda, los horarios y los empleados se configuran en el módulo Reservas."}
+            </p>
+          </Field>
+          <Field label="Dirección / sedes (opcional)" htmlFor="agent-locations">
+            <GlowField>
               <Textarea
                 id="agent-locations"
                 rows={2}
                 value={locations}
                 onChange={(e) => touched(setLocations)(e.target.value)}
                 placeholder="Ej. Sede principal: Cra 45 #10-20, Medellín. Sede norte: CC Santafé, local 210."
+                className={TEXTAREA_CLS}
               />
-            </Field>
-            <Field label="Redes sociales (opcional)" htmlFor="agent-social">
+            </GlowField>
+          </Field>
+          <Field label="Redes sociales (opcional)" htmlFor="agent-social">
+            <GlowField>
               <Input
                 id="agent-social"
                 value={socialLinks}
                 onChange={(e) => touched(setSocialLinks)(e.target.value)}
                 placeholder={ph.socialLinks}
+                className={FIELD_CLS}
               />
-            </Field>
-            <Field label="Horario de atención (opcional)" htmlFor="agent-hours">
+            </GlowField>
+          </Field>
+          <Field label="Horario de atención (opcional)" htmlFor="agent-hours">
+            <GlowField>
               <Textarea
                 id="agent-hours"
                 rows={2}
                 value={businessHours}
                 onChange={(e) => touched(setBusinessHours)(e.target.value)}
                 placeholder="Ej. Lunes a viernes 9am - 6pm, sábados 9am - 1pm, domingo cerrado."
+                className={TEXTAREA_CLS}
               />
-            </Field>
-            <Field label="Mensaje fuera de horario (opcional)" htmlFor="agent-after-hours">
+            </GlowField>
+          </Field>
+          <Field label="Mensaje fuera de horario (opcional)" htmlFor="agent-after-hours">
+            <GlowField>
               <Textarea
                 id="agent-after-hours"
                 rows={2}
                 value={afterHoursMessage}
                 onChange={(e) => touched(setAfterHoursMessage)(e.target.value)}
                 placeholder="Ej. En este momento estamos cerrados, te respondemos apenas abramos."
+                className={TEXTAREA_CLS}
               />
-            </Field>
+            </GlowField>
+          </Field>
 
-            <div className="space-y-3">
-              <Label className="block text-center">Preguntas frecuentes (opcional)</Label>
-              {faqs.length > 0 && (
-                <div className="space-y-3">
-                  {faqs.map((faq, index) => (
-                    <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+          <div className="space-y-3">
+            <Label className="justify-center text-xs tracking-wide" style={{ color: "var(--nexora-ink-dim)" }}>
+              Preguntas frecuentes (opcional)
+            </Label>
+            {faqs.length > 0 && (
+              <div className="space-y-3">
+                {faqs.map((faq, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start sm:p-4"
+                    style={{ borderColor: "var(--nexora-line)" }}
+                  >
+                    <GlowField className="min-w-0">
                       <Input
                         value={faq.question}
                         onChange={(e) => updateFaq(index, "question", e.target.value)}
                         placeholder={`Pregunta. ${ph.faqQuestion}`}
-                        className="h-8 min-w-0"
+                        className={`${FIELD_CLS} min-w-0`}
                       />
+                    </GlowField>
+                    <GlowField className="min-w-0">
                       <Textarea
                         rows={1}
                         value={faq.answer}
                         onChange={(e) => updateFaq(index, "answer", e.target.value)}
                         placeholder={ph.faqAnswer}
-                        className="min-h-8 min-w-0 py-1"
+                        className={`${TEXTAREA_CLS} min-h-10 min-w-0`}
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => removeFaq(index)}
-                        aria-label="Eliminar pregunta"
-                      >
-                        <Trash2 size={14} strokeWidth={1.75} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </GlowField>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeFaq(index)}
+                      aria-label="Eliminar pregunta"
+                    >
+                      <Trash2 size={14} strokeWidth={1.75} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex justify-center">
               <Button type="button" variant="outline" size="sm" onClick={addFaq}>
                 <Plus size={14} strokeWidth={1.75} />
                 Agregar pregunta
               </Button>
             </div>
+          </div>
 
-            {products.length > 0 && (
-              <Field label="Productos que quieres destacar (opcional)">
-                <MultiSelectSearch
-                  idPrefix="priority-product"
-                  items={products.map((p) => ({ id: p.id, label: p.name }))}
-                  selectedIds={priorityProducts}
-                  onToggle={togglePriorityProduct}
-                  searchPlaceholder="Buscar producto..."
-                  triggerPlaceholder="Selecciona productos"
-                  selectedSuffix="productos seleccionados"
-                  emptyMessage="Ningún producto coincide."
-                />
-              </Field>
-            )}
-          </ConfigSection>
+          {products.length > 0 && (
+            <Field label="Productos que quieres destacar (opcional)">
+              <MultiSelectSearch
+                idPrefix="priority-product"
+                items={products.map((p) => ({ id: p.id, label: p.name }))}
+                selectedIds={priorityProducts}
+                onToggle={togglePriorityProduct}
+                searchPlaceholder="Buscar producto..."
+                triggerPlaceholder="Selecciona productos"
+                selectedSuffix="productos seleccionados"
+                emptyMessage="Ningún producto coincide."
+              />
+            </Field>
+          )}
+        </section>
 
-          <ConfigSection icon={Wallet} title="Cuentas de pago">
-            <p className="text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
-              Opcional. Agregá todas las cuentas que aceptes — el agente las ofrece todas.
-            </p>
-            {paymentMethods.length > 0 && (
-              <div className="space-y-3">
-                {paymentMethods.map((m, index) => (
-                  <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-start">
+        <section className="space-y-5">
+          <SectionHeading>Cuentas de pago</SectionHeading>
+          <p className="text-center text-xs" style={{ color: "var(--nexora-ink-dim)" }}>
+            Opcional. Agregá todas las cuentas que aceptes — el agente las ofrece todas.
+          </p>
+          {paymentMethods.length > 0 && (
+            <div className="space-y-3">
+              {paymentMethods.map((m, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-1 gap-2 rounded-xl border p-3 sm:grid-cols-[1fr_1fr_auto] sm:items-start sm:p-4"
+                  style={{ borderColor: "var(--nexora-line)" }}
+                >
+                  <GlowField className="min-w-0">
                     <Input
                       value={m.label}
                       onChange={(e) => updatePaymentMethod(index, { label: e.target.value })}
                       placeholder="Banco / billetera. Ej. Nequi"
-                      className="h-8 min-w-0"
+                      className={`${FIELD_CLS} min-w-0`}
                     />
+                  </GlowField>
+                  <GlowField className="min-w-0">
                     <Input
                       value={m.detail}
                       onChange={(e) => updatePaymentMethod(index, { detail: e.target.value })}
                       placeholder="Número de cuenta. Ej. 3054072356"
-                      className="h-8 min-w-0"
+                      className={`${FIELD_CLS} min-w-0`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => removePaymentMethod(index)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-white/[0.06]"
-                      style={{ color: "var(--nexora-ink-dim)" }}
-                      aria-label="Quitar cuenta"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+                  </GlowField>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removePaymentMethod(index)}
+                    aria-label="Quitar cuenta"
+                  >
+                    <Trash2 size={14} strokeWidth={1.75} />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex justify-center">
             <Button type="button" variant="outline" size="sm" onClick={addPaymentMethod}>
               <Plus size={14} strokeWidth={1.75} />
               Agregar cuenta
             </Button>
-          </ConfigSection>
+          </div>
+        </section>
 
-          <ConfigSection icon={Wrench} title="Qué puede hacer">
-            <MultiSelectSearch
-              idPrefix="tool"
-              items={catalog.map((tool) => ({ id: tool.key, label: tool.label }))}
-              selectedIds={enabledTools}
-              onToggle={toggleTool}
-              searchPlaceholder="Buscar herramienta..."
-              triggerPlaceholder="Selecciona herramientas"
-              selectedSuffix="herramientas activas"
-              emptyMessage="Ninguna herramienta coincide."
-            />
-          </ConfigSection>
+        <section className="space-y-5">
+          <SectionHeading>Qué puede hacer</SectionHeading>
+          <MultiSelectSearch
+            idPrefix="tool"
+            items={catalog.map((tool) => ({ id: tool.key, label: tool.label }))}
+            selectedIds={enabledTools}
+            onToggle={toggleTool}
+            searchPlaceholder="Buscar herramienta..."
+            triggerPlaceholder="Selecciona herramientas"
+            selectedSuffix="herramientas activas"
+            emptyMessage="Ninguna herramienta coincide."
+          />
+        </section>
       </div>
 
       {/* ---- Guardar — al final de todo, quieto ---- */}
