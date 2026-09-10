@@ -4,7 +4,7 @@
 // + rol + correo) y una lista de secciones con el patrón "tocar y entrar"
 // que ya usa el resto del panel (catalogo-panel, mi-agente-panel): tocar
 // una fila la reemplaza por su vista con un botón Volver, nunca acordeón.
-import { useState, useTransition, type ReactNode } from "react";
+import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Languages,
   Share2,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -264,17 +265,51 @@ function AccountInfoSection({ details }: { details: ProfileDetails }) {
 // ya resuelta (≤30 días) — para que el admin se entere en la app, no solo
 // por correo. Aprobada = verde; rechazada = rojo + el motivo del equipo.
 function ResolvedNotice({ request }: { request: AccountChangeRequest | null }) {
-  if (!request || !request.resolvedAt) return null;
+  const [dismissed, setDismissed] = useState(false);
+  const requestId = request?.id ?? null;
+
+  // Se recuerda "ya lo vi" por navegador — así no vuelve a aparecer al
+  // recargar. Es solo informativo, localStorage alcanza.
+  useEffect(() => {
+    if (!requestId) return;
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (localStorage.getItem(`av_accesschange_seen:${requestId}`)) setDismissed(true);
+    } catch {
+      /* localStorage inaccesible */
+    }
+  }, [requestId]);
+
+  if (!request || !request.resolvedAt || dismissed) return null;
   const approved = request.status === "approved";
+
+  function dismiss() {
+    setDismissed(true);
+    try {
+      localStorage.setItem(`av_accesschange_seen:${requestId}`, "1");
+    } catch {
+      /* no-op */
+    }
+  }
+
   return (
     <div
-      className="rounded-lg border p-3 text-center text-xs"
+      className="relative rounded-lg border p-3 pr-8 text-center text-xs"
       style={
         approved
           ? { borderColor: "rgba(52,211,153,0.3)", background: "rgba(52,211,153,0.08)", color: "var(--nexora-signal)" }
           : { borderColor: "rgba(248,113,113,0.3)", background: "rgba(248,113,113,0.08)", color: "var(--nexora-alert)" }
       }
     >
+      <button
+        type="button"
+        onClick={dismiss}
+        aria-label="Descartar aviso"
+        className="absolute right-1.5 top-1.5 rounded-md p-1 transition-colors hover:bg-white/[0.08]"
+        style={{ color: "var(--nexora-ink-dim)" }}
+      >
+        <X size={13} />
+      </button>
       <p className="font-semibold">
         {approved
           ? "Tu solicitud de cambio de cuenta de acceso fue aprobada."
