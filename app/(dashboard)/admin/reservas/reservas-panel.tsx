@@ -584,16 +584,6 @@ function ConfigView({
       {mode !== "off" && (
         <>
           <HoursSection hours={config.hours} />
-          {showTables && (
-            <Section icon={UtensilsCrossed} title="Mesas">
-              <TablesMap
-                tables={resources.filter((r) => r.kind === "table")}
-                onAdd={(r) => setResources((p) => [...p, r])}
-                onUpdate={(r) => setResources((p) => p.map((x) => (x.id === r.id ? r : x)))}
-                onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
-              />
-            </Section>
-          )}
           {showAppointments && (
             <ResourcesSection
               kind="staff"
@@ -610,6 +600,19 @@ function ConfigView({
               onAdd={(s) => setServices((p) => [...p, s])}
               onRemove={(id) => setServices((p) => p.filter((x) => x.id !== id))}
             />
+          )}
+          {/* El plano de mesas va al final: es la sección más alta (canvas
+              grande) y deja arriba lo que se llena primero (empleados,
+              servicios). */}
+          {showTables && (
+            <Section icon={UtensilsCrossed} title="Mesas">
+              <TablesMap
+                tables={resources.filter((r) => r.kind === "table")}
+                onAdd={(r) => setResources((p) => [...p, r])}
+                onUpdate={(r) => setResources((p) => p.map((x) => (x.id === r.id ? r : x)))}
+                onRemove={(id) => setResources((p) => p.filter((x) => x.id !== id))}
+              />
+            </Section>
           )}
         </>
       )}
