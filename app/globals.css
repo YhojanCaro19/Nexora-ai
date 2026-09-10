@@ -364,3 +364,27 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .aventhra-scrollcue-dot { animation: none; opacity: 0.5; transform: none; }
 }
+
+/* El botón nativo grande de "reproducir" que WebKit/Chrome dibujan encima
+   de un <video> cuando el autoplay silenciado se bloquea (Modo de bajo
+   consumo, Safari con autoplay en "Nunca", iOS Simulator). El video de la
+   landing/onboarding es decorativo y se re-arranca solo — nunca debe verse
+   ese control. Se replica aquí en una hoja de estilo real además del
+   `<style jsx>` de LandingVideo.tsx: los pseudo-elementos
+   `::-webkit-media-controls-*` son más fiables desde CSS global (y el
+   Simulator a veces sirve el CSS de styled-jsx cacheado). */
+.landing-video::-webkit-media-controls,
+.landing-video::-webkit-media-controls-enclosure,
+.landing-video::-webkit-media-controls-panel,
+.landing-video::-webkit-media-controls-overlay-enclosure,
+.landing-video::-webkit-media-controls-overlay-play-button,
+.landing-video::-webkit-media-controls-start-playback-button,
+.landing-video::-webkit-media-controls-play-button {
+  display: none !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}

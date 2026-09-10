@@ -70,10 +70,19 @@ export function LandingVideo({
 
   const isBlend = blend !== 'normal';
   const bare = isBlend || chromeless;
-  // Visible cuando hay fotograma real Y (si hay puerta) el contenedor ya
-  // asentó su opacidad — antes de eso el blend está aislado y el negro se
-  // vería como recuadro.
-  const revealed = sawFrame && (blendReady ?? true);
+  // Puerta de entrada: un ancestro con `opacity < 1` aísla el `mix-blend-mode`
+  // y el negro se ve como recuadro; no mostramos nada (ni video ni póster)
+  // hasta que asiente.
+  const gateOpen = blendReady ?? true;
+  // Visible cuando hay fotograma real Y la puerta está abierta.
+  const revealed = sawFrame && gateOpen;
+  // Póster: se ve el robot quieto mientras el video todavía no pinta un
+  // fotograma — incluido el caso en que el navegador BLOQUEA el autoplay
+  // (Modo de bajo consumo, Safari con autoplay en "Nunca", iOS Simulator).
+  // Así nunca se ve el botón nativo de "reproducir" ni un hueco negro:
+  // en el peor caso se ve una imagen fija del robot, que para un elemento
+  // decorativo es aceptable. En cuanto el video corre, se funde encima.
+  const posterVisible = !!poster && gateOpen && !sawFrame;
 
   useEffect(() => {
     // En modo `bare` (blend/chromeless) NO se aplica parallax: cualquier
@@ -230,6 +239,22 @@ export function LandingVideo({
           className="pointer-events-none absolute inset-[8%] -z-10 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(76,194,232,0.18),rgba(167,139,250,0.12)_45%,transparent_72%)] blur-2xl"
         />
       )}
+      {poster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={poster}
+          alt=""
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 h-full w-full ${
+            fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'
+          }`}
+          style={{
+            ...(isBlend ? { mixBlendMode: blend } : null),
+            opacity: posterVisible ? 1 : 0,
+            transition: 'opacity 220ms ease-out',
+          }}
+        />
+      )}
       <video
         ref={(node) => {
           videoRef.current = node;
@@ -257,7 +282,6 @@ export function LandingVideo({
             : '[mask-image:radial-gradient(ellipse_80%_80%_at_50%_48%,black_66%,transparent_95%)]'
         } ${fit === 'cover' ? 'scale-[1.12] object-cover' : 'object-contain'}`}
         {...(src ? { src } : {})}
-        {...(poster ? { poster } : {})}
         {...({ 'webkit-playsinline': 'true', 'x-webkit-airplay': 'deny' } as Record<string, string>)}
         autoPlay
         muted
