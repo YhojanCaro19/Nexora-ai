@@ -1,6 +1,7 @@
 // app/(dashboard)/colaborador/catalogo/page.tsx
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { getProducts } from "@/lib/services/productService";
+import { getProductCategories } from "@/lib/services/productCategoryService";
 import {
   getBusinessCountryIso2,
   getBusinessCatalogKind,
@@ -31,13 +32,19 @@ export default async function ColaboradorCatalogoPage() {
   const catalogKind = profile.businessId
     ? await getBusinessCatalogKind(profile.businessId)
     : ("ambos" as const);
+  const categories = profile.businessId ? await getProductCategories(profile.businessId) : [];
 
   return (
     <div className="space-y-6">
       <h1 className="font-nexora text-xl text-center" style={{ color: 'var(--nexora-ink)' }}>
         Catálogo
       </h1>
-      <CatalogoPanel products={products} countryIso2={countryIso2} catalogKind={catalogKind} />
+      <CatalogoPanel
+        products={products}
+        countryIso2={countryIso2}
+        catalogKind={catalogKind}
+        categories={categories}
+      />
     </div>
   );
 }

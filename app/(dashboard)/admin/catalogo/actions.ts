@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { requireModuleAccess } from "@/lib/auth/require-module-access";
 import { getSessionProfile } from "@/lib/auth/get-session";
 import { createProduct, updateProduct, toggleProductActive } from "@/lib/services/productService";
+import {
+  createProductCategory,
+  deleteProductCategory,
+} from "@/lib/services/productCategoryService";
 import type { ProductInput } from "@/lib/validators/productSchema";
 import { checkRateLimit } from "@/lib/utils/rateLimit";
 import { logProfileSecurityEvent } from "@/lib/services/profileSecurityLogService";
@@ -131,6 +135,26 @@ export async function toggleProductActiveAction(productId: string, active: boole
   }
 
   const result = await toggleProductActive(productId, businessId, active);
+  revalidateCatalogo();
+  return result;
+}
+
+// ---------- Categorías de producto ----------
+
+export async function createCategoryAction(name: string) {
+  const businessId = await requireModuleAccess("catalogo");
+  if (!businessId) return { error: "No autorizado", category: null };
+
+  const result = await createProductCategory(businessId, name);
+  revalidateCatalogo();
+  return result;
+}
+
+export async function deleteCategoryAction(id: string) {
+  const businessId = await requireModuleAccess("catalogo");
+  if (!businessId) return { error: "No autorizado" };
+
+  const result = await deleteProductCategory(businessId, id);
   revalidateCatalogo();
   return result;
 }

@@ -24,12 +24,12 @@ export function ProductsTable({
   products,
   countryIso2,
   catalogKind,
-  usedCategories,
+  categoryNames,
 }: {
   products: Product[];
   countryIso2: string | null;
   catalogKind: CatalogKind;
-  usedCategories: string[];
+  categoryNames: string[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -82,7 +82,7 @@ export function ProductsTable({
         editingProduct={editing}
         onDone={() => setEditingId(null)}
         catalogKind={catalogKind}
-        usedCategories={usedCategories}
+        categoryNames={categoryNames}
       />
     );
   }
@@ -125,7 +125,7 @@ export function ProductsTable({
             SelectValue mostrando el value crudo, ver nota allá), y el
             nombre real de la categoría en cuanto se elige una. "__all__"
             como valor centinela porque el Select no maneja bien null. */}
-        {usedCategories.length > 0 && (
+        {categoryNames.length > 0 && (
           <div className="flex justify-center">
             <Select
               value={categoryFilter ?? "__all__"}
@@ -137,7 +137,7 @@ export function ProductsTable({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__all__">Todas</SelectItem>
-                {usedCategories.map((cat) => (
+                {categoryNames.map((cat) => (
                   <SelectItem key={cat} value={cat}>
                     {cat}
                   </SelectItem>

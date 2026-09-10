@@ -5,8 +5,10 @@ import { PackagePlus, LayoutGrid, ChevronLeft, ChevronRight, UploadCloud } from 
 import { ProductForm } from "./product-form";
 import { ProductsTable } from "./products-table";
 import { BulkImport } from "./bulk-import";
+import { CategoriesManager } from "./categories-manager";
 import type { Product } from "@/lib/services/productService";
 import type { CatalogKind } from "@/lib/config/catalogKind";
+import type { ProductCategory } from "@/lib/services/productCategoryService";
 
 type View = "chooser" | "new" | "list" | "import";
 
@@ -14,17 +16,23 @@ export function CatalogoPanel({
   products,
   countryIso2,
   catalogKind,
+  categories,
 }: {
   products: Product[];
   countryIso2: string | null;
   catalogKind: CatalogKind;
+  categories: ProductCategory[];
 }) {
   const [view, setView] = useState<View>("chooser");
 
-  // Categorías que el negocio ya creó — el formulario las ofrece de nuevo
-  // (no hay lista predefinida por industria).
-  const usedCategories = Array.from(
-    new Set(products.map((p) => p.category).filter((c): c is string => !!c)),
+  // Nombres que el formulario ofrece en el selector: las categorías creadas
+  // (product_categories) + cualquier categoría que ya tenga un producto y
+  // que aún no esté en la tabla (dato viejo / import) — para no perder nada.
+  const categoryNames = Array.from(
+    new Set([
+      ...categories.map((c) => c.name),
+      ...products.map((p) => p.category).filter((c): c is string => !!c),
+    ]),
   ).sort((a, b) => a.localeCompare(b, "es"));
 
   if (view === "chooser") {
@@ -68,16 +76,19 @@ export function CatalogoPanel({
         <ProductForm
           onDone={() => setView("list")}
           catalogKind={catalogKind}
-          usedCategories={usedCategories}
+          categoryNames={categoryNames}
         />
       )}
       {view === "list" && (
-        <ProductsTable
-          products={products}
-          countryIso2={countryIso2}
-          catalogKind={catalogKind}
-          usedCategories={usedCategories}
-        />
+        <div className="space-y-4">
+          <CategoriesManager categories={categories} />
+          <ProductsTable
+            products={products}
+            countryIso2={countryIso2}
+            catalogKind={catalogKind}
+            categoryNames={categoryNames}
+          />
+        </div>
       )}
       {view === "import" && <BulkImport onDone={() => setView("list")} />}
     </div>

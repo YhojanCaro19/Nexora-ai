@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
-import { ImagePlus, X } from "lucide-react";
-import { createProductAction, updateProductAction } from "./actions";
+import { useRef, useState, useTransition, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { ImagePlus, X, Check as CheckIcon } from "lucide-react";
+import { createProductAction, updateProductAction, createCategoryAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +12,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Product } from "@/lib/services/productService";
 import { DESCRIPTION_MAX_LENGTH } from "@/lib/validators/productSchema";
-import { OTHER_CATEGORY_OPTION } from "@/lib/config/productCategories";
 import type { CatalogKind } from "@/lib/config/catalogKind";
+
+const NEW_CATEGORY_OPTION = "__new__";
 
 const EMPTY_FORM = { name: "", description: "", price: "", stock: "", lowStockThreshold: "" };
 
@@ -31,14 +33,16 @@ export function ProductForm({
   editingProduct,
   onDone,
   catalogKind,
-  usedCategories,
+  categoryNames,
 }: {
   editingProduct?: Product | null;
   onDone?: () => void;
   catalogKind: CatalogKind;
-  /** Categorías que el negocio ya creó (distintas, de sus productos). */
-  usedCategories: string[];
+  /** Nombres de categoría que ofrece el selector (creadas + las que ya
+   *  tiene algún producto). */
+  categoryNames: string[];
 }) {
+  const router = useRouter();
   const isEditing = !!editingProduct;
   // Negocio de solo servicios: nunca hay stock (un servicio no tiene
   // inventario). Productos / ambos: el stock es obligatorio salvo que el
@@ -62,16 +66,34 @@ export function ProductForm({
     editingProduct ? editingProduct.stock !== null : stockApplies
   );
 
-  // Categoría: la crea el negocio, no hay lista predefinida. El desplegable
-  // muestra las que ya usó + "Nueva categoría" (input de texto). La
-  // categoría de un producto que se está editando siempre está entre las
-  // usadas, así que se pre-selecciona sola.
+  // Categoría: la crea el negocio (product_categories). El selector muestra
+  // las existentes + "＋ Nueva categoría", que abre un mini-form inline
+  // (input + Crear) — al crear se guarda en la DB y queda seleccionada.
   const existingCategory = editingProduct?.category ?? "";
-  const matchesOption = existingCategory !== "" && usedCategories.includes(existingCategory);
   const [categorySelect, setCategorySelect] = useState(
-    existingCategory ? (matchesOption ? existingCategory : OTHER_CATEGORY_OPTION) : ""
+    existingCategory && categoryNames.includes(existingCategory) ? existingCategory : ""
   );
-  const [categoryOther, setCategoryOther] = useState(matchesOption ? "" : existingCategory);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [categoryPending, startCategory] = useTransition();
+
+  function createCategory() {
+    const name = newCategory.trim();
+    if (!name) return;
+    setCategoryError(null);
+    startCategory(async () => {
+      const res = await createCategoryAction(name);
+      if (res.error || !res.category) {
+        setCategoryError(res.error ?? "No se pudo crear la categoría.");
+        return;
+      }
+      setCategorySelect(res.category.name);
+      setCreatingCategory(false);
+      setNewCategory("");
+      router.refresh();
+    });
+  }
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(editingProduct?.image_url ?? null);
@@ -123,7 +145,7 @@ export function ProductForm({
       stock: tracking && form.stock !== "" ? Number(form.stock) : null,
       lowStockThreshold:
         tracking && form.lowStockThreshold !== "" ? Number(form.lowStockThreshold) : null,
-      category: categorySelect === OTHER_CATEGORY_OPTION ? categoryOther.trim() || undefined : categorySelect || undefined,
+      category: categorySelect || undefined,
     };
 
     const result = isEditing
@@ -146,10 +168,10 @@ export function ProductForm({
     }
   }
 
-  const inputCls = "border-white/10 bg-white/[0.03] text-center";
+  const fieldCls = "border-white/10 bg-white/[0.03]";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-7">
       <div className="text-center space-y-1">
         <h2 className="font-nexora text-lg" style={{ color: 'var(--nexora-ink)' }}>
           {isEditing ? "Editar producto" : "Nuevo producto"}
@@ -168,91 +190,91 @@ export function ProductForm({
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Foto + nombre/descripción, lado a lado en desktop. */}
-        <div className="flex flex-col gap-5 sm:flex-row sm:gap-6">
-            <div className="flex shrink-0 flex-col items-center gap-2">
+      <form onSubmit={handleSubmit} className="space-y-7">
+        {/* Foto (grande) + nombre/descripción, lado a lado en desktop. */}
+        <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative h-44 w-44 overflow-hidden rounded-2xl border border-dashed transition-colors"
+              style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.02)' }}
+              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
+              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
+            >
+              {imagePreview ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
+                  <img src={imagePreview} alt="Vista previa" className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="text-xs font-medium text-white">Cambiar</span>
+                  </div>
+                </>
+              ) : (
+                <span className="flex h-full flex-col items-center justify-center gap-2">
+                  <ImagePlus size={28} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
+                  <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Subir foto</span>
+                </span>
+              )}
+            </button>
+            {imagePreview ? (
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="group relative h-36 w-36 overflow-hidden rounded-2xl border border-dashed transition-colors"
-                style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.02)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--nexora-nova)')}
-                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
+                onClick={clearImage}
+                className="inline-flex items-center gap-1 text-xs transition-colors"
+                style={{ color: 'var(--nexora-ink-dim)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
               >
-                {imagePreview ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- preview local/remoto simple, no vale la pena next/image acá */}
-                    <img src={imagePreview} alt="Vista previa" className="absolute inset-0 h-full w-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="text-xs font-medium text-white">Cambiar</span>
-                    </div>
-                  </>
-                ) : (
-                  <span className="flex h-full flex-col items-center justify-center gap-1.5">
-                    <ImagePlus size={24} strokeWidth={1.5} style={{ color: 'var(--nexora-ink-dim)' }} />
-                    <span className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>Subir foto</span>
-                  </span>
-                )}
+                <X size={12} /> Quitar
               </button>
-              {imagePreview ? (
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="inline-flex items-center gap-1 text-xs transition-colors"
-                  style={{ color: 'var(--nexora-ink-dim)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--nexora-alert)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--nexora-ink-dim)')}
-                >
-                  <X size={12} /> Quitar
-                </button>
-              ) : (
-                <p className="max-w-36 text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  JPG o PNG, máx. 5MB. Opcional.
-                </p>
-              )}
-              <input
-                ref={fileInputRef}
-                id="image"
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-            </div>
-
-            <div className="flex-1 space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="block text-center">Nombre</Label>
-                <Input
-                  id="name"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Nombre del producto"
-                  required
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="description" className="block text-center">Descripción</Label>
-                <Textarea
-                  id="description"
-                  rows={3}
-                  maxLength={DESCRIPTION_MAX_LENGTH}
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
-                  placeholder="Descripción del producto"
-                  className="resize-none border-white/10 bg-white/[0.03]"
-                />
-                <p className="text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
-                  {form.description.length} / {DESCRIPTION_MAX_LENGTH}
-                </p>
-              </div>
-            </div>
+            ) : (
+              <p className="w-44 text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                JPG o PNG, máx. 5MB. Opcional.
+              </p>
+            )}
+            <input
+              ref={fileInputRef}
+              id="image"
+              type="file"
+              accept="image/jpeg,image/png"
+              onChange={handleImageChange}
+              className="hidden"
+            />
           </div>
 
+          <div className="w-full flex-1 space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="name" className="block text-center">Nombre</Label>
+              <Input
+                id="name"
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Nombre del producto"
+                required
+                className={fieldCls}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="description" className="block text-center">Descripción</Label>
+              <Textarea
+                id="description"
+                rows={4}
+                maxLength={DESCRIPTION_MAX_LENGTH}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value.slice(0, DESCRIPTION_MAX_LENGTH) }))}
+                placeholder="Descripción del producto"
+                className={`resize-none ${fieldCls}`}
+              />
+              <p className="text-center text-[11px]" style={{ color: 'var(--nexora-ink-dim)' }}>
+                {form.description.length} / {DESCRIPTION_MAX_LENGTH}
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Precio + categoría. */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 border-t pt-6 sm:grid-cols-2" style={{ borderColor: 'var(--nexora-line)' }}>
           <div className="space-y-1.5">
             <Label htmlFor="price" className="block text-center">Precio</Label>
             <Input
@@ -263,31 +285,53 @@ export function ProductForm({
               onChange={(e) => setForm((f) => ({ ...f, price: formatThousands(e.target.value) }))}
               placeholder="20,000"
               required
-              className={inputCls}
+              className={fieldCls}
             />
           </div>
           <div className="space-y-1.5">
             <Label className="block text-center">Categoría (opcional)</Label>
-            <Select value={categorySelect} onValueChange={(v) => setCategorySelect(v ?? "")}>
-              <SelectTrigger className="h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm">
-                <SelectValue placeholder="Sin categoría" />
-              </SelectTrigger>
-              <SelectContent>
-                {usedCategories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-                <SelectItem value={OTHER_CATEGORY_OPTION}>＋ Nueva categoría</SelectItem>
-              </SelectContent>
-            </Select>
-            {categorySelect === OTHER_CATEGORY_OPTION && (
-              <Input
-                value={categoryOther}
-                onChange={(e) => setCategoryOther(e.target.value)}
-                placeholder="Nombre de la categoría"
-                maxLength={60}
-                autoFocus
-                className={`mt-1.5 ${inputCls}`}
-              />
+            {creatingCategory ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); createCategory(); }
+                    if (e.key === "Escape") { setCreatingCategory(false); setNewCategory(""); }
+                  }}
+                  placeholder="Nombre de la categoría"
+                  maxLength={60}
+                  autoFocus
+                  className={`h-10 flex-1 ${fieldCls}`}
+                />
+                <Button type="button" size="icon" onClick={createCategory} disabled={categoryPending || !newCategory.trim()} aria-label="Crear categoría">
+                  <CheckIcon size={15} strokeWidth={2} />
+                </Button>
+                <Button type="button" size="icon" variant="outline" onClick={() => { setCreatingCategory(false); setNewCategory(""); setCategoryError(null); }} aria-label="Cancelar">
+                  <X size={15} />
+                </Button>
+              </div>
+            ) : (
+              <Select
+                value={categorySelect || undefined}
+                onValueChange={(v) => {
+                  if (v === NEW_CATEGORY_OPTION) { setCreatingCategory(true); return; }
+                  setCategorySelect(v ?? "");
+                }}
+              >
+                <SelectTrigger className="h-10 w-full justify-center border-white/10 bg-white/[0.03] text-sm">
+                  <SelectValue placeholder="Sin categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryNames.map((cat) => (
+                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  ))}
+                  <SelectItem value={NEW_CATEGORY_OPTION}>＋ Nueva categoría</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {categoryError && (
+              <p className="text-center text-[11px]" style={{ color: 'var(--nexora-alert)' }}>{categoryError}</p>
             )}
           </div>
         </div>
@@ -324,7 +368,7 @@ export function ProductForm({
                     onChange={(e) => setForm((f) => ({ ...f, stock: e.target.value }))}
                     placeholder="0"
                     required
-                    className={inputCls}
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -339,7 +383,7 @@ export function ProductForm({
                     placeholder="5"
                     value={form.lowStockThreshold}
                     onChange={(e) => setForm((f) => ({ ...f, lowStockThreshold: e.target.value }))}
-                    className={inputCls}
+                    className={fieldCls}
                   />
                 </div>
               </div>
@@ -351,7 +395,7 @@ export function ProductForm({
           </div>
         )}
 
-        <div className="flex justify-center gap-3 pt-2">
+        <div className="flex justify-center gap-3 border-t pt-6" style={{ borderColor: 'var(--nexora-line)' }}>
           <Button type="submit" disabled={loading}>
             {loading ? "Guardando..." : isEditing ? "Guardar cambios" : "Agregar producto"}
           </Button>
