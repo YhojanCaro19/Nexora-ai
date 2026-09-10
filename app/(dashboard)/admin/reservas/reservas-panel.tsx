@@ -418,7 +418,7 @@ function ResourcesSection({
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={isTable ? "Mesa 1" : "Angie"}
+            placeholder={isTable ? "Mesa 1" : "Nombre del empleado"}
             className="h-10 w-40 text-center"
           />
         </div>
