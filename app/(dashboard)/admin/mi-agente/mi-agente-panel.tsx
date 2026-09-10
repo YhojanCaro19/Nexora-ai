@@ -150,7 +150,7 @@ function SectionCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex h-full flex-col items-center gap-3 rounded-2xl border border-[rgba(129,140,248,0.22)] p-4 text-center transition-colors hover:border-[rgba(129,140,248,0.55)]"
+      className="group flex h-full flex-col items-center gap-3 rounded-2xl border border-transparent p-4 text-center transition-colors hover:border-[rgba(129,140,248,0.55)]"
     >
       <span className="aventhra-grad-icon">
         <Icon size={22} strokeWidth={1.75} />
