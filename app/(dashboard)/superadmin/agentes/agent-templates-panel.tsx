@@ -21,6 +21,40 @@ import {
   Car,
   Plane,
   PartyPopper,
+  // Un ícono por industria (no solo por categoría) — ver INDUSTRY_ICONS.
+  Coffee,
+  Croissant,
+  CakeSlice,
+  IceCreamCone,
+  Gem,
+  Scissors,
+  Brush,
+  Palette,
+  Flower2,
+  Syringe,
+  Handbag,
+  Smartphone,
+  Laptop,
+  Refrigerator,
+  Dog,
+  Sofa,
+  Flower,
+  ToyBrick,
+  Volleyball,
+  Pencil,
+  Hammer,
+  SprayCan,
+  Glasses,
+  Globe,
+  Dumbbell,
+  Stethoscope,
+  Smile,
+  Palmtree,
+  HardHat,
+  CalendarDays,
+  Camera,
+  PenTool,
+  Fingerprint,
   type LucideIcon,
 } from "lucide-react";
 import { updateIndustryTemplateAction } from "./actions";
@@ -31,6 +65,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MultiSelectSearch } from "@/components/shared/MultiSelectSearch";
+import { AventhraIconGradientDef } from "@/components/dashboard/shared/ModuleChooser";
 import { INDUSTRY_CATEGORIES } from "@/lib/config/industryCategories";
 import { EMOJI_MODES, ADDRESS_FORMS } from "@/lib/config/agentPersona";
 import { ESCALATION_TRIGGERS } from "@/lib/config/escalationTriggers";
@@ -60,6 +95,60 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   viajes: Plane,
   eventos_creatividad: PartyPopper,
 };
+
+// Un ícono propio por INDUSTRIA (industry_type), no solo por categoría —
+// para que las tarjetas de "Restaurante", "Cafetería", etc. dentro de cada
+// categoría también se vean distintas entre sí en vez de solo texto plano.
+// Mismo criterio que CATEGORY_ICONS: si algún día se agrega una industria
+// sin entrada acá, cae a Sparkles — no debe tumbar la pantalla.
+const INDUSTRY_ICONS: Record<string, LucideIcon> = {
+  restaurant: UtensilsCrossed,
+  cafe: Coffee,
+  bakery: Croissant,
+  pastry_shop: CakeSlice,
+  ice_cream_shop: IceCreamCone,
+  jewelry: Gem,
+  barbershop: Scissors,
+  hair_salon: Brush,
+  makeup_store: Palette,
+  beauty_salon: Flower2,
+  aesthetic_center: Syringe,
+  workshop: Wrench,
+  clothing_store: Shirt,
+  accessories_store: Handbag,
+  phone_store: Smartphone,
+  computer_store: Laptop,
+  appliance_store: Refrigerator,
+  tech_store: Cpu,
+  pet_store: Dog,
+  home_decor_store: Sofa,
+  flower_store: Flower,
+  toy_store: ToyBrick,
+  sporting_goods_store: Volleyball,
+  stationery_store: Pencil,
+  bookstore: BookOpen,
+  hardware_store: Hammer,
+  hair_supply_store: SprayCan,
+  optical_store: Glasses,
+  online_store: Globe,
+  gym: Dumbbell,
+  veterinary_clinic: Stethoscope,
+  dental_clinic: Smile,
+  car_dealership: Car,
+  real_estate_agency: Building2,
+  vacation_rental: Palmtree,
+  construction_company: HardHat,
+  travel_agency: Plane,
+  event_planning: CalendarDays,
+  photo_video_studio: Camera,
+  tattoo_studio: PenTool,
+  personal_brand: Fingerprint,
+};
+
+// Mismo degradado de marca (cian → índigo → violeta) que Mi Agente (admin)
+// y ModuleChooser — para que las tarjetas de categoría se vean como el
+// mismo lenguaje visual, no una pantalla aparte con su propio estilo.
+const BRAND_GRADIENT = "linear-gradient(110deg, #4CC2E8, #818CF8, #A78BFA)";
 
 const RESPONSE_LENGTH_OPTIONS = [
   { value: "corta", label: "Corta y directa" },
@@ -93,7 +182,11 @@ export function AgentTemplatesPanel({
 
   if (view === "categories") {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <>
+        <AventhraIconGradientDef />
+        {/* 5 por fila en desktop (13 categorías = 2 filas de 5 + 1 de 3),
+            mismo criterio de conteo por fila que Mi Agente (admin). */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {INDUSTRY_CATEGORIES.map((cat) => (
           <CategoryCard
             key={cat.key}
@@ -106,12 +199,18 @@ export function AgentTemplatesPanel({
             }}
           />
         ))}
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* El degradado de los íconos de plantilla (INDUSTRY_ICONS) vive acá,
+          no en la vista de categorías — esta es otra rama de `return`, así
+          que sin este <defs> el <svg> con stroke="url(#aventhra-icon-grad)"
+          apunta a nada y el ícono queda invisible. */}
+      <AventhraIconGradientDef />
       <div className="relative flex items-center justify-center">
         <BackButton
           onClick={() => {
@@ -137,6 +236,7 @@ export function AgentTemplatesPanel({
           {industriesInCategory.map((template) => (
             <TemplateCard
               key={template.industryType}
+              icon={INDUSTRY_ICONS[template.industryType] ?? Sparkles}
               label={template.industryLabel}
               onClick={() => setSelectedIndustry(template.industryType)}
             />
@@ -181,43 +281,78 @@ function CategoryCard({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className="flex items-center gap-3 rounded-2xl border p-4 text-left transition-colors duration-200 hover:border-white/20"
-      style={{ background: 'var(--nexora-panel)', borderColor: 'var(--nexora-line)' }}
+      className="group relative flex h-full flex-col items-center gap-3 rounded-2xl p-4 text-center"
     >
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
-        style={{ background: 'rgba(238,240,247,0.08)' }}
-      >
-        <Icon size={18} strokeWidth={1.5} style={{ color: 'var(--nexora-nova)' }} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate" style={{ color: 'var(--nexora-ink)' }}>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{
+          padding: "1px",
+          background: BRAND_GRADIENT,
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+
+      <span className="aventhra-grad-icon">
+        <Icon size={22} strokeWidth={1.75} />
+      </span>
+
+      <div>
+        <p className="text-sm font-medium leading-snug" style={{ color: 'var(--nexora-ink)' }}>
           {label}
         </p>
-        <p className="text-xs" style={{ color: 'var(--nexora-ink-dim)' }}>
+        <p className="mt-1 text-[11px] leading-relaxed" style={{ color: 'var(--nexora-ink-dim)' }}>
           {count} {count === 1 ? "industria" : "industrias"}
         </p>
       </div>
-      <ChevronRight size={16} strokeWidth={1.75} className="shrink-0" style={{ color: 'var(--nexora-ink-dim)' }} />
     </button>
   );
 }
 
-function TemplateCard({ label, onClick }: { label: string; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
+// Mismo lenguaje visual que CategoryCard (sin borde en reposo, borde en
+// degradado de marca al pasar el mouse) — antes tenía su propio estilo
+// (borde blanco fijo + escala al hover) que no combinaba con el resto.
+// Sin aspect-square a propósito: con 4 columnas anchas esa relación de
+// aspecto estiraba cada tarjeta a lo alto y dejaba un hueco enorme vacío
+// entre filas — compacta (altura según contenido, igual que CategoryCard)
+// se ve ordenada de verdad.
+function TemplateCard({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="aspect-square flex flex-col items-center justify-center gap-1 rounded-2xl border p-4 text-center transition-all duration-300 hover:scale-105"
-      style={{ borderColor: hovered ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.1)' }}
+      className="group relative flex flex-col items-center justify-center gap-2 rounded-2xl p-6 text-center"
     >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        style={{
+          padding: "1px",
+          background: BRAND_GRADIENT,
+          WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
+          WebkitMaskComposite: "xor",
+          maskComposite: "exclude",
+        }}
+      />
+      <span className="aventhra-grad-icon">
+        <Icon size={22} strokeWidth={1.75} />
+      </span>
       <span className="text-[11px] uppercase tracking-[0.12em]" style={{ color: 'var(--nexora-ink-dim)' }}>
         Plantilla agente
       </span>
-      <span className="text-lg font-semibold mt-2" style={{ color: 'var(--nexora-ink)' }}>
+      <span className="text-lg font-semibold" style={{ color: 'var(--nexora-ink)' }}>
         {label}
       </span>
     </button>
