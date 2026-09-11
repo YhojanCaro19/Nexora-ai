@@ -18,6 +18,8 @@ import {
   KeyRound,
   CalendarDays,
   BarChart3,
+  UserRound,
+  BadgeCheck,
 } from 'lucide-react';
 import { CreditCoinIcon } from '@/components/dashboard/shared/CreditCoin';
 
@@ -36,6 +38,7 @@ export const SUPERADMIN_NAV: NavGroup[] = [
     items: [
       { label: 'Inicio', href: '/superadmin', icon: LayoutDashboard },
       { label: 'Negocios', href: '/superadmin/negocios', icon: Building2 },
+      { label: 'Clientes', href: '/superadmin/clientes', icon: Users },
       { label: 'Estadísticas', href: '/superadmin/estadisticas', icon: BarChart3 },
       { label: 'Registros', href: '/superadmin/registros', icon: ClipboardList },
       { label: 'Cambio de correo', href: '/superadmin/solicitudes', icon: KeyRound },
@@ -76,6 +79,8 @@ export function getAdminNav(
       label: 'Operación',
       items: [
         { label: 'Pedidos', href: '/admin/pedidos', icon: ShoppingBag },
+        { label: 'Atención humana', href: '/admin/atencion', icon: UserRound },
+        { label: 'Comprobantes', href: '/admin/comprobantes', icon: BadgeCheck },
         ...(showReservations
           ? [{ label: 'Reservas', href: '/admin/reservas', icon: CalendarDays }]
           : []),
@@ -114,6 +119,12 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
 
   if (permissions.includes('pedidos')) {
     items.push({ label: 'Pedidos', href: '/colaborador/pedidos', icon: ShoppingBag });
+  }
+  if (permissions.includes('atencion')) {
+    items.push({ label: 'Atención humana', href: '/colaborador/atencion', icon: UserRound });
+  }
+  if (permissions.includes('comprobantes')) {
+    items.push({ label: 'Comprobantes', href: '/colaborador/comprobantes', icon: BadgeCheck });
   }
   if (permissions.includes('catalogo')) {
     items.push({ label: 'Catálogo', href: '/colaborador/catalogo', icon: Package });
@@ -156,6 +167,8 @@ export function getColaboradorNav(permissions: string[]): NavGroup[] {
  */
 export const ASSIGNABLE_MODULES = [
   { key: 'pedidos', label: 'Pedidos', icon: ShoppingBag },
+  { key: 'atencion', label: 'Atención humana', icon: UserRound },
+  { key: 'comprobantes', label: 'Comprobantes', icon: BadgeCheck },
   { key: 'catalogo', label: 'Catálogo', icon: Package },
   { key: 'reservas', label: 'Reservas', icon: CalendarDays },
   { key: 'clientes', label: 'Clientes', icon: Contact },

@@ -232,3 +232,105 @@ export async function getBusinesses(): Promise<BusinessWithOwner[]> {
     })
   );
 }
+
+export interface ClientPlanBreakdown {
+  key: string;
+  name: string;
+  /** Precio mensual en centavos COP (mismo formato que `plans.price_monthly_cop`). */
+  priceMonthlyCop: number;
+  count: number;
+}
+
+export interface ClientsOverview {
+  /** Negocios habilitados, con plan real, y con la mensualidad al día — el número grande de "Clientes". */
+  activeCount: number;
+  /** Habilitados y con plan real, pero `plan_renews_at` ya pasó — no se les corta el acceso (ver cron plan-renewal-reminders), pero no cuentan como "al día". */
+  overdueCount: number;
+  /** Habilitados pero sin `plan_key` — cuentas de prueba o creadas a mano por el superadmin, un cliente real siempre tiene plan_key desde el pago (ver creditService.ts). */
+  noPlanCount: number;
+  /** `is_active = false` — negocios que el superadmin inhabilitó. */
+  disabledCount: number;
+  /** Todos los negocios que se han registrado alguna vez, sin importar su estado actual. */
+  totalRegistered: number;
+  /** Cuántos negocios habilitados están en cada plan (al día + vencidos), para ver la distribución real entre planes. */
+  byPlan: ClientPlanBreakdown[];
+}
+
+/**
+ * Vista de trazabilidad de "clientes de AVENTHRA" (los negocios que pagan
+ * la plataforma) para Superadmin → Clientes. No es lo mismo que
+ * `getBusinesses` (esa trae el detalle fila por fila); acá se agregan
+ * conteos para el número grande + el desglose por plan.
+ */
+export async function getClientsOverview(): Promise<ClientsOverview> {
+  const admin = createAdminClient();
+  const empty: ClientsOverview = {
+    activeCount: 0,
+    overdueCount: 0,
+    noPlanCount: 0,
+    disabledCount: 0,
+    totalRegistered: 0,
+    byPlan: [],
+  };
+
+  const [{ data: businesses, error }, { data: wallets }, { data: plans }] = await Promise.all([
+    admin.from("businesses").select("id, is_active"),
+    admin.from("credit_wallets").select("business_id, plan_key, plan_renews_at"),
+    admin
+      .from("plans")
+      .select("key, name, price_monthly_cop, sort_order")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  if (error || !businesses) {
+    console.error("[getClientsOverview] error:", error);
+    return empty;
+  }
+
+  const walletByBusiness = new Map(
+    (wallets ?? []).map((w) => [
+      w.business_id as string,
+      w as { plan_key: string | null; plan_renews_at: string | null },
+    ])
+  );
+
+  const now = Date.now();
+  let activeCount = 0;
+  let overdueCount = 0;
+  let noPlanCount = 0;
+  let disabledCount = 0;
+  const countByPlanKey = new Map<string, number>();
+
+  for (const b of businesses) {
+    if (!b.is_active) {
+      disabledCount++;
+      continue;
+    }
+    const wallet = walletByBusiness.get(b.id);
+    if (!wallet?.plan_key) {
+      noPlanCount++;
+      continue;
+    }
+    const overdue = wallet.plan_renews_at ? new Date(wallet.plan_renews_at).getTime() < now : false;
+    if (overdue) overdueCount++;
+    else activeCount++;
+    countByPlanKey.set(wallet.plan_key, (countByPlanKey.get(wallet.plan_key) ?? 0) + 1);
+  }
+
+  const byPlan: ClientPlanBreakdown[] = (plans ?? []).map((p) => ({
+    key: p.key as string,
+    name: p.name as string,
+    priceMonthlyCop: p.price_monthly_cop as number,
+    count: countByPlanKey.get(p.key as string) ?? 0,
+  }));
+
+  return {
+    activeCount,
+    overdueCount,
+    noPlanCount,
+    disabledCount,
+    totalRegistered: businesses.length,
+    byPlan,
+  };
+}
